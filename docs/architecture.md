@@ -15,12 +15,11 @@ deliberately layered so an application can take only what it needs.
                  ▲ events / outcomes / quota
 ┌───────────────────────────────────────────────────────────┐
 │ CodingAgentRunner                                          │
-│   Sentinels   terminal-sentinel detection         (landed) │
 │   Quota       remaining-quota probe + cache       (planned)│
 │   Lifecycle   stop · process-tree reap · watchdog (planned)│
-│   Protocol    stream-json frames → events         (planned)│
-│   Spawning    binary resolve · env · clean-context· git-guard (planned)│
-│   Abstractions  options · ILogger · home provider (planned)│
+│   Protocol    stream-json → events incl. completion (planned)│
+│   Hardening   binary resolve(.cmd→.exe) · env · git (resolve landed) │
+│   Abstractions  CliOptions · ILogger · home/log providers (landed) │
 └───────────────────────────────────────────────────────────┘
                  ▲ spawns + reads
         coding-agent CLI (claude / codex / copilot / gemini)
@@ -28,20 +27,21 @@ deliberately layered so an application can take only what it needs.
 
 ## Modules
 
-### Sentinels — *landed*
-Stream-aware detection of the agent's terminal sentinel
-(`[[TASK_DONE]]` / `[[TASK_BLOCKED]]` / `[[TASK_NEEDS_INPUT]]` / `[[TASK_NOOP]]`).
-`LiveSentinelScanner` distinguishes the agent's *own* sentinel from one it merely
-read in a file. See [why-windows-hardening](why-windows-hardening.md#sentinel-false-fire).
+### Spawning / Hardening — *binary resolution landed*
+The hard-won Windows-safe launch. **Landed:** `BinaryResolver` — resolve a `.cmd`
+shim to the real `.exe` (the prompt-truncation fix), plus the `Abstractions`
+(`CliOptions`, `IUserHomeProvider`, `IRunLogPathProvider`) that decouple the
+library from host config. **Migrating:** environment hardening, clean-context,
+the *platform-owns-git* guard.
 
-### Spawning — *planned*
-The hard-won Windows-safe launch: resolve a `.cmd` shim to the real `.exe`,
-apply environment hardening, and redirect the CLI's config home for isolation
-(*clean-context*). Plus the *platform-owns-git* guard.
-
-### Protocol — *planned*
-Parse the CLI's `stream-json` output into a normalized `AgentRunEvent` stream
-(assistant text, tool calls, tool results, rate-limit frames, …).
+### Protocol & completion — *planned*
+Parse the CLI's `stream-json` output into a normalized `CliRunEvent` stream
+(assistant text, tool calls, tool results, rate-limit frames, …) — and report
+**completion from the CLI's own signal** (the `result` frame + process exit →
+`TurnCompleted` / `ProcessExited`), **not** by scraping a `[[TASK_DONE]]`
+sentinel. Sentinel-scraping is a fragile heuristic (it caused a false-completion
+incident) and is the consumer application's own run protocol, not a library
+primitive — so it stays in the app, not here.
 
 ### Lifecycle — *planned*
 Stop a run, reap the whole process tree (no orphaned grandchildren holding file

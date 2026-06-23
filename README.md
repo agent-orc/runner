@@ -17,7 +17,7 @@ Running these CLIs from another process on Windows is full of footguns that each
 - **The `.cmd`-shim prompt truncation.** On Windows `claude`/`codex` often resolve to a `.cmd` shim; spawning it routes through `cmd.exe`, which silently truncates a multi-line prompt at the first newline — so the agent receives only the first line and no task. The runner resolves and launches the real `.exe`.
 - **Platform-owns-git boundary.** A guard keeps the agent from running `git commit`/`push` (the host owns version control) — which also avoids a class of mid-run crashes.
 - **Clean-context isolation.** Each run gets an isolated CLI home so concurrent runs (and your own interactive session) don't collide.
-- **Honest completion detection.** A stream-aware sentinel scanner tells the agent's *own* `[[TASK_DONE]]` apart from one it merely *read* in a file.
+- **Completion you can trust.** The library uses the CLI's *own* completion signal (the `stream-json` result frame + process exit) — not a fragile `[[TASK_DONE]]`-scraping heuristic.
 - **Quota awareness.** Probe and cache the remaining rate-limit window per CLI, with an escalation policy that polls more often as you approach the limit.
 
 See [docs/why-windows-hardening.md](docs/why-windows-hardening.md) for the full stories behind each.
@@ -28,9 +28,9 @@ Claude Code · OpenAI Codex · GitHub Copilot CLI · Gemini CLI (extensible).
 
 ## Features
 
-- ✅ Stream-aware terminal-sentinel detection (`[[TASK_DONE]]` / `BLOCKED` / `NEEDS_INPUT` / `NOOP`).
-- 🚧 Hardened process spawning (binary resolution, environment hardening, clean-context).
-- 🚧 `stream-json` → structured event stream.
+- ✅ Hardened binary resolution (`.cmd`→`.exe`, the prompt-truncation fix) + decoupling abstractions.
+- 🚧 Process spawning: environment hardening, clean-context, git-guard.
+- 🚧 `stream-json` → structured event stream (incl. the CLI's real completion signal).
 - 🚧 Lifecycle: stop, process-tree reap, watchdog.
 - 🚧 Platform-owns-git guard.
 - 🚧 Quota probing + smart escalation caching.
@@ -45,7 +45,8 @@ Claude Code · OpenAI Codex · GitHub Copilot CLI · Gemini CLI (extensible).
 
 ```
 src/CodingAgentRunner/          the library
-  Sentinels/                    terminal-sentinel detection (landed)
+  Execution/Hardening/          binary resolution (landed) · env/git-guard/clean-context (migrating)
+  Abstractions/                 consumer-supplied options + providers
 tests/CodingAgentRunner.Tests/  xUnit tests
 docs/                           developer wiki (architecture, the "why")
 website/                        project website (static, English)

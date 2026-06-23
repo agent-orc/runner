@@ -56,19 +56,22 @@ transcripts never collide. The liveness watcher follows the run into that home.
 
 ---
 
-## 4 · The sentinel false-fire <a id="sentinel-false-fire"></a>
+## 4 · Why completion comes from the CLI, not a sentinel
 
-**Symptom.** Runs killed *mid-work* as false "completions", committing nothing.
+**The trap.** A natural-looking shortcut is to detect "the agent is done" by
+scraping a terminal marker like `[[TASK_DONE]]` from the output. It is fragile: a
+scanner that matches the marker on **every** line also fires on file content the
+agent merely **read** (tool results ride the `user` stream, and rules / contract
+docs are full of such literals) — killing a run mid-work as a false "completion".
 
-**Cause.** A live scanner matched the terminal sentinel `[[TASK_DONE]]` on **every**
-output line — including file content the agent merely **read** (tool results ride
-the `user` stream), and agent rules / contract docs are full of such literals.
+**The fix: don't scrape.** The CLI already tells you when it's done. claude-code's
+`stream-json` emits a final `result` frame and the process exits; codex signals
+completion through its SDK / app-server protocol. CodingAgentRunner reports
+completion from **that** real signal (`TurnCompleted` / `ProcessExited`).
 
-**Fix (landed).** `LiveSentinelScanner` (a) only considers the agent's **own**
-stream (drops `system` / `user` / `orchestrator` / `stderr`), and (b) requires a
-**standalone** sentinel line — the token is essentially the whole line, modulo a
-little markdown decoration — so a sentinel quoted in prose or code does not fire.
-Pinned by 9 tests.
+**Boundary.** A structured outcome vocabulary (`done` / `blocked` / `needs-input`)
+is an *application* run-protocol, not a universal CLI primitive — so it lives in
+the consumer app, not in this library.
 
 ---
 

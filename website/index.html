@@ -92,7 +92,7 @@
       <div class="card"><h3><span class="dot"></span> Prompt delivery</h3><p>Resolves the Windows `.cmd` shim to the real `.exe`, so a multi-line prompt isn't truncated at the first newline by <code>cmd.exe</code>.</p></div>
       <div class="card"><h3><span class="dot"></span> Platform-owns-git</h3><p>Keeps the agent from running <code>git commit</code>/<code>push</code> — the host owns version control — closing a git-bash bypass and a crash trigger.</p></div>
       <div class="card"><h3><span class="dot"></span> Clean-context</h3><p>Each run gets an isolated CLI home, so concurrent runs and your own session never collide.</p></div>
-      <div class="card"><h3><span class="dot"></span> Honest completion</h3><p>A stream-aware sentinel scanner tells the agent's own <code>[[TASK_DONE]]</code> apart from one it merely read in a file.</p></div>
+      <div class="card"><h3><span class="dot"></span> Real completion</h3><p>Completion comes from the CLI's own signal (the stream-json result frame + process exit), not a fragile <code>[[TASK_DONE]]</code>-scraping heuristic.</p></div>
       <div class="card"><h3><span class="dot"></span> Lifecycle &amp; reaping</h3><p>Stop a run and reap the whole process tree — no orphaned grandchildren holding file handles.</p></div>
       <div class="card"><h3><span class="dot"></span> Quota, cached</h3><p>Probe the remaining rate-limit window per CLI, cached with an escalation policy that polls more often as you near the limit.</p></div>
     </div>
@@ -104,8 +104,8 @@
     <div>
       <h2>Features</h2>
       <ul class="feat">
-        <li><b>Terminal-sentinel detection</b><span class="pill done">landed</span></li>
-        <li><b>Hardened process spawning</b><span class="pill wip">migrating</span></li>
+        <li><b>Hardened binary resolution (.cmd&rarr;.exe)</b><span class="pill done">landed</span></li>
+        <li><b>Env hardening &middot; clean-context &middot; git-guard</b><span class="pill wip">migrating</span></li>
         <li><b>stream-json → event stream</b><span class="pill wip">migrating</span></li>
         <li><b>Lifecycle: stop · reap · watchdog</b><span class="pill wip">migrating</span></li>
         <li><b>Platform-owns-git guard</b><span class="pill wip">migrating</span></li>
