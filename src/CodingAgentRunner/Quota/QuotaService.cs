@@ -39,6 +39,8 @@ public sealed class QuotaService
     private readonly IQuotaCacheStore? _store;
     // Per-CLI usage caps (percent). A run is gated when the cached usage reaches it.
     private readonly ConcurrentDictionary<string, double> _caps = new(StringComparer.OrdinalIgnoreCase);
+    // Serializes Observe's read-merge-write against probe writes so neither loses the other's update.
+    private readonly object _cacheLock = new();
 
     /// <summary>Create the service over a set of probes, with optional escalation options and persistence.</summary>
     public QuotaService(
@@ -133,7 +135,7 @@ public sealed class QuotaService
         {
             using var cts = new CancellationTokenSource(_options.ProbeTimeout);
             var snap = await probe.ProbeAsync(cts.Token).ConfigureAwait(false);
-            _cache[cliType] = snap;
+            lock (_cacheLock) _cache[cliType] = snap;
             PersistCache();
             return snap;
         }
@@ -141,7 +143,7 @@ public sealed class QuotaService
         {
             _logger.LogWarning(ex, "Quota probe for {Cli} threw", cliType);
             var snap = new QuotaSnapshot { CliType = cliType, Error = ex.Message };
-            _cache[cliType] = snap;
+            lock (_cacheLock) _cache[cliType] = snap;
             PersistCache();
             return snap;
         }
@@ -156,7 +158,11 @@ public sealed class QuotaService
     /// any CLI, with or without a registered probe.
     /// </summary>
     public void Cap(string cliType, double stopAtPercent)
-        => _caps[CliTypes.Normalize(cliType)] = stopAtPercent;
+    {
+        if (stopAtPercent < 0)
+            throw new ArgumentOutOfRangeException(nameof(stopAtPercent), "Cap percent must be >= 0.");
+        _caps[CliTypes.Normalize(cliType)] = stopAtPercent;
+    }
 
     /// <summary>
     /// Cheap, non-blocking cap check — reads the cache, never probes. Returns
@@ -202,40 +208,44 @@ public sealed class QuotaService
         var cli = CliTypes.Normalize(cliType);
         if (string.IsNullOrWhiteSpace(cli)) return false;
 
-        var prior = GetCachedFor(cli);
         var label = rl.Window ?? "rate-limit";
         DateTime? reset = rl.ResetsAt > 0
             ? DateTimeOffset.FromUnixTimeSeconds(rl.ResetsAt).UtcDateTime
             : (DateTime?)null;
 
-        // MERGE by window label — never discard the prior snapshot's other windows, and
-        // never LOWER a usage a probe already established (the event has no precise
-        // percent). Overage means we are at/over the base limit for THIS window (100%);
-        // a non-overage event only refreshes the reset time.
-        var windows = prior?.Windows is { Count: > 0 } p ? new List<QuotaWindow>(p) : new List<QuotaWindow>();
-        var idx = windows.FindIndex(w => string.Equals(w.Label, label, StringComparison.OrdinalIgnoreCase));
-        var existing = idx >= 0 ? windows[idx] : null;
-        var merged = new QuotaWindow
+        // Read-merge-write under the cache lock so a concurrent probe write is not lost
+        // (and we don't lose the probe's windows). MERGE by window label — never discard
+        // the prior snapshot's other windows, and never LOWER a usage a probe established
+        // (the event has no precise percent). Overage means we are at/over the base limit
+        // for THIS window (100%); a non-overage event only refreshes the reset time.
+        lock (_cacheLock)
         {
-            Label = label,
-            UsedPct = rl.IsUsingOverage ? 100d : existing?.UsedPct,   // overage→100; else keep prior, invent nothing
-            Used = existing?.Used,
-            Limit = existing?.Limit,
-            Unit = existing?.Unit,
-            ResetAt = reset ?? existing?.ResetAt,
-            ResetLabel = existing?.ResetLabel,
-        };
-        if (idx >= 0) windows[idx] = merged; else windows.Add(merged);
+            var prior = _cache.TryGetValue(cli, out var s) ? s : null;
+            var windows = prior?.Windows is { Count: > 0 } p ? new List<QuotaWindow>(p) : new List<QuotaWindow>();
+            var idx = windows.FindIndex(w => string.Equals(w.Label, label, StringComparison.OrdinalIgnoreCase));
+            var existing = idx >= 0 ? windows[idx] : null;
+            var merged = new QuotaWindow
+            {
+                Label = label,
+                UsedPct = rl.IsUsingOverage ? 100d : existing?.UsedPct,   // overage→100; else keep prior, invent nothing
+                Used = existing?.Used,
+                Limit = existing?.Limit,
+                Unit = existing?.Unit,
+                ResetAt = reset ?? existing?.ResetAt,
+                ResetLabel = existing?.ResetLabel,
+            };
+            if (idx >= 0) windows[idx] = merged; else windows.Add(merged);
 
-        _cache[cli] = new QuotaSnapshot
-        {
-            CliType = cli,
-            FetchedAt = DateTime.UtcNow,
-            Plan = prior?.Plan,
-            Windows = windows,
-            Source = "event",
-            RawSample = $"status={rl.Status}; overage={rl.OverageStatus}; usingOverage={rl.IsUsingOverage}",
-        };
+            _cache[cli] = new QuotaSnapshot
+            {
+                CliType = cli,
+                FetchedAt = DateTime.UtcNow,
+                Plan = prior?.Plan,
+                Windows = windows,
+                Source = "event",
+                RawSample = $"status={rl.Status}; overage={rl.OverageStatus}; usingOverage={rl.IsUsingOverage}",
+            };
+        }
         PersistCache();
         return true;
     }
