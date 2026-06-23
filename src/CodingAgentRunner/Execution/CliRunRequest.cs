@@ -39,7 +39,12 @@ public sealed record CliRunRequest
     /// </summary>
     public string ContextMode { get; init; } = CodingAgentRunner.Model.CliContextModes.Clean;
 
-    /// <summary>Extra environment variables for this run, applied after the standard hardening.</summary>
+    /// <summary>
+    /// Extra environment variables for this run, applied <b>after</b> the standard
+    /// hardening — so they <em>win</em> over it. This is a deliberate escape hatch; use
+    /// it to add run-specific vars, not to undo hardening (overriding e.g. the UTF-8 /
+    /// no-color / build-server keys can reintroduce the footguns the library prevents).
+    /// </summary>
     public IReadOnlyDictionary<string, string>? ExtraEnvironment { get; init; }
 
     /// <summary>

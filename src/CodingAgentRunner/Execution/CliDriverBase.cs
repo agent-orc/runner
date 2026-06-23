@@ -210,7 +210,12 @@ internal abstract class CliDriverBase : ICliDriver
     /// </summary>
     protected virtual string? GetPromptStdinPayload(CliRunRequest request, string? model) => null;
 
-    /// <summary>Normalize a model id before it reaches argv. Default: trim / null-empty.</summary>
+    /// <summary>
+    /// Normalize a model id before it reaches argv. Default: trim / null-empty.
+    /// <para>An override MUST preserve enough of the id (family/version tokens) for
+    /// <see cref="CliThinkingLevels"/> to still recognize it — the normalized value is
+    /// also what resolves the reasoning ladder.</para>
+    /// </summary>
     protected virtual string? NormalizeModelForInvocation(string? model)
         => string.IsNullOrWhiteSpace(model) ? null : model.Trim();
 
@@ -243,6 +248,17 @@ internal abstract class CliDriverBase : ICliDriver
     public async Task<(CliRunInfo? Run, string? Error)> StartAsync(CliRunRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        // Input validation (fail fast, clear error) before touching process state.
+        if (string.IsNullOrWhiteSpace(request.RunId))
+            return (null, "RunId must be a non-empty id, unique per live run.");
+        if (string.IsNullOrWhiteSpace(request.WorkingDirectory) || !Directory.Exists(request.WorkingDirectory))
+            return (null, $"WorkingDirectory does not exist: '{request.WorkingDirectory}'.");
+        if (request.Tuning is not null)
+            foreach (var kv in request.Tuning)
+                if (string.IsNullOrWhiteSpace(kv.Key))
+                    return (null, "Tuning keys cannot be empty.");
+
         if (_processes.TryGetValue(request.RunId, out var existing))
         {
             if (!SafeHasExited(existing.Process))

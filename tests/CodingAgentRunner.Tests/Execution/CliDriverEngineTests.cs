@@ -191,6 +191,30 @@ public class CliDriverEngineTests
     }
 
     [Fact]
+    public async Task StartAsync_RejectsInvalidInput_WithClearErrors()
+    {
+        using var logs = new TempLogs();
+        var driver = new ProbeDriver("dotnet", ["--version"], logs);
+        var wd = Path.GetTempPath();
+
+        var (_, e1) = await driver.StartAsync(new CliRunRequest { RunId = "", Prompt = "x", WorkingDirectory = wd });
+        Assert.Contains("RunId", e1);
+        var (_, e2) = await driver.StartAsync(new CliRunRequest { RunId = "   ", Prompt = "x", WorkingDirectory = wd });
+        Assert.Contains("RunId", e2);
+
+        var missing = Path.Combine(wd, "no-such-dir-" + Guid.NewGuid().ToString("N"));
+        var (_, e3) = await driver.StartAsync(new CliRunRequest { RunId = "r", Prompt = "x", WorkingDirectory = missing });
+        Assert.Contains("WorkingDirectory", e3);
+
+        var (_, e4) = await driver.StartAsync(new CliRunRequest
+        {
+            RunId = "r", Prompt = "x", WorkingDirectory = wd,
+            Tuning = new Dictionary<string, string> { ["  "] = "v" },
+        });
+        Assert.Contains("Tuning", e4);
+    }
+
+    [Fact]
     public async Task NonZeroExit_RaisesRunEnded_FailedOutcome_WithExitCodeReason()
     {
         using var logs = new TempLogs();
