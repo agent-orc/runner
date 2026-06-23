@@ -26,7 +26,7 @@ See [docs/why-windows-hardening.md](docs/why-windows-hardening.md) for the full 
 
 ## Supported agents
 
-Claude Code · OpenAI Codex · GitHub Copilot CLI · Gemini CLI — and you can derive `CliDriverBase` to wrap your own.
+Claude Code · OpenAI Codex · GitHub Copilot CLI · Gemini CLI. The library targets these four CLIs in their specific versions — it is purpose-built for them, not a generic "wrap any CLI" framework.
 
 ## Features
 

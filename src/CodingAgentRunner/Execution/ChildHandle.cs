@@ -24,7 +24,7 @@ namespace CodingAgentRunner.Execution;
 /// the runner's stdout loop see everything.
 /// </para>
 /// </summary>
-public sealed record ChildHandle(
+internal sealed record ChildHandle(
     Process Process,
     Stream Stdin,
     StreamReader Stdout,

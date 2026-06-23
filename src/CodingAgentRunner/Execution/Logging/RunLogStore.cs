@@ -24,7 +24,7 @@ namespace CodingAgentRunner.Execution.Logging;
 /// (<see cref="ReadMerged"/>), not by everyone writing the same file.
 /// </para>
 /// </summary>
-public sealed class RunLogStore : IDisposable
+internal sealed class RunLogStore : IDisposable
 {
     private readonly string _runDir;
     private readonly ConcurrentDictionary<string, CliOutputLogStore> _byStream = new(StringComparer.OrdinalIgnoreCase);

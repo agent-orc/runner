@@ -17,7 +17,7 @@ namespace CodingAgentRunner.Execution.Hardening;
 /// extensionless <c>git</c> (for git-bash) and a <c>git.cmd</c> (for cmd.exe) are
 /// written — a <c>.cmd</c>-only guard is silently bypassed.</para>
 /// </summary>
-public static class AgentGitCommandGuard
+internal static class AgentGitCommandGuard
 {
     private static readonly string[] GlobalOptionsWithValue =
         ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"];

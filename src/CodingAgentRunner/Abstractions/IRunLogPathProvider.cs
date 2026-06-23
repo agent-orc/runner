@@ -18,7 +18,7 @@ public interface IRunLogPathProvider
 /// <c>coding-agent-runner</c> folder in the temp root from an
 /// <see cref="IUserHomeProvider"/>.
 /// </summary>
-public sealed class DefaultRunLogPathProvider : IRunLogPathProvider
+internal sealed class DefaultRunLogPathProvider : IRunLogPathProvider
 {
     private readonly string _root;
 

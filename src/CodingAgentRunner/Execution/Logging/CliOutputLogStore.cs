@@ -29,7 +29,7 @@ namespace CodingAgentRunner.Execution.Logging;
 /// throwing.
 /// </para>
 /// </summary>
-public sealed class CliOutputLogStore : IDisposable
+internal sealed class CliOutputLogStore : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = false };
     private static readonly byte[] Newline = Encoding.UTF8.GetBytes("\n");

@@ -14,7 +14,7 @@ public interface IUserHomeProvider
 }
 
 /// <summary>Default provider: <c>USERPROFILE</c>/<c>HOME</c> and the system temp path.</summary>
-public sealed class DefaultUserHomeProvider : IUserHomeProvider
+internal sealed class DefaultUserHomeProvider : IUserHomeProvider
 {
     /// <inheritdoc />
     public string GetUserHome()

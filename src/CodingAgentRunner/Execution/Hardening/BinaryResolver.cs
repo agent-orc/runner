@@ -16,7 +16,7 @@ namespace CodingAgentRunner.Execution.Hardening;
 /// <c>CreateProcess</c> parse the argument via <c>CommandLineToArgvW</c>, and the
 /// multi-line prompt survives verbatim.</para>
 /// </summary>
-public static class BinaryResolver
+internal static class BinaryResolver
 {
     /// <summary>
     /// Resolve <paramref name="nameOrPath"/> to a launchable executable: walk

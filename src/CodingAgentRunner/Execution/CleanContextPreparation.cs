@@ -18,7 +18,7 @@ namespace CodingAgentRunner.Execution;
 /// active regardless of mode.
 /// </para>
 /// </summary>
-public sealed class CleanContextPreparation : IDisposable
+internal sealed class CleanContextPreparation : IDisposable
 {
     private readonly ILogger? _logger;
     private int _disposed;
@@ -76,7 +76,7 @@ public sealed class CleanContextPreparation : IDisposable
 /// <see cref="Path.GetTempPath"/>) so it is directly unit-testable with an injected
 /// fake home.
 /// </summary>
-public static class CleanContextPreparer
+internal static class CleanContextPreparer
 {
     /// <summary>
     /// Files copied from <c>~/.claude</c> into a clean <c>CLAUDE_CONFIG_DIR</c>: the

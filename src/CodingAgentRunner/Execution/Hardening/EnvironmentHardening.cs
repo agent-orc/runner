@@ -9,7 +9,7 @@ namespace CodingAgentRunner.Execution.Hardening;
 /// reliably and produce a parseable, leak-free stream — especially on Windows
 /// under a long-lived host process.
 /// </summary>
-public static class EnvironmentHardening
+internal static class EnvironmentHardening
 {
     /// <summary>
     /// Stamp the hardening environment onto <paramref name="psi"/>. Consumer

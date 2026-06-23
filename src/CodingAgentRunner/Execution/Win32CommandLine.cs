@@ -15,7 +15,7 @@ namespace CodingAgentRunner.Execution;
 /// (<see cref="Win.WindowsHandleScrubSpawner"/>) is Windows-only.
 /// </para>
 /// </summary>
-public static class Win32CommandLine
+internal static class Win32CommandLine
 {
     /// <summary>Build a command line: the quoted exe followed by each quoted arg.</summary>
     public static string Build(string exe, IReadOnlyList<string> args)

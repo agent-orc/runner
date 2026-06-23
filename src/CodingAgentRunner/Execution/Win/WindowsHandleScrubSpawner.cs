@@ -27,7 +27,7 @@ namespace CodingAgentRunner.Execution.Win;
 /// <para>Windows-only by attribute. Callers fall through to the standard <see cref="Process.Start()"/> path on non-Windows.</para>
 /// </summary>
 [SupportedOSPlatform("windows")]
-public static class WindowsHandleScrubSpawner
+internal static class WindowsHandleScrubSpawner
 {
     /// <summary>
     /// Result of a curated spawn. Stdin / Stdout / Stderr are owned by the caller

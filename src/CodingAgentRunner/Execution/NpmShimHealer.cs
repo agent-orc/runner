@@ -25,13 +25,13 @@ namespace CodingAgentRunner.Execution;
 /// <c>claude --version</c> after the repair pass.
 /// </para>
 /// </summary>
-public sealed record HealOutcome(
+internal sealed record HealOutcome(
     bool Available,
     IReadOnlyList<string> Actions,
     string? Error);
 
 /// <summary>Repairs broken npm CLI shim installs on Windows (no-op elsewhere).</summary>
-public static class NpmShimHealer
+internal static class NpmShimHealer
 {
     /// <summary>
     /// Repair the <c>claude</c> npm-shim install on Windows and smoke-test the
