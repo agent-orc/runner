@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CodingAgentRunner — run coding-agent CLIs from .NET, reliably</title>
-<meta name="description" content="A .NET library to run coding-agent CLIs (Claude Code, Codex, Copilot, Gemini) reliably — hardened spawning, streamed events, lifecycle and quota tracking." />
+<title>CodingAgentRunner — run coding-agent CLIs from your .NET app</title>
+<meta name="description" content="A .NET library that runs coding-agent CLIs (Claude Code, Codex, Copilot, Gemini) as child processes — using the CLI you already sign in to, with no API keys. Typed event stream, lifecycle and quota tracking." />
 <style>
   :root{
     --fg:#10151c;--muted:#5b6573;--line:#e6e9ee;--accent:#2f6df6;--accent2:#7c3aed;
@@ -16,85 +16,133 @@
   .wrap{max-width:980px;margin:0 auto;padding:0 22px;}
   code{background:#eef1f5;padding:1px 6px;border-radius:5px;font:13px/1.5 ui-monospace,Consolas,monospace;}
   pre{background:var(--code);color:var(--codefg);padding:16px 18px;border-radius:12px;overflow:auto;font:13px/1.6 ui-monospace,Consolas,monospace;}
-  pre .c{color:#7f8a9b;} pre .k{color:#79b8ff;} pre .s{color:#9ecbff;}
+  pre code{background:none;padding:0;}
+  pre .c{color:#7f8a9b;} pre .k{color:#79b8ff;} pre .s{color:#9ecbff;} pre .t{color:#c8a8ff;}
   /* hero */
   header.hero{background:radial-gradient(1100px 380px at 50% -120px,#eef2ff 0,transparent 70%);border-bottom:1px solid var(--line);padding:64px 0 52px;text-align:center;}
   .badge{display:inline-block;font-size:12.5px;font-weight:600;color:var(--accent);background:#eef3ff;border:1px solid #dbe6ff;padding:4px 12px;border-radius:999px;margin-bottom:18px;}
   h1{font-size:42px;line-height:1.1;letter-spacing:-1px;margin:0 0 14px;}
   h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
-  .tag{font-size:19px;color:var(--muted);max-width:680px;margin:0 auto 26px;}
+  .tag{font-size:19px;color:var(--muted);max-width:700px;margin:0 auto 26px;}
   .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
   .btn{display:inline-block;padding:11px 20px;border-radius:10px;font-weight:600;font-size:15px;}
   .btn.primary{background:var(--accent);color:#fff;} .btn.primary:hover{background:#1f5ae0;text-decoration:none;}
   .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--fg);} .btn.ghost:hover{border-color:#c8cfdb;text-decoration:none;}
+  .provenance{margin:22px auto 0;max-width:640px;font-size:13.5px;color:var(--muted);}
   /* sections */
   section{padding:48px 0;border-bottom:1px solid var(--line);}
   h2{font-size:25px;letter-spacing:-.4px;margin:0 0 8px;}
-  .lead{color:var(--muted);max-width:720px;margin:0 0 22px;}
+  h3{font-size:18px;letter-spacing:-.2px;margin:28px 0 6px;}
+  .lead{color:var(--muted);max-width:740px;margin:0 0 22px;}
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;}
   .card h3{margin:0 0 6px;font-size:16px;display:flex;align-items:center;gap:8px;}
   .card p{margin:0;color:var(--muted);font-size:14.5px;}
   .dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--accent);}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start;}
   @media(max-width:760px){.two{grid-template-columns:1fr;} h1{font-size:34px;}}
   ul.feat{list-style:none;padding:0;margin:0;} ul.feat li{padding:7px 0;border-bottom:1px solid var(--line);font-size:15px;}
   ul.feat li b{font-weight:600;}
   .pill{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;margin-left:6px;}
   .pill.done{background:#e7f6ed;color:var(--ok);} .pill.wip{background:#fff3e0;color:var(--warn);}
-  footer{padding:34px 0 60px;color:var(--muted);font-size:14px;text-align:center;}
   .note{background:#fffaf2;border:1px solid #f3e2c7;border-radius:12px;padding:12px 16px;color:#7a5a1e;font-size:14.5px;}
+  .exlabel{font-size:13px;font-weight:700;color:var(--fg);margin:18px 0 6px;}
+  .exlabel span{color:var(--muted);font-weight:500;}
+  /* docs nav + tables */
+  .docnav{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 26px;}
+  .docnav a{font-size:13px;background:#eef1f5;border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--fg);}
+  .docnav a:hover{border-color:#c8cfdb;text-decoration:none;}
+  .docsec{padding-top:14px;}
+  .docsec h3{scroll-margin-top:14px;}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top;}
+  th{background:#f3f5f9;font-weight:600;}
+  td code,th code{background:#eef1f5;}
+  footer{padding:34px 0 60px;color:var(--muted);font-size:14px;text-align:center;}
+  footer a{color:var(--muted);text-decoration:underline;}
 </style>
 </head>
 <body>
 
 <header class="hero">
   <div class="wrap">
-    <span class="badge">.NET library · Apache-2.0 · early / WIP</span>
+    <span class="badge">.NET library · Apache-2.0 · stable core, pre-1.0</span>
     <h1>Coding<span class="grad">AgentRunner</span></h1>
-    <p class="tag">Run coding-agent CLIs — Claude Code, Codex, Copilot, Gemini — from .NET: <b>hardened spawning, streamed events, lifecycle &amp; quota tracking.</b></p>
+    <p class="tag">Give a .NET application an LLM on your local machine — using the coding-agent CLI you already sign in to, with <b>no API keys</b>. Run a single prompt, or a full multi-turn session.</p>
     <div class="btns">
       <a class="btn primary" href="https://github.com/RobertMischke/coding-agent-runner">View on GitHub</a>
-      <a class="btn ghost" href="https://github.com/RobertMischke/coding-agent-runner/tree/main/docs">Read the docs</a>
+      <a class="btn ghost" href="#docs">Read the docs ↓</a>
     </div>
+    <p class="provenance">Extracted from <b>Agent Studio</b>, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs.</p>
   </div>
 </header>
 
 <section>
   <div class="wrap two">
     <div>
-      <h2>The boring part that's secretly hard</h2>
-      <p class="lead">Spawning a coding-agent CLI from another process and reading its output <em>looks</em> trivial — until you do it on Windows, unattended, at scale. A `.cmd` shim silently truncates your prompt. The agent commits to git when it shouldn't. Concurrent runs trample each other's session. A "done" marker fires because the agent <em>read</em> one in a file. CodingAgentRunner is the layer that has already paid for those lessons.</p>
+      <h2>Your CLI subscription, called from code</h2>
+      <p class="lead">You already sign in to a coding-agent CLI — Claude Code, Codex, Copilot, or Gemini — on your machine. CodingAgentRunner lets a .NET program start that CLI, send it a prompt, and read its output as a typed event stream. The run uses your existing sign-in, so there is no API key to manage and no separate billing to set up. Any .NET application can get an LLM on the local development machine this way.</p>
     </div>
     <div>
-      <pre><span class="c">// run an agent, consume a structured event stream</span>
-<span class="k">var</span> runner = <span class="k">new</span> CodingAgentRunner(options, logger);
-<span class="k">await foreach</span> (<span class="k">var</span> evt <span class="k">in</span> runner.RunAsync(<span class="k">new</span> AgentRunOptions
+      <pre><span class="c">// Wire the library once; resolve a driver per CLI.</span>
+<span class="k">var</span> runner = <span class="k">new</span> CliRunner(<span class="k">new</span> CliOptions());
+<span class="k">var</span> driver = runner.Get(<span class="s">"claude"</span>);
+
+<span class="k">var</span> (run, error) = <span class="k">await</span> driver.StartAsync(<span class="k">new</span> CliRunRequest
 {
-    Cli = AgentCli.ClaudeCode,
-    Prompt = <span class="s">"refactor the parser…"</span>,
+    RunId = <span class="s">"task-1"</span>,
+    Prompt = <span class="s">"Fix the failing build."</span>,
     WorkingDirectory = repo,
-    CleanContext = <span class="k">true</span>,
-}, ct))
+});
+<span class="k">if</span> (error <span class="k">is not null</span>) Console.Error.WriteLine(error);</pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap two">
+    <div>
+      <h2>One-shot, or a full session</h2>
+      <p class="lead">Use it as a one-shot call — send a prompt, read the result, done. Or keep a run going and drive a longer, back-and-forth task: react to each tool call, send follow-ups, and stop the run when you decide it is finished. Completion comes from the CLI's own signal, not from scraping the output for a marker.</p>
+    </div>
+    <div>
+      <pre><span class="c">// React to the typed event stream.</span>
+driver.OnRunEvent += (runId, e) =&gt;
 {
-    <span class="c">// AssistantText | ToolCall | ToolResult | RateLimit…</span>
-}</pre>
-      <p class="lead" style="margin-top:10px;font-size:13px;">API sketch — the surface is still settling during extraction.</p>
+    <span class="k">switch</span> (e)
+    {
+        <span class="k">case</span> CliRunEvent.OutputDelta d:   Console.Write(d.Text); <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.ToolStarted t:   Log($<span class="s">"[tool] {t.ToolName}"</span>); <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.TurnCompleted c: Log($<span class="s">"done: {c.UsageSummary}"</span>); <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.RunEnded end:    Log($<span class="s">"{end.Outcome} in {end.Duration:F1}s"</span>); <span class="k">break</span>;
+    }
+};
+
+<span class="c">// Stop a run on purpose — reported as stopped, not a crash.</span>
+driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2>What it hardens</h2>
-    <p class="lead">Each of these was a real, time-consuming incident in a production orchestrator. Every fix ships with a test that pins why it exists.</p>
+    <h2>Supported agents</h2>
+    <p class="lead">Claude Code · OpenAI Codex · GitHub Copilot CLI. The library targets these CLIs in their specific versions — it is purpose-built for them, not a generic "wrap any CLI" framework, and there is no public extension point.</p>
+    <p class="lead" style="font-size:14px;">A Gemini CLI driver also ships but is deprecated and unmaintained; Google's agentic CLI (Antigravity) is the planned replacement. Clean-context isolation applies to Claude and Codex; Copilot and Gemini run with shared state.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What it handles on Windows</h2>
+    <p class="lead">Running a CLI as a child process on Windows, unattended, has a handful of specific failure modes. The library handles each one, and each fix ships with a test that records why it exists.</p>
     <div class="cards">
-      <div class="card"><h3><span class="dot"></span> Prompt delivery</h3><p>Resolves the Windows `.cmd` shim to the real `.exe`, so a multi-line prompt isn't truncated at the first newline by <code>cmd.exe</code>.</p></div>
-      <div class="card"><h3><span class="dot"></span> Platform-owns-git</h3><p>Keeps the agent from running <code>git commit</code>/<code>push</code> — the host owns version control — closing a git-bash bypass and a crash trigger.</p></div>
-      <div class="card"><h3><span class="dot"></span> Clean-context</h3><p>Each run gets an isolated CLI home, so concurrent runs and your own session never collide.</p></div>
-      <div class="card"><h3><span class="dot"></span> Real completion</h3><p>Completion comes from the CLI's own signal (the stream-json result frame + process exit), not a fragile <code>[[TASK_DONE]]</code>-scraping heuristic.</p></div>
-      <div class="card"><h3><span class="dot"></span> Lifecycle &amp; reaping</h3><p>Stop a run and reap the whole process tree — no orphaned grandchildren holding file handles.</p></div>
-      <div class="card"><h3><span class="dot"></span> Quota, cached</h3><p>Probe the remaining rate-limit window per CLI, cached with an escalation policy that polls more often as you near the limit.</p></div>
+      <div class="card"><h3><span class="dot"></span> Prompt delivery</h3><p>On Windows <code>claude</code>/<code>codex</code> often resolve to a <code>.cmd</code> shim; spawning it routes through <code>cmd.exe</code>, which truncates a multi-line prompt at the first newline. The runner resolves and launches the real <code>.exe</code>.</p></div>
+      <div class="card"><h3><span class="dot"></span> Platform owns git</h3><p>A soft rule in the agent's instructions keeps it from running <code>git commit</code>/<code>push</code>; an optional PATH-front <code>git</code> wrapper adds defence-in-depth. It is a safety net, not a sandbox.</p></div>
+      <div class="card"><h3><span class="dot"></span> Clean-context</h3><p>Each run can get an isolated CLI home, so concurrent runs and your own interactive session do not collide. The repo's <code>AGENTS.md</code>/<code>CLAUDE.md</code> stay active in both modes.</p></div>
+      <div class="card"><h3><span class="dot"></span> Real completion</h3><p>Completion comes from the CLI's own signal — the <code>stream-json</code> result frame plus process exit — not from scraping the output for a <code>[[TASK_DONE]]</code> marker.</p></div>
+      <div class="card"><h3><span class="dot"></span> Honest outcomes</h3><p>A deliberate stop (user pause, watchdog) is reported as <em>stopped</em>, not as a <code>-1</code> crash — the distinction Windows' <code>Process.Kill</code> throws away.</p></div>
+      <div class="card"><h3><span class="dot"></span> Quota awareness</h3><p>Cache the remaining rate-limit window per CLI, with an escalation policy that polls more often as you approach the limit, plus a cap/gate to skip a run before it hits the wall.</p></div>
     </div>
   </div>
 </section>
@@ -104,26 +152,253 @@
     <div>
       <h2>Features</h2>
       <ul class="feat">
-        <li><b>Hardened binary resolution (.cmd&rarr;.exe)</b><span class="pill done">landed</span></li>
-        <li><b>Env hardening &middot; clean-context &middot; git-guard</b><span class="pill wip">migrating</span></li>
-        <li><b>stream-json → event stream</b><span class="pill wip">migrating</span></li>
-        <li><b>Lifecycle: stop · reap · watchdog</b><span class="pill wip">migrating</span></li>
-        <li><b>Platform-owns-git guard</b><span class="pill wip">migrating</span></li>
-        <li><b>Quota probe + escalation cache</b><span class="pill wip">migrating</span></li>
+        <li><b>Hardened binary resolution (.cmd&rarr;.exe)</b><span class="pill done">done</span></li>
+        <li><b>Env hardening · clean-context · git-guard</b><span class="pill done">done</span></li>
+        <li><b>stream-json → typed event stream</b><span class="pill done">done</span></li>
+        <li><b>Lifecycle: stop · reap · built-in watchdog</b><span class="pill done">done</span></li>
+        <li><b>Push events &amp; pull <code>StreamAsync</code></b><span class="pill done">done</span></li>
+        <li><b>Quota cache · escalation · cap/gate</b><span class="pill done">done</span></li>
+        <li><b>Copilot rich streaming via PTY</b><span class="pill wip">planned</span></li>
+        <li><b>Built-in PTY quota probes</b><span class="pill wip">planned</span></li>
       </ul>
     </div>
     <div>
-      <h2>Supported agents</h2>
-      <p class="lead">Claude Code · OpenAI Codex · GitHub Copilot CLI · Gemini CLI — and extensible to others.</p>
-      <h2 style="margin-top:22px;">Status</h2>
-      <div class="note">Early / work in progress. Extracted and generalized from a production multi-agent orchestrator. The public API is still settling — pin a version and watch releases. NuGet package coming.</div>
+      <h2>Status</h2>
+      <div class="note">Stable core, pre-1.0. The spawn engine, the four drivers, the event contract, the outcome model, the watchdog and the quota module are implemented and tested (CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases. NuGet package coming.</div>
+      <h2 style="margin-top:22px;">License</h2>
+      <p class="lead">Apache-2.0. Issues and pull requests welcome on <a href="https://github.com/RobertMischke/coding-agent-runner">GitHub</a>.</p>
     </div>
+  </div>
+</section>
+
+<section id="docs" class="docsec">
+  <div class="wrap">
+    <h2>Documentation</h2>
+    <p class="lead">The public API is small: most uses need five types — <code>CliRunner</code>, <code>CliOptions</code>, <code>CliRunRequest</code>, <code>CliRunInfo</code>, and <code>CliRunEvent</code>. Everything below is example-first and accurate to the current API.</p>
+    <div class="docnav">
+      <a href="#quickstart">Quickstart</a>
+      <a href="#identity">Run identity</a>
+      <a href="#events">Event stream</a>
+      <a href="#config">Configuration</a>
+      <a href="#watchdog">Watchdog &amp; plans</a>
+      <a href="#quota">Quota</a>
+      <a href="#streaming">Push vs pull</a>
+    </div>
+
+    <h3 id="quickstart">Quickstart</h3>
+    <p class="lead">Wire the runner once, resolve a driver by CLI type, and start a run. <code>RunId</code> is <em>your</em> correlation key — you bring it; the library does not generate one. Every event, log line, and <code>Stop</code> call is addressed by it.</p>
+    <pre><span class="k">using</span> CodingAgentRunner;
+
+<span class="k">var</span> runner = <span class="k">new</span> CliRunner(<span class="k">new</span> CliOptions());   <span class="c">// wire once</span>
+<span class="k">var</span> driver = runner.Get(<span class="s">"claude"</span>);              <span class="c">// a driver per CLI</span>
+
+<span class="k">var</span> (run, error) = <span class="k">await</span> driver.StartAsync(<span class="k">new</span> CliRunRequest
+{
+    RunId = <span class="s">"task-1"</span>,
+    Prompt = <span class="s">"Fix the failing build."</span>,
+    WorkingDirectory = repo,
+});</pre>
+
+    <p class="exlabel">A full request <span>— model, reasoning, permission, context</span></p>
+    <pre><span class="k">var</span> (run, error) = <span class="k">await</span> driver.StartAsync(<span class="k">new</span> CliRunRequest
+{
+    RunId            = <span class="s">"task-42"</span>,
+    Prompt           = promptText,
+    WorkingDirectory = repo,
+    Model            = <span class="s">"claude-opus-4-8"</span>,
+    ThinkingLevel    = CliThinkingLevels.XHigh,   <span class="c">// normalized against the model</span>
+    PermissionMode   = CliPermissionModes.Yolo,   <span class="c">// unattended; never prompts</span>
+    <span class="c">// ContextMode defaults to 'clean' — an isolated per-run CLI home</span>
+}, ct);</pre>
+
+    <p class="exlabel">Check availability across CLIs</p>
+    <pre><span class="k">foreach</span> (<span class="k">var</span> d <span class="k">in</span> runner.Drivers)
+    Console.WriteLine($<span class="s">"{d.CliType}: {(d.IsAvailable() ? "ok" : "not installed")}"</span>);
+
+<span class="k">var</span> (available, version, path) = runner.Get(<span class="s">"codex"</span>).TestCliPath();
+<span class="k">if</span> (runner.TryGet(userChoice, <span class="k">out var</span> chosen)) { <span class="c">/* … */</span> }</pre>
+
+    <h3 id="identity">Run identity: RunId, SessionId, continuation</h3>
+    <p class="lead">Three ids, three jobs. You assign the <code>RunId</code>; the CLI assigns a <code>SessionId</code> (surfaced in a <code>SessionStarted</code> event); to continue a conversation you start a <em>new</em> run that carries the captured session id back as <code>ResumeSessionId</code>.</p>
+    <table>
+      <tr><th>Id</th><th>Assigned by</th><th>Spans</th><th>Used for</th></tr>
+      <tr><td><code>RunId</code></td><td><b>you</b></td><td>one run (one spawn)</td><td>addressing events / logs / <code>Stop</code> / output</td></tr>
+      <tr><td><code>SessionId</code></td><td>the CLI</td><td>a conversation (many runs)</td><td>continuing the conversation</td></tr>
+      <tr><td><code>ResumeSessionId</code></td><td>you (a captured <code>SessionId</code>)</td><td>—</td><td>"continue <em>this</em> session" — set = continue, null = fresh</td></tr>
+    </table>
+    <pre><span class="c">// Run 1 — capture the CLI's SessionId.</span>
+<span class="k">string</span>? sessionId = <span class="k">null</span>;
+driver.OnRunEvent += (runId, e) =&gt;
+{
+    <span class="k">if</span> (e <span class="k">is</span> CliRunEvent.SessionStarted s) sessionId = s.SessionId;
+};
+<span class="k">await</span> driver.StartAsync(<span class="k">new</span> CliRunRequest
+{
+    RunId = <span class="s">"task-1"</span>, Prompt = <span class="s">"Draft the parser."</span>, WorkingDirectory = repo,
+});
+
+<span class="c">// Run 2 = continuation — NEW RunId, SAME session. One field is the whole signal.</span>
+<span class="k">if</span> (driver.IsCompatibleSessionId(sessionId))
+    <span class="k">await</span> driver.StartAsync(<span class="k">new</span> CliRunRequest
+    {
+        RunId = <span class="s">"task-1-followup"</span>, Prompt = <span class="s">"Now add error recovery."</span>,
+        WorkingDirectory = repo,
+        ResumeSessionId = sessionId,
+    });</pre>
+
+    <h3 id="events">The event stream</h3>
+    <p class="lead"><code>CliRunEvent</code> is a closed sum type, so a <code>switch</code> over it is checked for exhaustiveness by the compiler. Two events are engine-universal (<code>RunStarted</code> first, <code>RunEnded</code> last); the rest come from the per-CLI adapter, so treat CLI-specific events defensively. <code>RunEnded</code> is the single terminal event and its <code>Outcome</code> is three-valued.</p>
+    <pre>driver.OnRunEvent += (runId, e) =&gt;
+{
+    <span class="k">switch</span> (e)
+    {
+        <span class="k">case</span> CliRunEvent.SessionStarted s:    Log($<span class="s">"session {s.SessionId}"</span>);            <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.OutputDelta d:       Console.Write(d.Text);                  <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.ToolStarted t:       Log($<span class="s">"[tool] {t.ToolName} {t.Argument}"</span>); <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.ToolCompleted c:     Log($<span class="s">"[tool done] {c.ToolName} error={c.IsError}"</span>); <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.RateLimitObserved r: ShowUsage(r.Window, r.Status, r.ResetsAt); <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.TurnCompleted t:     Log($<span class="s">"turn done: {t.UsageSummary}"</span>);     <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.TurnFailed f:        Log($<span class="s">"turn failed: {f.Reason}"</span>);         <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.RunEnded end:                                <span class="c">// one terminal, 3-valued</span>
+            Log(end.Outcome <span class="k">switch</span>
+            {
+                RunOutcome.Completed =&gt; $<span class="s">"done (exit {end.ExitCode})"</span>,
+                RunOutcome.Stopped   =&gt; $<span class="s">"stopped: {end.Reason}"</span>,   <span class="c">// deliberate — not an error</span>
+                RunOutcome.Failed    =&gt; $<span class="s">"failed: {end.Reason}"</span>,
+                _ =&gt; <span class="s">"?"</span>,
+            });
+            <span class="k">break</span>;
+    }
+};</pre>
+    <table>
+      <tr><th>Group</th><th>Events</th><th>Notes</th></tr>
+      <tr><td>Engine (every CLI)</td><td><code>RunStarted</code>, <code>RunEnded</code></td><td>Always first / last. <code>RunEnded.Outcome</code> ∈ Completed/Stopped/Failed.</td></tr>
+      <tr><td>Common core (Claude, Codex, Gemini)</td><td><code>SessionStarted</code>, <code>OutputDelta</code>, <code>ToolStarted</code>/<code>ToolCompleted</code>, <code>TurnCompleted</code>/<code>TurnFailed</code>, <code>Unknown</code></td><td>The reliable baseline a consumer can depend on.</td></tr>
+      <tr><td>CLI-specific (handle defensively)</td><td><code>SessionInitializing</code> (Claude), <code>TurnStarted</code> (Codex), <code>Heartbeat</code> (Codex), <code>RateLimitObserved</code> (Claude), <code>PlanUpdated</code> (Claude/Codex)</td><td>"May not arrive" — don't depend on them.</td></tr>
+      <tr><td>Copilot</td><td>engine lifecycle + raw <code>OnOutput</code> lines</td><td>Headless-basic: no typed mid-run events yet.</td></tr>
+      <tr><td>Reserved</td><td><code>NeedsInput</code>, <code>ApprovalRequested</code></td><td>Defined in the contract; no adapter emits them today.</td></tr>
+    </table>
+    <p class="exlabel">Raw output, live and after the run</p>
+    <pre><span class="c">// live: every raw line, tagged stdout/stderr</span>
+driver.OnOutput += (runId, line) =&gt; sink.Append($<span class="s">"{line.Stream}: {line.Text}"</span>);
+
+driver.OnFinished += (runId, info) =&gt;
+{
+    Console.WriteLine($<span class="s">"{info.RunId}: {info.Status} (exit {info.ExitCode}, {info.DurationSeconds:F1}s)"</span>);
+    <span class="k">var</span> lines = driver.GetOutput(runId);   <span class="c">// from the buffer…</span>
+    driver.Forget(runId);                  <span class="c">// …release it; GetOutput then reads from disk</span>
+};</pre>
+
+    <h3 id="config">Configuration</h3>
+    <p class="lead">Everything on <code>CliOptions</code> is optional with sane defaults; a CLI name on <code>PATH</code> is used when no explicit path is given.</p>
+    <pre><span class="k">var</span> options = <span class="k">new</span> CliOptions
+{
+    ClaudePath = @<span class="s">"C:\tools\claude\claude.exe"</span>,   <span class="c">// else: 'claude' from PATH</span>
+    CodexPath  = <span class="s">"codex"</span>,
+    EnvironmentOverrides = <span class="k">new</span> Dictionary&lt;<span class="k">string</span>, <span class="k">string</span>&gt; { [<span class="s">"HTTP_PROXY"</span>] = proxy },
+};
+<span class="k">var</span> runner = <span class="k">new</span> CliRunner(options, logger);</pre>
+
+    <p class="exlabel">Git-guard <span>— the host owns version control</span></p>
+    <pre><span class="c">// Default: the agent may not run commit/push/reset/… (the host owns git).</span>
+<span class="k">var</span> guarded = <span class="k">new</span> CliOptions
+{
+    GitGuard = <span class="k">new</span> GitGuardOptions
+    {
+        ForbiddenCommands = [<span class="s">"commit"</span>, <span class="s">"push"</span>, <span class="s">"reset"</span>, <span class="s">"checkout"</span>],
+        EnvPrefix = <span class="s">"MY_APP"</span>,
+    },
+};
+<span class="c">// …or deliberately let the agent use git:</span>
+<span class="k">var</span> trusting = <span class="k">new</span> CliOptions { AllowAgentGitMutation = <span class="k">true</span> };</pre>
+
+    <p class="exlabel">Clean vs shared context</p>
+    <pre><span class="c">// Clean = isolated per-run home (only prompt + versioned repo files).</span>
+<span class="c">// Only Claude/Codex can isolate; Copilot/Gemini are shared-only.</span>
+<span class="k">if</span> (driver.SupportsCleanContext)
+    request = request <span class="k">with</span> { ContextMode = CliContextModes.Clean };</pre>
+
+    <p class="exlabel">Registration in DI (ASP.NET)</p>
+    <pre>builder.Services.AddSingleton(sp =&gt; <span class="k">new</span> CliRunner(
+    <span class="k">new</span> CliOptions(),
+    sp.GetRequiredService&lt;ILoggerFactory&gt;().CreateLogger(<span class="s">"cli"</span>)));
+
+<span class="c">// in an endpoint / service:</span>
+<span class="k">var</span> driver = runner.Get(request.Cli);</pre>
+
+    <h3 id="watchdog">Watchdog &amp; plan tracking</h3>
+    <p class="lead">The engine already tracks each run's phase and last activity. Attach the built-in watchdog in one line instead of wiring your own timer; it stops a hung run as <code>RunStopReason.Watchdog</code> — a deliberate stop, not a crash. Budgets are per phase (a model still "thinking" inside a tool call is fine for minutes; no handshake right after spawn is a fast failure).</p>
+    <pre><span class="c">// autoStop: stop a hung run itself; dispose to detach.</span>
+<span class="k">using var</span> watchdog = RunWatchdog.Attach(driver, WatchdogPolicy.Default, autoStop: <span class="k">true</span>);
+
+watchdog.OnHung += (runId, phase, silence) =&gt;
+    Log($<span class="s">"{runId} hung in {phase} after {silence:F0}s of silence"</span>);
+
+<span class="c">// Tune the policy if the defaults don't fit:</span>
+<span class="k">var</span> policy = WatchdogPolicy.Default <span class="k">with</span> { QuietSeconds = 20, TickSeconds = 5 };</pre>
+
+    <p class="exlabel">Plan tracking <span>— TodoWrite / update_plan</span></p>
+    <pre>driver.OnRunEvent += (id, e) =&gt;
+{
+    <span class="k">if</span> (e <span class="k">is</span> CliRunEvent.PlanUpdated p)
+        <span class="k">foreach</span> (<span class="k">var</span> item <span class="k">in</span> p.Items)                 <span class="c">// PlanFrameItem: Id, Title, Status</span>
+            board.Upsert(item.Id, item.Title, item.Status); <span class="c">// pending / active / done</span>
+};</pre>
+
+    <h3 id="quota">Quota (optional add-on)</h3>
+    <p class="lead">The module brings the <em>mechanism</em> — escalation caching, persistence, cap-enforcement — and the <code>IQuotaProbe</code> contract. It does not bring a built-in probe that reads a CLI's actual remaining quota: that is per-CLI and usually PTY/scrape-dependent, so <b>you supply the probe</b> and the library does the caching, escalation, persistence, and cap check around it. Built-in PTY probes are planned.</p>
+    <pre><span class="k">var</span> quota = <span class="k">new</span> QuotaService(
+    probes: <span class="k">new</span>[] { claudeProbe, codexProbe },
+    options: <span class="k">new</span> QuotaCacheOptions
+    {
+        DefaultTtl = TimeSpan.FromMinutes(10),
+        EscalationTiers =
+        [
+            <span class="k">new</span> QuotaEscalationTier(90, TimeSpan.FromMinutes(2)),    <span class="c">// ≥90% → every 2 min</span>
+            <span class="k">new</span> QuotaEscalationTier(97, TimeSpan.FromSeconds(30)),   <span class="c">// ≥97% → every 30 s</span>
+        ],
+    });
+
+QuotaReport report = quota.GetWithBackgroundRefresh();   <span class="c">// cached now; refreshes stale entries</span>
+<span class="k">foreach</span> (<span class="k">var</span> s <span class="k">in</span> report.Snapshots)
+    Console.WriteLine($<span class="s">"{s.CliType}: {s.MaxUsedPct:F0}% (plan {s.Plan})"</span>);</pre>
+
+    <p class="exlabel">Bring your own probe, harvest events for free, cap a CLI</p>
+    <pre><span class="c">// A probe is one delegate behind the contract (HTTP call, CLI scrape, …).</span>
+IQuotaProbe claudeProbe = <span class="k">new</span> DelegateQuotaProbe(<span class="s">"claude"</span>, <span class="k">async</span> ct =&gt;
+    <span class="k">new</span> QuotaSnapshot
+    {
+        CliType = <span class="s">"claude"</span>, Plan = <span class="s">"Max"</span>,
+        Windows = [ <span class="k">new</span> QuotaWindow { Label = <span class="s">"5-hour"</span>, UsedPct = pct, ResetAt = reset } ],
+    });
+
+<span class="c">// A run already emits RateLimitObserved — feed it in for free, no probe spawn.</span>
+driver.OnRunEvent += (runId, e) =&gt; quota.Observe(<span class="s">"claude"</span>, e);
+
+<span class="c">// Declare a cap once; check a cheap gate before picking up work.</span>
+quota.Cap(<span class="s">"claude"</span>, stopAtPercent: 97);
+QuotaGate gate = quota.Gate(<span class="s">"claude"</span>);
+<span class="k">if</span> (!gate.Allowed) Skip(reason: gate.Reason, retryAfter: gate.RetryAfter);</pre>
+
+    <h3 id="streaming">Push events vs pull streaming</h3>
+    <p class="lead">Two shapes for the same events. The <code>event</code> handlers are best for multiplexing many concurrent runs through one handler (route by <code>evt.RunId</code>). <code>StreamAsync</code> is the ergonomic choice for a single run — <code>await foreach</code>, natural control flow, built-in cancellation. They coexist.</p>
+    <pre><span class="c">// PULL (single run): one await foreach — done.</span>
+<span class="k">await foreach</span> (<span class="k">var</span> e <span class="k">in</span> driver.StreamAsync(request, ct))
+{
+    <span class="k">switch</span> (e)
+    {
+        <span class="k">case</span> CliRunEvent.OutputDelta d:  Console.Write(d.Text); <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.ToolStarted t:  Log(t.ToolName);       <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.RunEnded end:   <span class="k">return</span> end.Outcome;     <span class="c">// terminal ends the stream</span>
+    }
+}
+<span class="c">// A spawn failure throws; cancelling ct stops the run AND ends the enumeration.</span></pre>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <p><b>CodingAgentRunner</b> — <a href="https://github.com/RobertMischke/coding-agent-runner">GitHub</a> · <a href="https://github.com/RobertMischke/coding-agent-runner/blob/main/LICENSE">Apache-2.0</a> · © 2026 Robert Mischke</p>
+    <p><b>CodingAgentRunner</b> · <a href="https://github.com/RobertMischke/coding-agent-runner">GitHub</a> · <a href="https://github.com/RobertMischke/coding-agent-runner/blob/main/LICENSE">Apache-2.0</a> · <a href="imprint.html">Imprint</a> · © 2026 Robert Mischke</p>
   </div>
 </footer>
 

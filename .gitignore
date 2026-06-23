@@ -72,3 +72,7 @@ secrets.json
 .orchestrator/
 .runtime/
 
+# Personal, per-machine Claude Code settings (permission allowlist etc.).
+# The shared, committed config (if any) lives in .claude/settings.json.
+.claude/settings.local.json
+

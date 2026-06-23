@@ -39,17 +39,21 @@ public static class CliThinkingLevels
 
         if (string.Equals(cli, CliTypes.Claude, StringComparison.OrdinalIgnoreCase))
         {
-            var normalized = m.Replace('.', '-').ToLowerInvariant();
-            if (normalized.Contains("haiku-4-5", StringComparison.Ordinal)) return [];
-            if (normalized.Contains("opus-4-8", StringComparison.Ordinal)
-                || normalized.Contains("opus-4-7", StringComparison.Ordinal))
+            var n = m.Replace('.', '-').ToLowerInvariant();
+            // Only a real Claude model id (claude-…) gets a ladder. This gate rejects a
+            // substring false-positive ("my-opus-4-8-clone") and a malformed id with
+            // internal whitespace ("claude - opus - 4 - 8") — both fall back to no ladder.
+            if (!n.StartsWith("claude-", StringComparison.Ordinal)) return [];
+            if (n.Contains("haiku-4-5", StringComparison.Ordinal)) return [];
+            if (n.Contains("opus-4-8", StringComparison.Ordinal)
+                || n.Contains("opus-4-7", StringComparison.Ordinal))
                 return ClaudeXHighMaxLevels;
-            if (normalized.Contains("opus-4-6", StringComparison.Ordinal)
-                || normalized.Contains("opus-4-5", StringComparison.Ordinal))
+            if (n.Contains("opus-4-6", StringComparison.Ordinal)
+                || n.Contains("opus-4-5", StringComparison.Ordinal))
                 return ClaudeMaxLevels;
-            if (normalized.Contains("sonnet-4-6", StringComparison.Ordinal)) return ClaudeBasicLevels;
-            if (normalized.StartsWith("claude-opus-", StringComparison.Ordinal)) return ClaudeMaxLevels;
-            if (normalized.StartsWith("claude-sonnet-", StringComparison.Ordinal)) return ClaudeBasicLevels;
+            if (n.Contains("sonnet-4-6", StringComparison.Ordinal)) return ClaudeBasicLevels;
+            if (n.StartsWith("claude-opus-", StringComparison.Ordinal)) return ClaudeMaxLevels;
+            if (n.StartsWith("claude-sonnet-", StringComparison.Ordinal)) return ClaudeBasicLevels;
             return [];
         }
 
@@ -81,9 +85,13 @@ public static class CliThinkingLevels
     }
 
     private static bool IsForeignCodexModel(string model)
-        => model.StartsWith("claude-", StringComparison.OrdinalIgnoreCase)
-           || model.StartsWith("gemini-", StringComparison.OrdinalIgnoreCase)
-           || model.StartsWith("copilot", StringComparison.OrdinalIgnoreCase);
+    {
+        // Normalize dots→dashes first so "claude.opus.4.8" is still recognized as foreign.
+        var n = model.Replace('.', '-').ToLowerInvariant();
+        return n.StartsWith("claude-", StringComparison.Ordinal)
+               || n.StartsWith("gemini-", StringComparison.Ordinal)
+               || n.StartsWith("copilot", StringComparison.Ordinal);
+    }
 
     /// <summary>
     /// Codex exposes the "Extra High" (<c>xhigh</c>) reasoning effort only on newer

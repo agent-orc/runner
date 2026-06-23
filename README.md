@@ -8,7 +8,7 @@
 
 It is the "boring but critical" infrastructure layer: it spawns the agent CLI with the right binary, environment, and isolation; reads its `stream-json` output as a structured event stream; classifies the run's outcome; enforces a *platform-owns-git* boundary; and tracks remaining quota with a smart cache. Think of it as one level above [CliWrap](https://github.com/Tyrrrz/CliWrap): not "run any process", but "run a *coding agent* and understand it".
 
-> **Status: core complete, pre-1.0.** Extracted and generalized from a production multi-agent orchestrator. The spawn engine, the four drivers, the event contract, the outcome model and the quota module are all implemented and tested (146 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.
+> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, the four drivers, the event contract, the outcome model and the quota module are all implemented and tested (146 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.
 
 ## Why
 
