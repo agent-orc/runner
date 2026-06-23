@@ -31,6 +31,9 @@ public static class CliContextModes
     /// <summary>All context modes.</summary>
     public static readonly string[] All = [Clean, Shared];
 
+    /// <summary>Modes a settings UI would surface (all of them today).</summary>
+    public static readonly string[] UserVisible = All;
+
     /// <summary>True when <paramref name="mode"/> is a known context mode.</summary>
     public static bool IsValid(string? mode)
         => !string.IsNullOrWhiteSpace(mode)

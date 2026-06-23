@@ -32,6 +32,9 @@ public static class CliPermissionModes
     /// <summary>All permission modes.</summary>
     public static readonly string[] All = [Yolo, WorkspaceWrite, ReadOnly, Custom];
 
+    /// <summary>Modes a settings UI would surface (all of them today).</summary>
+    public static readonly string[] UserVisible = All;
+
     /// <summary>True when <paramref name="mode"/> is a known permission mode.</summary>
     public static bool IsValid(string? mode)
         => !string.IsNullOrWhiteSpace(mode)
