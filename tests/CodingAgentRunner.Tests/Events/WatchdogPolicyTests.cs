@@ -48,6 +48,39 @@ public class WatchdogPolicyTests
     }
 
     [Fact]
+    public void PhaseBudget_RejectsNegativeValues()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PhaseBudget(-1, 10));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PhaseBudget(10, -1));
+    }
+
+    [Fact]
+    public void Decide_ClampsNegativeSilence()   // clock skew must not be read as a negative silence
+        => Assert.Equal(WatchdogState.Healthy, WatchdogPolicy.Default.Decide(RunPhase.Spawning, silenceSeconds: -100, runAgeSeconds: 100));
+
+    [Fact]
+    public void Decide_ThresholdsAreInclusive()
+    {
+        var p = WatchdogPolicy.Default with
+        {
+            QuietSeconds = 10,
+            Budgets = new Dictionary<RunPhase, PhaseBudget> { [RunPhase.TurnInProgress] = new(20, 40) },
+        };
+        Assert.Equal(WatchdogState.Healthy,    p.Decide(RunPhase.TurnInProgress, 9, 100));
+        Assert.Equal(WatchdogState.Quiet,      p.Decide(RunPhase.TurnInProgress, 10, 100));   // == QuietSeconds
+        Assert.Equal(WatchdogState.Suspicious, p.Decide(RunPhase.TurnInProgress, 20, 100));   // == SuspiciousSeconds
+        Assert.Equal(WatchdogState.Hung,       p.Decide(RunPhase.TurnInProgress, 40, 100));   // == HungSeconds
+    }
+
+    [Fact]
+    public void Decide_WarmUpGrace_IsExclusiveBoundary()
+    {
+        var p = WatchdogPolicy.Default with { WarmUpGraceSeconds = 10 };
+        Assert.Equal(WatchdogState.Healthy, p.Decide(RunPhase.Spawning, 9999, runAgeSeconds: 9.999));  // under grace
+        Assert.Equal(WatchdogState.Hung,    p.Decide(RunPhase.Spawning, 9999, runAgeSeconds: 10));     // grace lapsed
+    }
+
+    [Fact]
     public void DefaultBudgets_CoverEveryRunPhase()   // a new RunPhase must get its own explicit budget
     {
         foreach (RunPhase phase in System.Enum.GetValues<RunPhase>())

@@ -13,8 +13,19 @@ public enum WatchdogState
     Hung,
 }
 
-/// <summary>Silence budgets for one <see cref="RunPhase"/>: warn at <paramref name="SuspiciousSeconds"/>, kill at <paramref name="HungSeconds"/>.</summary>
-public sealed record PhaseBudget(double SuspiciousSeconds, double HungSeconds);
+/// <summary>Silence budgets for one <see cref="RunPhase"/>: warn at <paramref name="SuspiciousSeconds"/>, kill at <paramref name="HungSeconds"/>. Both must be &#8805; 0.</summary>
+public sealed record PhaseBudget(double SuspiciousSeconds, double HungSeconds)
+{
+    /// <summary>Silence (seconds) at which the run reports <see cref="WatchdogState.Suspicious"/>.</summary>
+    public double SuspiciousSeconds { get; init; } = SuspiciousSeconds >= 0
+        ? SuspiciousSeconds
+        : throw new ArgumentOutOfRangeException(nameof(SuspiciousSeconds), "must be >= 0");
+
+    /// <summary>Silence (seconds) at which the run reports <see cref="WatchdogState.Hung"/>.</summary>
+    public double HungSeconds { get; init; } = HungSeconds >= 0
+        ? HungSeconds
+        : throw new ArgumentOutOfRangeException(nameof(HungSeconds), "must be >= 0");
+}
 
 /// <summary>
 /// A declarative, phase-aware watchdog policy. Different lifecycle phases tolerate
@@ -77,6 +88,7 @@ public sealed record WatchdogPolicy
     {
         if (!Enabled) return WatchdogState.Healthy;
         if (runAgeSeconds < WarmUpGraceSeconds) return WatchdogState.Healthy;
+        if (silenceSeconds < 0) silenceSeconds = 0;   // clock skew → never report a negative silence
 
         var b = BudgetFor(phase);
         if (silenceSeconds >= b.HungSeconds) return WatchdogState.Hung;
