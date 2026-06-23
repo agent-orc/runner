@@ -60,7 +60,7 @@ public sealed record GitGuardOptions
 /// <summary>Process-hardening toggles applied at spawn time.</summary>
 public sealed record CliHardeningOptions
 {
-    /// <summary>Deny stdin by default (ADR-0014: a connected stdin pipe races CLI init on Windows).</summary>
+    /// <summary>Deny stdin by default: on Windows a connected stdin pipe can race CLI init and wedge the process.</summary>
     public bool DenyStdin { get; init; } = true;
 
     /// <summary>Force UTF-8 stdio + locale so non-ASCII output does not corrupt or crash the CLI.</summary>
