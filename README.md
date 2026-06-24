@@ -1,14 +1,14 @@
 # CodingAgentRunner
 
-> Run coding-agent CLIs — Claude Code, Codex, Copilot, Gemini — from .NET: hardened spawning, streamed events, lifecycle & quota tracking.
+> Run coding-agent CLIs — Claude Code, Codex, Gemini, Antigravity — from .NET: hardened spawning, streamed events, lifecycle & quota tracking.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-**CodingAgentRunner** is a .NET library for launching and supervising terminal-native coding agents (Claude Code, OpenAI Codex, GitHub Copilot CLI, Gemini CLI) as child processes — reliably, especially on Windows.
+**CodingAgentRunner** is a .NET library for launching and supervising terminal-native coding agents (Claude Code, OpenAI Codex, and Google's Gemini / Antigravity CLIs) as child processes — reliably, especially on Windows.
 
 It is the "boring but critical" infrastructure layer: it spawns the agent CLI with the right binary, environment, and isolation; reads its `stream-json` output as a structured event stream; classifies the run's outcome; enforces a *platform-owns-git* boundary; and tracks remaining quota with a smart cache. Think of it as one level above [CliWrap](https://github.com/Tyrrrz/CliWrap): not "run any process", but "run a *coding agent* and understand it".
 
-> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, the four drivers, the event contract, the outcome model and the quota module are all implemented and tested (146 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.
+> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, the four drivers, the event contract, the outcome model and the quota module are all implemented and tested (170+ tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.
 
 ## Why
 
@@ -26,20 +26,23 @@ See [docs/why-windows-hardening.md](docs/why-windows-hardening.md) for the full 
 
 ## Supported agents
 
-Claude Code · OpenAI Codex · GitHub Copilot CLI · ~~Gemini CLI~~. The library targets these CLIs in their specific versions — it is purpose-built for them, not a generic "wrap any CLI" framework.
+Claude Code · OpenAI Codex · Google Antigravity (the `agentapi` CLI) · Google Gemini *(deprecated)*. The library targets these CLIs in their specific versions — it is purpose-built for them, not a generic "wrap any CLI" framework, and there is no "add your own CLI" extension point.
 
-> **Gemini is deprecated** — unused and unmaintained. Its driver stays in place but receives no new work. **Antigravity** (Google's agentic CLI) is the planned Google integration that supersedes it.
+> **Gemini is deprecated** and superseded by **Antigravity** (Google's `agentapi` CLI), the maintained Google integration. The Gemini driver stays in place but receives no new work; Antigravity reuses its event adapter. Antigravity ships as a driver but is deliberately kept out of the default *selectable* set (`CliTypes.All`) until a consumer migrates onto it.
+>
+> **The GitHub Copilot driver has been removed.** Its headless surface couldn't share the hardened spawn/stream engine cleanly, so it is no longer part of the library.
 
 ## Features
 
 - ✅ Hardened binary resolution (`.cmd`→`.exe`, the prompt-truncation fix).
 - ✅ Process spawning: environment hardening, clean-context isolation, git-guard, stdin default-deny, Win32 handle-scrub spawner.
-- ✅ `stream-json` → structured `CliRunEvent` stream (incl. the CLI's real completion signal) for Claude / Codex / Gemini.
-- ✅ Outcome model: completed / stopped / failed, classified from exit code + stop reason.
+- ✅ `stream-json` → structured `CliRunEvent` stream (incl. the CLI's real completion signal) for Claude / Codex / Gemini / Antigravity.
+- ✅ One terminal event: `RunEnded` with a 3-valued outcome (completed / stopped / failed), classified from exit code + stop reason.
+- ✅ Built-in silence watchdog (`RunWatchdog` / `WatchdogPolicy`) — one-line attach, phase-aware budgets.
 - ✅ Durable per-stream output logs (crash-tolerant, fsync per line).
 - ✅ Platform-owns-git guard (brand-neutral, configurable).
-- ✅ Quota probing + escalation caching (poll harder near the limit).
-- 🚧 Copilot rich streaming via PTY (currently headless-basic).
+- ✅ Quota cache · escalation · cap/gate · free event-harvest (poll harder near the limit; skip a run before it hits the wall).
+- ✅ Pluggable process spawner (`CliOptions.Spawner` / `ICliProcessSpawner`) — inject a custom launcher (e.g. a Windows PTY); null uses redirected pipes.
 - 🚧 Concrete PTY-based quota probes (the `IQuotaProbe` contract + cache are done; plug your own probe today).
 
 ## Quickstart
@@ -110,7 +113,7 @@ src/CodingAgentRunner/
   Model/                        value types, the run-outcome classifier, model catalog
   Events/                       CliRunEvent contract + phase machine
   Adapters/                     stream-json → CliRunEvent (Claude / Codex / Gemini)
-  Drivers/                     ClaudeDriver / CodexDriver / GeminiDriver / CopilotDriver
+  Drivers/                     ClaudeDriver / CodexDriver / GeminiDriver / AntigravityDriver
   Execution/                    the spawn engine, hardening, clean-context, log stores, Win32 spawner
   Quota/                        quota model, escalation cache, probe contract
 tests/CodingAgentRunner.Tests/  xUnit tests

@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CodingAgentRunner — run coding-agent CLIs from your .NET app</title>
-<meta name="description" content="A .NET library that runs coding-agent CLIs (Claude Code, Codex, Copilot, Gemini) as child processes — using the CLI you already sign in to, with no API keys. Typed event stream, lifecycle and quota tracking." />
+<meta name="description" content="A .NET library that runs coding-agent CLIs (Claude Code, Codex, Gemini, Antigravity) as child processes — using the CLI you already sign in to, with no API keys. Typed event stream, lifecycle and quota tracking." />
 <style>
   :root{
     --fg:#10151c;--muted:#5b6573;--line:#e6e9ee;--accent:#2f6df6;--accent2:#7c3aed;
@@ -81,7 +81,7 @@
   <div class="wrap two">
     <div>
       <h2>Your CLI subscription, called from code</h2>
-      <p class="lead">You already sign in to a coding-agent CLI — Claude Code, Codex, Copilot, or Gemini — on your machine. CodingAgentRunner lets a .NET program start that CLI, send it a prompt, and read its output as a typed event stream. The run uses your existing sign-in, so there is no API key to manage and no separate billing to set up. Any .NET application can get an LLM on the local development machine this way.</p>
+      <p class="lead">You already sign in to a coding-agent CLI — Claude Code, Codex, Gemini, or Antigravity — on your machine. CodingAgentRunner lets a .NET program start that CLI, send it a prompt, and read its output as a typed event stream. The run uses your existing sign-in, so there is no API key to manage and no separate billing to set up. Any .NET application can get an LLM on the local development machine this way.</p>
     </div>
     <div>
       <pre><span class="c">// Wire the library once; resolve a driver per CLI.</span>
@@ -127,8 +127,8 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
 <section>
   <div class="wrap">
     <h2>Supported agents</h2>
-    <p class="lead">Claude Code · OpenAI Codex · GitHub Copilot CLI. The library targets these CLIs in their specific versions — it is purpose-built for them, not a generic "wrap any CLI" framework, and there is no public extension point.</p>
-    <p class="lead" style="font-size:14px;">A Gemini CLI driver also ships but is deprecated and unmaintained; Google's agentic CLI (Antigravity) is the planned replacement. Clean-context isolation applies to Claude and Codex; Copilot and Gemini run with shared state.</p>
+    <p class="lead">Claude Code · OpenAI Codex · Google Antigravity (the <code>agentapi</code> CLI). The library targets these CLIs in their specific versions — it is purpose-built for them, not a generic "wrap any CLI" framework. Drivers are built in: there is no "add your own CLI" hook, though you can inject a custom process spawner via <code>CliOptions.Spawner</code>.</p>
+    <p class="lead" style="font-size:14px;">A Gemini driver still ships but is deprecated; Antigravity (Google's <code>agentapi</code> CLI) is the maintained replacement and reuses Gemini's event adapter. Clean-context isolation applies to Claude and Codex; Gemini and Antigravity run with shared state. The GitHub Copilot driver has been removed.</p>
   </div>
 </section>
 
@@ -158,7 +158,7 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
         <li><b>Lifecycle: stop · reap · built-in watchdog</b><span class="pill done">done</span></li>
         <li><b>Push events &amp; pull <code>StreamAsync</code></b><span class="pill done">done</span></li>
         <li><b>Quota cache · escalation · cap/gate</b><span class="pill done">done</span></li>
-        <li><b>Copilot rich streaming via PTY</b><span class="pill wip">planned</span></li>
+        <li><b>Pluggable process spawner (<code>CliOptions.Spawner</code>)</b><span class="pill done">done</span></li>
         <li><b>Built-in PTY quota probes</b><span class="pill wip">planned</span></li>
       </ul>
     </div>
@@ -273,9 +273,8 @@ driver.OnRunEvent += (runId, e) =&gt;
     <table>
       <tr><th>Group</th><th>Events</th><th>Notes</th></tr>
       <tr><td>Engine (every CLI)</td><td><code>RunStarted</code>, <code>RunEnded</code></td><td>Always first / last. <code>RunEnded.Outcome</code> ∈ Completed/Stopped/Failed.</td></tr>
-      <tr><td>Common core (Claude, Codex, Gemini)</td><td><code>SessionStarted</code>, <code>OutputDelta</code>, <code>ToolStarted</code>/<code>ToolCompleted</code>, <code>TurnCompleted</code>/<code>TurnFailed</code>, <code>Unknown</code></td><td>The reliable baseline a consumer can depend on.</td></tr>
+      <tr><td>Common core (Claude, Codex, Gemini, Antigravity)</td><td><code>SessionStarted</code>, <code>OutputDelta</code>, <code>ToolStarted</code>/<code>ToolCompleted</code>, <code>TurnCompleted</code>/<code>TurnFailed</code>, <code>Unknown</code></td><td>The reliable baseline a consumer can depend on. Antigravity reuses Gemini's adapter.</td></tr>
       <tr><td>CLI-specific (handle defensively)</td><td><code>SessionInitializing</code> (Claude), <code>TurnStarted</code> (Codex), <code>Heartbeat</code> (Codex), <code>RateLimitObserved</code> (Claude), <code>PlanUpdated</code> (Claude/Codex)</td><td>"May not arrive" — don't depend on them.</td></tr>
-      <tr><td>Copilot</td><td>engine lifecycle + raw <code>OnOutput</code> lines</td><td>Headless-basic: no typed mid-run events yet.</td></tr>
       <tr><td>Reserved</td><td><code>NeedsInput</code>, <code>ApprovalRequested</code></td><td>Defined in the contract; no adapter emits them today.</td></tr>
     </table>
     <p class="exlabel">Raw output, live and after the run</p>
@@ -314,7 +313,7 @@ driver.OnFinished += (runId, info) =&gt;
 
     <p class="exlabel">Clean vs shared context</p>
     <pre><span class="c">// Clean = isolated per-run home (only prompt + versioned repo files).</span>
-<span class="c">// Only Claude/Codex can isolate; Copilot/Gemini are shared-only.</span>
+<span class="c">// Only Claude/Codex can isolate; Gemini/Antigravity are shared-only.</span>
 <span class="k">if</span> (driver.SupportsCleanContext)
     request = request <span class="k">with</span> { ContextMode = CliContextModes.Clean };</pre>
 

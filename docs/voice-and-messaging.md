@@ -29,7 +29,7 @@ they would want it, then how it behaves, then the deep reliability details. The
 order on the README and the website should be:
 
 1. **Use your CLI subscription from your own code — no API keys.** You already
-   sign in to a coding-agent CLI (Claude Code, Codex, Copilot, or Gemini) on your
+   sign in to a coding-agent CLI (Claude Code, Codex, Gemini, or Antigravity) on your
    machine. CodingAgentRunner lets a .NET program start that CLI, send it a
    prompt, and read its output as a typed event stream — using your existing
    sign-in. There is no API key to manage and no separate billing to set up; a run
@@ -37,7 +37,8 @@ order on the README and the website should be:
    any .NET application can get an LLM on the local development machine this way.
 2. **One-shot or interactive.** Use it for a single prompt-and-result call, or
    drive a longer back-and-forth session that works through a harder task.
-3. **Supported agents.** Claude Code, OpenAI Codex, GitHub Copilot CLI, Gemini CLI.
+3. **Supported agents.** Claude Code, OpenAI Codex, Google Antigravity (`agentapi`),
+   and the deprecated Gemini. (Copilot was removed.)
 4. **What it handles on Windows.** The spawning, hardening, lifecycle, and quota
    details. Secondary — keep the strong claims out and link to the per-behaviour
    docs.
@@ -69,8 +70,9 @@ the adjectives are not.
 - Don't document removed capabilities. The library is purpose-built for the four
   supported CLIs in their specific versions — it is not a generic "wrap any CLI"
   framework, and there is no public extension point. Don't imply otherwise.
-- Be honest about gaps (e.g. Copilot is headless-basic; quota ships the mechanism,
-  you supply the probe). Stating a limitation plainly is on-voice.
+- Be honest about gaps and state (e.g. Gemini is deprecated and Antigravity is the
+  maintained Google integration; quota ships the mechanism, you supply the probe).
+  Stating a limitation plainly is on-voice.
 
 ## Where this applies
 

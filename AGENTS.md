@@ -1,7 +1,7 @@
 # Agent guide
 
 CodingAgentRunner is a .NET library that runs coding-agent CLIs (Claude Code,
-Codex, Copilot, Gemini) as child processes. This file is intentionally short. The
+Codex, Gemini, Antigravity) as child processes. This file is intentionally short. The
 detail lives in [docs/](docs/) — read it there rather than duplicating it here.
 
 ## Read these
