@@ -45,16 +45,13 @@ public class CliCapabilitiesTests
     }
 
     [Fact]
-    public void Gemini_And_Copilot_NoReasoning_NoCleanContext_NoResume()
+    public void Gemini_NoReasoning_NoCleanContext_NoResume()
     {
-        foreach (var driver in new[] { Runner.Gemini, Runner.Copilot })
-        {
-            var caps = driver.Capabilities(model: null);
-            Assert.Empty(caps.ThinkingLevels);
-            Assert.False(caps.SupportsThinking);
-            Assert.False(caps.SupportsCleanContext);
-            Assert.False(caps.SupportsResume);     // neither handles ResumeSessionId
-        }
+        var caps = Runner.Gemini.Capabilities(model: null);
+        Assert.Empty(caps.ThinkingLevels);
+        Assert.False(caps.SupportsThinking);
+        Assert.False(caps.SupportsCleanContext);
+        Assert.False(caps.SupportsResume);     // does not handle ResumeSessionId
     }
 
     [Fact]

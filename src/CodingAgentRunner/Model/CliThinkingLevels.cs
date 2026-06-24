@@ -89,8 +89,7 @@ public static class CliThinkingLevels
         // Normalize dots→dashes first so "claude.opus.4.8" is still recognized as foreign.
         var n = model.Replace('.', '-').ToLowerInvariant();
         return n.StartsWith("claude-", StringComparison.Ordinal)
-               || n.StartsWith("gemini-", StringComparison.Ordinal)
-               || n.StartsWith("copilot", StringComparison.Ordinal);
+               || n.StartsWith("gemini-", StringComparison.Ordinal);
     }
 
     /// <summary>

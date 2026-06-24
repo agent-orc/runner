@@ -121,12 +121,4 @@ public class CliDriverArgvTests
         Assert.DoesNotContain("new-conversation", resumed.ArgumentList);
     }
 
-    [Fact]
-    public void Copilot_AllowAll_AndPrompt()
-    {
-        var psi = new CopilotDriver().BuildStartInfoForTest(Req());
-        var args = psi.ArgumentList;
-        Assert.Equal("-p", args[0]);
-        Assert.Contains("--allow-all", args);
-    }
 }

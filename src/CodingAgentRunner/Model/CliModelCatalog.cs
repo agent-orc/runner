@@ -7,7 +7,7 @@ public record CliModelInfo
     public string Id { get; init; } = "";
     /// <summary>Human-friendly label shown in dropdowns. Defaults to <c>Id</c> when empty.</summary>
     public string Label { get; init; } = "";
-    /// <summary>Premium-request multiplier (Copilot only; null elsewhere).</summary>
+    /// <summary>Optional premium-request multiplier; null when the CLI has no such notion.</summary>
     public double? Multiplier { get; init; }
     /// <summary>Optional vendor / family grouping (anthropic, openai, google, …).</summary>
     public string? Vendor { get; init; }

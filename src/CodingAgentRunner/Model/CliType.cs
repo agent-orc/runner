@@ -6,8 +6,6 @@ namespace CodingAgentRunner.Model;
 /// </summary>
 public static class CliTypes
 {
-    /// <summary>GitHub Copilot CLI.</summary>
-    public const string Copilot = "copilot";
     /// <summary>Anthropic Claude Code CLI.</summary>
     public const string Claude  = "claude";
     /// <summary>OpenAI Codex CLI.</summary>
@@ -30,13 +28,13 @@ public static class CliTypes
     public const string Human   = "human";
 
     /// <summary>All selectable CLI drivers.</summary>
-    public static readonly string[] All = [Copilot, Claude, Codex, Gemini];
+    public static readonly string[] All = [Claude, Codex, Gemini];
 
     /// <summary>True when <paramref name="type"/> is one of the selectable drivers.</summary>
     public static bool IsValid(string? type) =>
         !string.IsNullOrWhiteSpace(type) && All.Contains(type, StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Canonicalize a CLI type; unknown / empty values fall back to <see cref="Copilot"/>.</summary>
+    /// <summary>Canonicalize a CLI type; unknown / empty values fall back to <see cref="Claude"/>.</summary>
     public static string Normalize(string? type) =>
-        IsValid(type) ? type!.ToLowerInvariant() : Copilot;
+        IsValid(type) ? type!.ToLowerInvariant() : Claude;
 }

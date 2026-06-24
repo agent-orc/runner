@@ -55,17 +55,6 @@ public sealed class CliPermissionFlagsTests
         => Assert.Equal(["--skip-trust"], CliPermissionFlags.For(CliTypes.Gemini, CliPermissionModes.Custom));
 
     [Fact]
-    public void Copilot_Yolo_AllowAll()
-        => Assert.Equal(["--allow-all"], CliPermissionFlags.For(CliTypes.Copilot, CliPermissionModes.Yolo));
-
-    [Theory]
-    [InlineData(CliPermissionModes.WorkspaceWrite)]
-    [InlineData(CliPermissionModes.ReadOnly)]
-    [InlineData(CliPermissionModes.Custom)]
-    public void Copilot_NonYolo_InjectsNothing(string mode)
-        => Assert.Empty(CliPermissionFlags.For(CliTypes.Copilot, mode));
-
-    [Fact]
     public void NullMode_NormalizesToYolo()
     {
         Assert.Equal(CliPermissionFlags.For(CliTypes.Claude, CliPermissionModes.Yolo), CliPermissionFlags.For(CliTypes.Claude, null));
@@ -73,6 +62,6 @@ public sealed class CliPermissionFlagsTests
     }
 
     [Fact]
-    public void UnknownCliType_NormalizesViaCliTypesContract()   // unknown id → Copilot, never throws
-        => Assert.Equal(CliPermissionFlags.For(CliTypes.Copilot, CliPermissionModes.Yolo), CliPermissionFlags.For("totally-made-up", CliPermissionModes.Yolo));
+    public void UnknownCliType_NormalizesViaCliTypesContract()   // unknown id → Claude, never throws
+        => Assert.Equal(CliPermissionFlags.For(CliTypes.Claude, CliPermissionModes.Yolo), CliPermissionFlags.For("totally-made-up", CliPermissionModes.Yolo));
 }

@@ -13,9 +13,6 @@ public sealed record CliOptions
     /// <summary>Explicit path/command for the Codex CLI (default: <c>codex</c> on PATH).</summary>
     public string? CodexPath { get; init; }
 
-    /// <summary>Explicit path/command for the GitHub Copilot CLI.</summary>
-    public string? CopilotPath { get; init; }
-
     /// <summary>Explicit path/command for the Gemini CLI.</summary>
     public string? GeminiPath { get; init; }
 

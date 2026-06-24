@@ -35,7 +35,7 @@ public sealed record CliRunRequest
     /// Context isolation (one of <see cref="Model.CliContextModes"/>). <b>Defaults to
     /// <c>clean</c></b> — an isolated per-run config home, so a run sees only the
     /// prompt + the versioned repo files. Set to <c>shared</c> to use the operator's
-    /// global CLI state. CLIs that cannot isolate (Copilot/Gemini) run shared regardless.
+    /// global CLI state. CLIs that cannot isolate (Gemini) run shared regardless.
     /// </summary>
     public string ContextMode { get; init; } = CodingAgentRunner.Model.CliContextModes.Clean;
 

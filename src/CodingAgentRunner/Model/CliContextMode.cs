@@ -61,7 +61,7 @@ public static class CliContextModes
     /// Whether the adapter for <paramref name="cliType"/> can actually isolate
     /// persistent state for a clean run. Claude (<c>CLAUDE_CONFIG_DIR</c>) and Codex
     /// (<c>CODEX_HOME</c>) redirect their whole config home to a per-run temp dir;
-    /// Copilot and Gemini expose no such redirect, so they are shared-only — a clean
+    /// Gemini exposes no such redirect, so it is shared-only — a clean
     /// selection is honoured as a no-op (still shared). This is the single source of
     /// truth shared by the adapters and any settings UI so they can never disagree.
     /// </summary>

@@ -85,7 +85,6 @@ public static class CliPermissionFlags
             CliTypes.Claude => Claude(m),
             CliTypes.Codex => Codex(m),
             CliTypes.Gemini => Gemini(m),
-            CliTypes.Copilot => Copilot(m),
             _ => Claude(m),
         };
     }
@@ -126,14 +125,4 @@ public static class CliPermissionFlags
             _ => ["--skip-trust"],
         };
     }
-
-    private static IReadOnlyList<string> Copilot(string mode) => mode switch
-    {
-        // Copilot's headless flag surface is all-or-nothing: --allow-all greenlights
-        // every tool. There is no granular workspace-write / read-only preset, so
-        // only YOLO injects a flag; other modes fall back to Copilot's interactive
-        // defaults (which will prompt and therefore stall an unattended run).
-        CliPermissionModes.Yolo => ["--allow-all"],
-        _ => [],
-    };
 }

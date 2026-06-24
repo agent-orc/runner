@@ -38,10 +38,9 @@ public class CliThinkingLevelsTests
         => Assert.Equal(Split(expectedCsv), CliThinkingLevels.For("codex", model));
 
     [Fact]
-    public void GeminiAndCopilot_NeverHaveLevels()
+    public void Gemini_NeverHasLevels()
     {
         Assert.Empty(CliThinkingLevels.For("gemini", "gemini-pro"));
-        Assert.Empty(CliThinkingLevels.For("copilot", "gpt-5"));
     }
 
     [Fact]

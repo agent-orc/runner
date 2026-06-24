@@ -9,9 +9,9 @@ public class CliValueTypesTests
     [InlineData("claude", "claude")]
     [InlineData("CLAUDE", "claude")]
     [InlineData("codex", "codex")]
-    [InlineData(null, "copilot")]       // unknown / empty -> copilot
-    [InlineData("nonsense", "copilot")]
-    public void CliTypes_NormalizeFallsBackToCopilot(string? input, string expected)
+    [InlineData(null, "claude")]       // unknown / empty -> claude
+    [InlineData("nonsense", "claude")]
+    public void CliTypes_NormalizeFallsBackToClaude(string? input, string expected)
     {
         Assert.Equal(expected, CliTypes.Normalize(input));
     }
@@ -26,7 +26,7 @@ public class CliValueTypesTests
     [Theory]
     [InlineData("claude", CliPermissionModes.Yolo, "--dangerously-skip-permissions")]
     [InlineData("codex", CliPermissionModes.Yolo, "danger-full-access")]
-    [InlineData("copilot", CliPermissionModes.Yolo, "--allow-all")]
+    [InlineData("gemini", CliPermissionModes.Yolo, "--skip-trust")]
     public void CliPermissionFlags_YoloMapsPerCli(string cli, string mode, string mustContain)
     {
         Assert.Contains(mustContain, CliPermissionFlags.For(cli, mode));
@@ -50,7 +50,6 @@ public class CliValueTypesTests
     [Theory]
     [InlineData("claude", true)]
     [InlineData("codex", true)]
-    [InlineData("copilot", false)]
     [InlineData("gemini", false)]
     public void CliContextModes_SupportsCleanOnlyForRedirectableClis(string cli, bool expected)
     {
@@ -105,14 +104,6 @@ public class CliValueTypesTests
         => Assert.Equal(expected, CliPermissionModes.Normalize(input));
 
     [Fact]
-    public void CliPermissionFlags_CopilotInjectsNothingBelowYolo()
-    {
-        Assert.Empty(CliPermissionFlags.For("copilot", CliPermissionModes.ReadOnly));
-        Assert.Empty(CliPermissionFlags.For("copilot", CliPermissionModes.WorkspaceWrite));
-        Assert.Empty(CliPermissionFlags.For("copilot", CliPermissionModes.Custom));
-    }
-
-    [Fact]
     public void PermissionAndContext_Modes_RoundTripThroughNormalize()
     {
         foreach (var m in CliPermissionModes.All)
@@ -122,10 +113,10 @@ public class CliValueTypesTests
     }
 
     [Theory]
-    [InlineData(null, "copilot")]                  // unknown / empty -> copilot
+    [InlineData(null, "claude")]                   // unknown / empty -> claude
     [InlineData("GEMINI", "gemini")]               // case-insensitive
-    [InlineData("  gemini  ", "copilot")]          // NOT trimmed (unlike CliPermissionModes) → unknown → copilot
-    [InlineData("human", "copilot")]               // the sentinel is not a selectable driver
+    [InlineData("  gemini  ", "claude")]           // NOT trimmed (unlike CliPermissionModes) → unknown → claude
+    [InlineData("human", "claude")]                // the sentinel is not a selectable driver
     public void CliTypes_Normalize_IsCaseInsensitive_ButDoesNotTrim(string? input, string expected)
         => Assert.Equal(expected, CliTypes.Normalize(input));
 }

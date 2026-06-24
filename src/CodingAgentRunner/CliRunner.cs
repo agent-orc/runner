@@ -39,7 +39,6 @@ public sealed class CliRunner
             [CliTypes.Claude]      = new ClaudeDriver(options, logger, logPaths, home),
             [CliTypes.Codex]       = new CodexDriver(options, logger, logPaths, home),
             [CliTypes.Gemini]      = new GeminiDriver(options, logger, logPaths, home),
-            [CliTypes.Copilot]     = new CopilotDriver(options, logger, logPaths, home),
             [CliTypes.Antigravity] = new AntigravityDriver(options, logger, logPaths, home),
         };
     }
@@ -56,8 +55,6 @@ public sealed class CliRunner
     /// agentic CLI) is the planned Google integration that supersedes it.</para>
     /// </summary>
     public ICliDriver Gemini => Get(CliTypes.Gemini);
-    /// <summary>The GitHub Copilot driver. Sugar for <c>Get(CliTypes.Copilot)</c>.</summary>
-    public ICliDriver Copilot => Get(CliTypes.Copilot);
     /// <summary>The Google Antigravity (agentapi) driver. Sugar for <c>Get(CliTypes.Antigravity)</c>.</summary>
     public ICliDriver Antigravity => Get(CliTypes.Antigravity);
 

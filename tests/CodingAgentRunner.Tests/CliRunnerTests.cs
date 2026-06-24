@@ -14,7 +14,6 @@ public class CliRunnerTests
         Assert.IsType<ClaudeDriver>(runner.Get("claude"));
         Assert.IsType<CodexDriver>(runner.Get("codex"));
         Assert.IsType<GeminiDriver>(runner.Get("gemini"));
-        Assert.IsType<CopilotDriver>(runner.Get("copilot"));
         Assert.IsType<AntigravityDriver>(runner.Get("antigravity"));
     }
 
@@ -32,7 +31,6 @@ public class CliRunnerTests
         Assert.Equal(CliTypes.Claude, runner.Claude.CliType);
         Assert.Equal(CliTypes.Codex, runner.Codex.CliType);
         Assert.Equal(CliTypes.Gemini, runner.Gemini.CliType);
-        Assert.Equal(CliTypes.Copilot, runner.Copilot.CliType);
         Assert.Equal(CliTypes.Antigravity, runner.Antigravity.CliType);
     }
 
@@ -47,7 +45,7 @@ public class CliRunnerTests
     public void UnknownCli_FailsClearly_NoSilentFallback()
     {
         var runner = new CliRunner();
-        Assert.False(runner.TryGet("nonsense", out _));      // no fold-to-copilot
+        Assert.False(runner.TryGet("nonsense", out _));      // no silent fallback
         Assert.False(runner.TryGet("", out _));
         Assert.False(runner.TryGet(null, out _));
         Assert.Throws<ArgumentException>(() => runner.Get("nonsense"));
@@ -57,6 +55,6 @@ public class CliRunnerTests
     public void Drivers_CoverEverySupportedCli()
     {
         var runner = new CliRunner();
-        Assert.Equal(5, runner.Drivers.Count);   // claude, codex, gemini, copilot, antigravity
+        Assert.Equal(4, runner.Drivers.Count);   // claude, codex, gemini, antigravity
     }
 }

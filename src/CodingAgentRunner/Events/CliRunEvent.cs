@@ -2,7 +2,7 @@ namespace CodingAgentRunner.Events;
 
 /// <summary>
 /// One observation about a CLI run. Each per-CLI adapter (Claude / Codex /
-/// Copilot / Gemini) maps the CLI's native protocol onto this vocabulary; the
+/// Gemini) maps the CLI's native protocol onto this vocabulary; the
 /// runner and any policy layer consume only this contract — they never parse a
 /// CLI's raw frames directly.
 ///
