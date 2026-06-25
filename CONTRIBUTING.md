@@ -11,7 +11,7 @@ dotnet build
 dotnet test
 ```
 
-The .NET 8 SDK is required.
+The .NET 10 SDK is required.
 
 ## Conventions
 

@@ -159,12 +159,14 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
         <li><b>Push events &amp; pull <code>StreamAsync</code></b><span class="pill done">done</span></li>
         <li><b>Quota cache · escalation · cap/gate</b><span class="pill done">done</span></li>
         <li><b>Pluggable process spawner (<code>CliOptions.Spawner</code>)</b><span class="pill done">done</span></li>
+        <li><b>Run metrics from the event stream (<code>RunMetricsRecorder</code>)</b><span class="pill done">done</span></li>
+        <li><b>Optional <code>CodingAgentRunner.Rendering</code> — span model, Markdown/HTML</b><span class="pill done">done</span></li>
         <li><b>Built-in PTY quota probes</b><span class="pill wip">planned</span></li>
       </ul>
     </div>
     <div>
       <h2>Status</h2>
-      <div class="note">Stable core, pre-1.0. The spawn engine, the four drivers, the event contract, the outcome model, the watchdog and the quota module are implemented and tested (CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases. NuGet package coming.</div>
+      <div class="note">Stable core, pre-1.0. The spawn engine, the descriptor-driven CLI catalog, the event contract, the outcome model, the watchdog and the quota module are implemented and tested (366 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases. NuGet package coming.</div>
       <h2 style="margin-top:22px;">License</h2>
       <p class="lead">Apache-2.0. Issues and pull requests welcome on <a href="https://github.com/RobertMischke/coding-agent-runner">GitHub</a>.</p>
     </div>
@@ -259,6 +261,7 @@ driver.OnRunEvent += (runId, e) =&gt;
         <span class="k">case</span> CliRunEvent.RateLimitObserved r: ShowUsage(r.Window, r.Status, r.ResetsAt); <span class="k">break</span>;
         <span class="k">case</span> CliRunEvent.TurnCompleted t:     Log($<span class="s">"turn done: {t.UsageSummary}"</span>);     <span class="k">break</span>;
         <span class="k">case</span> CliRunEvent.TurnFailed f:        Log($<span class="s">"turn failed: {f.Reason}"</span>);         <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.Interrupt i:         Log($<span class="s">"interrupt {i.Reason} (fatal={i.IsFatal})"</span>); <span class="k">break</span>;
         <span class="k">case</span> CliRunEvent.RunEnded end:                                <span class="c">// one terminal, 3-valued</span>
             Log(end.Outcome <span class="k">switch</span>
             {
@@ -275,6 +278,7 @@ driver.OnRunEvent += (runId, e) =&gt;
       <tr><td>Engine (every CLI)</td><td><code>RunStarted</code>, <code>RunEnded</code></td><td>Always first / last. <code>RunEnded.Outcome</code> ∈ Completed/Stopped/Failed.</td></tr>
       <tr><td>Common core (Claude, Codex, Gemini, Antigravity)</td><td><code>SessionStarted</code>, <code>OutputDelta</code>, <code>ToolStarted</code>/<code>ToolCompleted</code>, <code>TurnCompleted</code>/<code>TurnFailed</code>, <code>Unknown</code></td><td>The reliable baseline a consumer can depend on. Antigravity reuses Gemini's adapter.</td></tr>
       <tr><td>CLI-specific (handle defensively)</td><td><code>SessionInitializing</code> (Claude), <code>TurnStarted</code> (Codex), <code>Heartbeat</code> (Codex), <code>RateLimitObserved</code> (Claude), <code>PlanUpdated</code> (Claude/Codex)</td><td>"May not arrive" — don't depend on them.</td></tr>
+      <tr><td>Interrupt signal</td><td><code>Interrupt</code></td><td>A classifier-raised stop condition with a typed <code>InterruptReason</code> (<code>EnvironmentBlocker</code>, <code>QuotaExhausted</code>, <code>Sentinel</code>, <code>SelfReference</code>, <code>NeedsInput</code>, <code>SilentCompletion</code>) and an <code>IsFatal</code> flag — end a run stuck against a wall before the watchdog's silence budget runs out.</td></tr>
       <tr><td>Reserved</td><td><code>NeedsInput</code>, <code>ApprovalRequested</code></td><td>Defined in the contract; no adapter emits them today.</td></tr>
     </table>
     <p class="exlabel">Raw output, live and after the run</p>

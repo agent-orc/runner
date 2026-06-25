@@ -8,7 +8,7 @@
 
 It is the "boring but critical" infrastructure layer: it spawns the agent CLI with the right binary, environment, and isolation; reads its `stream-json` output as a structured event stream; classifies the run's outcome; enforces a *platform-owns-git* boundary; and tracks remaining quota with a smart cache. Think of it as one level above [CliWrap](https://github.com/Tyrrrz/CliWrap): not "run any process", but "run a *coding agent* and understand it".
 
-> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, the four drivers, the event contract, the outcome model and the quota module are all implemented and tested (170+ tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.
+> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, the descriptor-driven CLI catalog, the event contract, the outcome model and the quota module are all implemented and tested (366 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.
 
 ## Why
 
@@ -108,14 +108,17 @@ QuotaReport report = quota.GetWithBackgroundRefresh(); // cached now; refreshes 
 
 ```
 src/CodingAgentRunner/
-  CliRunner.cs                  entry point: one ICliDriver per CLI
+  CliRunner.cs                  entry point: resolves one ICliDriver per CLI from the catalog
   Abstractions/                 consumer options + IUserHome/IRunLogPath providers
-  Model/                        value types, the run-outcome classifier, model catalog
-  Events/                       CliRunEvent contract + phase machine
-  Adapters/                     stream-json → CliRunEvent (Claude / Codex / Gemini)
-  Drivers/                     ClaudeDriver / CodexDriver / GeminiDriver / AntigravityDriver
-  Execution/                    the spawn engine, hardening, clean-context, log stores, Win32 spawner
+  Model/                        value types, the run-outcome classifier, model catalog, CliCapabilities
+  Events/                       CliRunEvent contract, phase machine, Interrupt + InterruptReason, watchdog
+  Adapters/                     stream-json → CliRunEvent (Claude / Codex / Gemini; Antigravity reuses Gemini)
+  Execution/                    CliRunEngine (one engine parameterized by CliDescriptor), CliCatalog,
+                                BuiltInDescriptors, LaunchSpec, hardening, clean-context, log stores, Win32 spawner
+  Metrics/                      RunMetrics / TurnMetrics / RunMetricsRecorder / UsageSummaryParser
   Quota/                        quota model, escalation cache, probe contract
+src/CodingAgentRunner.Rendering/  optional, opt-in: span/line model, link injection,
+                                Markdown/HTML rendering (depends on core; core does not depend on it)
 tests/CodingAgentRunner.Tests/  xUnit tests
 docs/                           developer wiki (architecture, the "why")
 website/                        project website (static, English)
