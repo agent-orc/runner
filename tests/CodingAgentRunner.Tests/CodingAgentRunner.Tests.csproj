@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CodingAgentRunner\CodingAgentRunner.csproj" />
+    <ProjectReference Include="..\..\src\CodingAgentRunner.Rendering\CodingAgentRunner.Rendering.csproj" />
   </ItemGroup>
 
 </Project>

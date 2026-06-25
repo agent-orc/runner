@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CodingAgentRunner.Rendering</RootNamespace>
+    <AssemblyName>CodingAgentRunner.Rendering</AssemblyName>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>CodingAgentRunner.Rendering</PackageId>
+    <Description>Optional, presentation-agnostic rendering for CodingAgentRunner: a span/line model plus a pluggable link resolver. The core library has NO dependency on this package; a consumer opts in.</Description>
+    <PackageTags>dotnet;rendering;markdown;links;coding-agent;cli</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- The dependency points ONE way: Rendering -> core. The core never references Rendering. -->
+  <ItemGroup>
+    <ProjectReference Include="..\CodingAgentRunner\CodingAgentRunner.csproj" />
+  </ItemGroup>
+
+</Project>
