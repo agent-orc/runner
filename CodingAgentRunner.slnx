@@ -1,8 +1,12 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/CodingAgentRunner/CodingAgentRunner.csproj" />
+    <Project Path="src/CodingAgentRunner.Rendering/CodingAgentRunner.Rendering.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CodingAgentRunner.Tests/CodingAgentRunner.Tests.csproj" />
+  </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/CodingAgentRunner.Benchmarks/CodingAgentRunner.Benchmarks.csproj" />
   </Folder>
 </Solution>

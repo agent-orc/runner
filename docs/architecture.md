@@ -51,11 +51,14 @@ var (run, error) = await driver.StartAsync(new CliRunRequest
 Most uses need five public types — `CliRunner`, `CliOptions`, `CliRunRequest`,
 `CliRunInfo`, and `CliRunEvent`. One layer down the descriptor model is also public
 and inspectable: `CliDescriptor`, `ICliCatalog` / `CliCatalog`, `BuiltInDescriptors`,
-and the launch-time `LaunchSpec` / `CliLaunchContext`. The per-CLI adapters, the
-spawner, the hardening, and the log stores stay `internal`: the machine room is not
-part of the contract, and there is **no "add your own CLI" extension point** today —
-the descriptors are a fixed, inspectable catalog, not a registration hook. The one
-launch-time seam is `CliOptions.Spawner` (see below).
+and the launch-time `LaunchSpec` / `CliLaunchContext`. The per-CLI stream-json
+adapters are public too — `ClaudeEventAdapter` / `CodexEventAdapter` /
+`GeminiEventAdapter` each expose a static `Map(line, runId)`, so you can turn a CLI's
+output line into typed events without spawning a process (replay, tests, benchmarks).
+The spawner, the hardening, and the log stores stay `internal`: that machine room is
+not part of the contract, and there is **no "add your own CLI" extension point**
+today — the descriptors are a fixed, inspectable catalog, not a registration hook.
+The one launch-time seam is `CliOptions.Spawner` (see below).
 
 ## Modules
 

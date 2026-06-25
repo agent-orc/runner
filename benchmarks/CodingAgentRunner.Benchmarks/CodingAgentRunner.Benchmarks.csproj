@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CodingAgentRunner.Benchmarks</RootNamespace>
+    <!-- BenchmarkDotNet insists on a Release build; this is never packed. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CodingAgentRunner\CodingAgentRunner.csproj" />
+    <ProjectReference Include="..\..\src\CodingAgentRunner.Rendering\CodingAgentRunner.Rendering.csproj" />
+  </ItemGroup>
+
+</Project>

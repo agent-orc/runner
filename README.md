@@ -120,6 +120,7 @@ src/CodingAgentRunner/
 src/CodingAgentRunner.Rendering/  optional, opt-in: span/line model, link injection,
                                 Markdown/HTML rendering (depends on core; core does not depend on it)
 tests/CodingAgentRunner.Tests/  xUnit tests
+benchmarks/CodingAgentRunner.Benchmarks/  BenchmarkDotNet micro-bench: parse / render throughput
 docs/                           developer wiki (architecture, the "why")
 website/                        project website (static, English)
 ```
@@ -132,6 +133,16 @@ dotnet test
 ```
 
 Requires the .NET 10 SDK.
+
+### Benchmarks
+
+Micro-benchmarks of the library's own parsing / rendering overhead — the per-line
+cost the host pays while reading agent output (not end-to-end *model* benchmarks,
+which would mean spawning a real CLI):
+
+```bash
+dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --filter '*'
+```
 
 ## Releasing
 
