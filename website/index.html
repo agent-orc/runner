@@ -86,7 +86,7 @@
   .controlbar label{display:block;color:var(--muted);font-size:12px;font-weight:700;}
   .controlbar select{width:100%;margin-top:4px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--fg);font:14px/1.4 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:8px 10px;}
   .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:10px;}
-  .table-wrap table{margin:0;min-width:1080px;}
+  .table-wrap table{margin:0;min-width:980px;}
   .table-wrap .pill{margin-left:0;}
   .perf-meta{display:block;color:var(--muted);font-size:12.5px;}
   .source-tests{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;line-height:1.35;}
@@ -444,10 +444,10 @@ dotnet run -c Release \
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Scenario</th><th>CLI / model</th><th>Thinking</th><th>Context tokens</th><th>Tokens used</th><th>Runs</th><th>Median</th><th>P90</th><th>First output feel</th><th>Pass rate</th></tr>
+          <tr><th>Scenario</th><th>CLI / model</th><th>Thinking</th><th>Context tokens</th><th>Tokens used</th><th>Runs</th><th>Median</th><th>P90</th><th>First output feel</th></tr>
         </thead>
         <tbody id="cli-performance-results">
-          <tr><td colspan="10"><span class="perf-status measured">measured</span> Loading CLI performance data.</td></tr>
+          <tr><td colspan="9"><span class="perf-status measured">measured</span> Loading CLI performance data.</td></tr>
         </tbody>
       </table>
     </div>
@@ -1270,13 +1270,6 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "</span>";
   }
 
-  function statusBadge(record) {
-    var measured = record.state === "measured";
-    return "<span class=\"perf-status " + (measured ? "measured" : "sample") + "\">" +
-      (measured ? "measured" : "sample") +
-      "</span>";
-  }
-
   function firstOutputCell(record) {
     var value = record.firstOutputMs;
     var width = Math.max(8, Math.round((value / maxFirstOutputMs) * 100));
@@ -1336,7 +1329,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     });
 
     if (!filtered.length) {
-      tbody.innerHTML = "<tr><td colspan=\"10\">No measured rows match these filters.</td></tr>";
+      tbody.innerHTML = "<tr><td colspan=\"9\">No measured rows match these filters.</td></tr>";
       return;
     }
 
@@ -1351,7 +1344,6 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
         "<td>" + escapeHtml(formatMs(r.medianMs)) + "</td>" +
         "<td>" + escapeHtml(formatMs(r.p90Ms)) + "</td>" +
         firstOutputCell(r) +
-        "<td><b>" + escapeHtml(r.successPct) + "%</b><span class=\"perf-meta\">" + statusBadge(r) + " " + escapeHtml(r.notes) + "</span></td>" +
         "</tr>";
     }).join("");
   }
