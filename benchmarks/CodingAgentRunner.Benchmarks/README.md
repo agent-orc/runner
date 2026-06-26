@@ -18,6 +18,11 @@ are deliberately *not* end-to-end model benchmarks — comparing models or wall-
 prompt means actually spawning a CLI and burning tokens, which belongs in a separate
 harness, not a CI-friendly micro-bench.
 
+The website's end-to-end CLI performance concept data lives in
+`website/data/cli-performance-observations.json`. That file is intentionally separate
+from BenchmarkDotNet output: it is for scenario-level CLI observations and links each
+scenario back to source tests via `sourceTests`.
+
 ## Run
 
 ```bash

@@ -73,6 +73,14 @@ completion from **that** real signal (`TurnCompleted` / `ProcessExited`).
 is an *application* run-protocol, not a universal CLI primitive — so it lives in
 the consumer app, not in this library.
 
+**Where these lessons surface in the API.** The two failure modes above are named
+`InterruptReason`s: the read-a-marker-in-your-own-output trap is `SelfReference`
+(raised non-fatal so a quoted error is never mistaken for a real one), and an
+unrecoverable OS/sandbox error is `EnvironmentBlocker`. The library classifies them
+into a typed `CliRunEvent.Interrupt` and leaves the `Stop` decision to the consumer —
+see [Architecture › Interrupt classification](architecture.md) and
+[Process termination](process-termination.md).
+
 ---
 
 ## 5 · Process-tree reaping & the slow-Bash exit (open)

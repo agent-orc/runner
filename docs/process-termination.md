@@ -38,6 +38,20 @@ QuotaCapExceeded, SentinelDetected, EnvironmentBlocker, SilentCompletion
 The consumer supplies the reason when it calls `Stop`; the runner supplies the rest
 (watchdog, cancellation).
 
+### `Interrupt` is the signal; `Stop` is the action
+
+`RunStopReason` records *why a run was terminated*. A separate, non-terminal channel
+records *that the library noticed a stop-worthy condition in the output*: the engine
+runs each descriptor's `IInterruptClassifier` per line and, on a match, emits a typed
+[`CliRunEvent.Interrupt(InterruptReason, Detail, IsFatal)`](cross-cli-normalization.md)
+into the same event stream. The library only raises the event — it never stops the run
+itself. The consumer reads it and decides: typically, on an `IsFatal` interrupt, call
+`Stop(reason)` with the matching `RunStopReason`. The two enums overlap by design —
+`EnvironmentBlocker` and `SilentCompletion` appear in both `InterruptReason` (the
+observation) and `RunStopReason` (the resulting deliberate stop) — so a fatal
+`EnvironmentBlocker` interrupt becomes a `Stop(EnvironmentBlocker)`, reported as
+`stopped`, never as a `-1` crash. See [Architecture › Interrupt classification](architecture.md).
+
 ## Abort scenarios the runner is built to handle
 
 | Scenario | Handling |

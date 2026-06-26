@@ -1,14 +1,14 @@
 # CodingAgentRunner
 
-> Run coding-agent CLIs — Claude Code, Codex, Gemini, Antigravity — from .NET: hardened spawning, streamed events, lifecycle & quota tracking.
+> Run coding-agent CLIs — Claude Code, Codex, Antigravity, Gemini — from .NET: hardened spawning, streamed events, lifecycle, quota, metrics & optional rendering.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-**CodingAgentRunner** is a .NET library for launching and supervising terminal-native coding agents (Claude Code, OpenAI Codex, and Google's Gemini / Antigravity CLIs) as child processes — reliably, especially on Windows.
+**CodingAgentRunner** is a .NET library for launching and supervising terminal-native coding agents (Claude Code, OpenAI Codex, Google Antigravity / `agentapi`, and the legacy Gemini CLI) as child processes — reliably, especially on Windows.
 
-It is the "boring but critical" infrastructure layer: it spawns the agent CLI with the right binary, environment, and isolation; reads its `stream-json` output as a structured event stream; classifies the run's outcome; enforces a *platform-owns-git* boundary; and tracks remaining quota with a smart cache. Think of it as one level above [CliWrap](https://github.com/Tyrrrz/CliWrap): not "run any process", but "run a *coding agent* and understand it".
+It is the "boring but critical" infrastructure layer: it spawns the agent CLI with the right binary, environment, and isolation; normalizes its `stream-json` output — a different frame dialect per CLI — into one structured event vocabulary; classifies the run's outcome; enforces a *platform-owns-git* boundary; tracks remaining quota with a smart cache; records run metrics; and can render agent Markdown through an optional package. Think of it as one level above [CliWrap](https://github.com/Tyrrrz/CliWrap): not "run any process", but "run a *coding agent* and understand it".
 
-> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, the descriptor-driven CLI catalog, the event contract, the outcome model and the quota module are all implemented and tested (366 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.
+> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, quota module, metrics recorder, optional rendering package and BenchmarkDotNet micro-benchmarks are implemented and tested (366 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.
 
 ## Why
 
@@ -26,23 +26,35 @@ See [docs/why-windows-hardening.md](docs/why-windows-hardening.md) for the full 
 
 ## Supported agents
 
-Claude Code · OpenAI Codex · Google Antigravity (the `agentapi` CLI) · Google Gemini *(deprecated)*. The library targets these CLIs in their specific versions — it is purpose-built for them, not a generic "wrap any CLI" framework, and there is no "add your own CLI" extension point.
+The library targets known coding-agent CLIs in their specific versions — it is purpose-built for them, not a generic "wrap any CLI" framework, and there is no "add your own CLI" extension point.
 
-> **Gemini is deprecated** and superseded by **Antigravity** (Google's `agentapi` CLI), the maintained Google integration. The Gemini driver stays in place but receives no new work; Antigravity reuses its event adapter. Antigravity ships as a driver but is deliberately kept out of the default *selectable* set (`CliTypes.All`) until a consumer migrates onto it.
->
-> **The GitHub Copilot driver has been removed.** Its headless surface couldn't share the hardened spawn/stream engine cleanly, so it is no longer part of the library.
+| Agent | Type id | Status | Context | Adapter / stream | Notes |
+|-------|---------|--------|---------|------------------|-------|
+| Claude Code | `claude` | supported | clean or shared | Claude `stream-json` adapter | First-class driver. |
+| OpenAI Codex | `codex` | supported | clean or shared | Codex `stream-json` adapter | First-class driver, including reasoning-model liveness metadata. |
+| Google Gemini | `gemini` | deprecated | shared only | Gemini adapter | Legacy Google driver kept for compatibility; no new feature work. |
+| Google Antigravity (`agentapi`) | `antigravity` | driver shipped | shared only | reuses Gemini adapter | Maintained Google path; kept out of the default selectable set (`CliTypes.All`) until a consumer migrates. |
+| GitHub Copilot | `copilot` | removed | n/a | no supported adapter | Removed because the headless path was PTY/TUI-dependent and did not fit the hardened structured stream engine. |
+
+Internally each CLI is a `CliDescriptor` — data plus a few pure delegates — in a fixed catalog, and one `internal sealed` engine is parameterized by it; covering a CLI is a descriptor in the library, not a subclass and not a consumer plug-in. The adapters fold each CLI's own dialect onto one event vocabulary, so your run logic is written once. See [Architecture](docs/architecture.md) and [Cross-CLI normalization](docs/cross-cli-normalization.md).
+
+> **Google status:** Gemini is deprecated and superseded by Antigravity, Google's `agentapi` CLI. The Gemini driver stays in place for existing consumers; Antigravity is where new Google integration work belongs.
 
 ## Features
 
 - ✅ Hardened binary resolution (`.cmd`→`.exe`, the prompt-truncation fix).
 - ✅ Process spawning: environment hardening, clean-context isolation, git-guard, stdin default-deny, Win32 handle-scrub spawner.
-- ✅ `stream-json` → structured `CliRunEvent` stream (incl. the CLI's real completion signal) for Claude / Codex / Gemini / Antigravity.
+- ✅ One event vocabulary across CLIs: each CLI's `stream-json` dialect normalized to the same closed `CliRunEvent` sum type (incl. the CLI's real completion signal) — write run logic once, never branch on the CLI or model.
 - ✅ One terminal event: `RunEnded` with a 3-valued outcome (completed / stopped / failed), classified from exit code + stop reason.
+- ✅ Typed interrupt classification (opt-in): an `IInterruptClassifier` raises a `CliRunEvent.Interrupt(InterruptReason, …, IsFatal)` for stop-worthy conditions (environment blocker, quota exhausted, silent completion, …); the library emits the event, your code decides whether to `Stop`.
+- ✅ Per-CLI capabilities (`CliCapabilities`: clean-context, resume, heartbeat-during-thinking, thinking levels) and overridable defaults resolved by specificity (`CliScope` / `CliDefault<T>`: CLI ▸ model ▸ thinking level) — ask the capability, don't switch on the CLI type.
 - ✅ Built-in silence watchdog (`RunWatchdog` / `WatchdogPolicy`) — one-line attach, phase-aware budgets.
 - ✅ Durable per-stream output logs (crash-tolerant, fsync per line).
 - ✅ Platform-owns-git guard (brand-neutral, configurable).
 - ✅ Quota cache · escalation · cap/gate · free event-harvest (poll harder near the limit; skip a run before it hits the wall).
 - ✅ Pluggable process spawner (`CliOptions.Spawner` / `ICliProcessSpawner`) — inject a custom launcher (e.g. a Windows PTY); null uses redirected pipes.
+- ✅ Run metrics from the event stream (`RunMetricsRecorder`) plus an optional `CodingAgentRunner.Rendering` package for Markdown/HTML UI output.
+- ✅ BenchmarkDotNet micro-benchmarks for adapter parsing, usage parsing and rendering hot paths.
 - 🚧 Concrete PTY-based quota probes (the `IQuotaProbe` contract + cache are done; plug your own probe today).
 
 ## Quickstart
@@ -104,6 +116,39 @@ var quota = new QuotaService(
 QuotaReport report = quota.GetWithBackgroundRefresh(); // cached now; refreshes stale entries in the background
 ```
 
+### Run metrics from events
+
+```csharp
+using CodingAgentRunner.Metrics;
+
+var metrics = new RunMetricsRecorder();
+driver.OnRunEvent += (_, evt) => metrics.Observe(evt);
+
+driver.OnFinished += (runId, _) =>
+{
+    RunMetrics snapshot = metrics.Build();
+    Console.WriteLine($"first output: {snapshot.TimeToFirstOutputMs / 1000.0:F1}s");
+    Console.WriteLine($"output tokens/sec: {snapshot.AverageOutputTokensPerSec:F1}");
+};
+```
+
+Metrics are reconstructed from the same `CliRunEvent` stream your UI or watchdog
+already consumes. The recorder does not poll the process or parse raw logs.
+
+### Optional rendering package
+
+```csharp
+using CodingAgentRunner.Rendering;
+
+IReadOnlyList<RenderedLine> lines = MarkdownRenderer.ToLines(agentMarkdown);
+string html = string.Concat(lines.Select(HtmlRenderer.SpansToHtml));
+```
+
+`CodingAgentRunner.Rendering` is opt-in and one-way (`Rendering` depends on core;
+core never references `Rendering`). It maps agent Markdown onto a presentation-neutral
+span/line model, injects links through a pluggable `LinkResolver`, and can materialize
+Markdown or HTML for UI consumers. Event-stream consumers never pay this dependency.
+
 ## Project layout
 
 ```
@@ -120,9 +165,11 @@ src/CodingAgentRunner/
 src/CodingAgentRunner.Rendering/  optional, opt-in: span/line model, link injection,
                                 Markdown/HTML rendering (depends on core; core does not depend on it)
 tests/CodingAgentRunner.Tests/  xUnit tests
-benchmarks/CodingAgentRunner.Benchmarks/  BenchmarkDotNet micro-bench: parse / render throughput
+benchmarks/CodingAgentRunner.Benchmarks/  BenchmarkDotNet micro-bench: parse / metrics / render throughput
 docs/                           developer wiki (architecture, the "why")
 website/                        project website (static, English)
+website/data/cli-performance-observations.json
+                                placeholder end-to-end CLI performance scenario data with source-test references
 ```
 
 ## Build & test
@@ -136,13 +183,22 @@ Requires the .NET 10 SDK.
 
 ### Benchmarks
 
-Micro-benchmarks of the library's own parsing / rendering overhead — the per-line
-cost the host pays while reading agent output (not end-to-end *model* benchmarks,
-which would mean spawning a real CLI):
+Micro-benchmarks of the library's own parsing, metrics and rendering overhead — the
+per-line cost the host pays while reading agent output (not end-to-end *model*
+benchmarks, which would mean spawning a real CLI):
 
 ```bash
 dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --filter '*'
+dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --filter '*' --job dry
 ```
+
+See [benchmarks/CodingAgentRunner.Benchmarks](benchmarks/CodingAgentRunner.Benchmarks)
+for the benchmark classes and the fast smoke command.
+
+End-to-end CLI performance observations live separately in
+[website/data/cli-performance-observations.json](website/data/cli-performance-observations.json).
+Those rows are placeholder values until a repeatable CLI harness writes real measurements,
+but each scenario already links to source-level tests through `sourceTests`.
 
 ## Releasing
 

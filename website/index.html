@@ -4,13 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CodingAgentRunner — run coding-agent CLIs from your .NET app</title>
-<meta name="description" content="A .NET library that runs coding-agent CLIs (Claude Code, Codex, Gemini, Antigravity) as child processes — using the CLI you already sign in to, with no API keys. Typed event stream, lifecycle and quota tracking." />
+<meta name="description" content="A .NET library that runs coding-agent CLIs (Claude Code, Codex, Antigravity, Gemini) as child processes — using the CLI you already sign in to, with no API keys. Typed event stream, lifecycle, quota, metrics, optional rendering, benchmarks and CLI performance observations." />
 <style>
   :root{
     --fg:#10151c;--muted:#5b6573;--line:#e6e9ee;--accent:#2f6df6;--accent2:#7c3aed;
     --bg:#fbfcfe;--card:#fff;--code:#0f1115;--codefg:#e6e9ef;--ok:#067647;--warn:#b54708;
   }
   *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
   body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
   a{color:var(--accent);text-decoration:none;} a:hover{text-decoration:underline;}
   .wrap{max-width:980px;margin:0 auto;padding:0 22px;}
@@ -18,6 +19,32 @@
   pre{background:var(--code);color:var(--codefg);padding:16px 18px;border-radius:12px;overflow:auto;font:13px/1.6 ui-monospace,Consolas,monospace;}
   pre code{background:none;padding:0;}
   pre .c{color:#7f8a9b;} pre .k{color:#79b8ff;} pre .s{color:#9ecbff;} pre .t{color:#c8a8ff;}
+  /* top navigation */
+  .site-nav{position:sticky;top:0;z-index:20;background:rgba(251,252,254,.94);border-bottom:1px solid var(--line);backdrop-filter:saturate(140%) blur(10px);}
+  .site-nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-top:10px;padding-bottom:10px;}
+  .brand{font-weight:800;color:var(--fg);letter-spacing:0;font-size:15px;}
+  .brand:hover{text-decoration:none;color:var(--fg);}
+  .nav-links{display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-wrap:wrap;}
+  .nav-links a{color:var(--muted);font-size:13px;font-weight:650;padding:5px 8px;border-radius:7px;}
+  .nav-links a:hover{background:#eef1f5;color:var(--fg);text-decoration:none;}
+  .nav-links a.is-active{background:#e8f0ff;color:var(--accent);box-shadow:inset 0 0 0 1px #c9dcff;text-decoration:none;}
+  .nav-menu{position:relative;}
+  .nav-menu summary{list-style:none;cursor:pointer;color:var(--muted);font-size:13px;font-weight:650;padding:5px 22px 5px 8px;border-radius:7px;position:relative;}
+  .nav-menu summary::-webkit-details-marker{display:none;}
+  .nav-menu summary:after{content:"";position:absolute;right:8px;top:50%;width:6px;height:6px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:translateY(-65%) rotate(45deg);}
+  .nav-menu[open] summary:after{transform:translateY(-35%) rotate(225deg);}
+  .nav-menu summary:hover,.nav-menu[open] summary{background:#eef1f5;color:var(--fg);}
+  .nav-menu.is-active summary{background:#e8f0ff;color:var(--accent);box-shadow:inset 0 0 0 1px #c9dcff;}
+  .nav-menu-panel{position:absolute;top:calc(100% + 8px);left:0;z-index:30;min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 30px rgba(16,21,28,.14);padding:7px;display:grid;gap:2px;}
+  .nav-menu-panel a{display:block;color:var(--fg);font-size:13px;font-weight:550;line-height:1.3;padding:7px 9px;border-radius:7px;}
+  .nav-menu-panel a:hover{background:#f3f5f9;text-decoration:none;}
+  .nav-menu-panel a.is-active{background:#e8f0ff;color:var(--accent);box-shadow:none;}
+  .nav-separator{width:1px;height:20px;background:var(--line);margin:0 6px 0 9px;}
+  .nav-links a.external-link{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--fg);padding:5px 10px;}
+  .nav-links a.external-link:hover{border-color:#c8cfdb;background:#f7f9fc;color:var(--fg);}
+  .nav-icon{width:14px;height:14px;flex:0 0 auto;}
+  .external-icon{width:12px;height:12px;flex:0 0 auto;color:var(--muted);}
+  @media(max-width:760px){.site-nav .wrap{align-items:flex-start;flex-direction:column;gap:7px}.nav-links{justify-content:flex-start}.nav-links a{padding-left:0;padding-right:10px}.nav-menu summary{padding-left:0}.nav-menu-panel{position:static;min-width:100%;box-shadow:none;margin:4px 0 4px;padding:5px}.nav-separator{display:none}.nav-links a.external-link{padding-left:10px}}
   /* hero */
   header.hero{background:radial-gradient(1100px 380px at 50% -120px,#eef2ff 0,transparent 70%);border-bottom:1px solid var(--line);padding:64px 0 52px;text-align:center;}
   .badge{display:inline-block;font-size:12.5px;font-weight:600;color:var(--accent);background:#eef3ff;border:1px solid #dbe6ff;padding:4px 12px;border-radius:999px;margin-bottom:18px;}
@@ -30,7 +57,9 @@
   .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--fg);} .btn.ghost:hover{border-color:#c8cfdb;text-decoration:none;}
   .provenance{margin:22px auto 0;max-width:640px;font-size:13.5px;color:var(--muted);}
   /* sections */
-  section{padding:48px 0;border-bottom:1px solid var(--line);}
+  section{padding:48px 0;border-bottom:1px solid var(--line);scroll-margin-top:72px;}
+  #benchmark-overview{scroll-margin-top:72px;margin:20px 0 34px;}
+  h2[id],h3[id]{scroll-margin-top:72px;}
   h2{font-size:25px;letter-spacing:-.4px;margin:0 0 8px;}
   h3{font-size:18px;letter-spacing:-.2px;margin:28px 0 6px;}
   .lead{color:var(--muted);max-width:740px;margin:0 0 22px;}
@@ -44,16 +73,44 @@
   ul.feat{list-style:none;padding:0;margin:0;} ul.feat li{padding:7px 0;border-bottom:1px solid var(--line);font-size:15px;}
   ul.feat li b{font-weight:600;}
   .pill{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;margin-left:6px;}
-  .pill.done{background:#e7f6ed;color:var(--ok);} .pill.wip{background:#fff3e0;color:var(--warn);}
+  .pill.done{background:#e7f6ed;color:var(--ok);} .pill.wip{background:#fff3e0;color:var(--warn);} .pill.removed{background:#f2f4f7;color:#475467;}
   .note{background:#fffaf2;border:1px solid #f3e2c7;border-radius:12px;padding:12px 16px;color:#7a5a1e;font-size:14.5px;}
   .exlabel{font-size:13px;font-weight:700;color:var(--fg);margin:18px 0 6px;}
   .exlabel span{color:var(--muted);font-weight:500;}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0;}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .kpi span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .kpi strong{display:block;font-size:20px;line-height:1.2;margin:6px 0 2px;}
+  .kpi small{display:block;color:var(--muted);font-size:13px;line-height:1.35;}
+  .controlbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:18px 0 14px;}
+  .controlbar label{display:block;color:var(--muted);font-size:12px;font-weight:700;}
+  .controlbar select{width:100%;margin-top:4px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--fg);font:14px/1.4 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:8px 10px;}
+  .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:10px;}
+  .table-wrap table{margin:0;min-width:820px;}
+  .table-wrap .pill{margin-left:0;}
+  .perf-meta{display:block;color:var(--muted);font-size:12.5px;}
+  .source-tests{margin-top:5px;line-height:1.35;}
+  .source-tests a{color:var(--accent);font-weight:650;}
+  .perf-status{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:750;background:#eef1f5;color:var(--muted);}
+  .perf-status.sample{background:#edf5ff;color:#1d4ed8;}
+  .perf-status.measured{background:#e7f6ed;color:var(--ok);}
+  .first-output-cell{min-width:160px;}
+  .first-output-value{font-size:16px;font-weight:800;color:var(--fg);}
+  .time-bar{height:9px;background:#eef1f5;border-radius:999px;margin:6px 0 5px;overflow:hidden;}
+  .time-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#14b8a6,#2f6df6);}
+  .time-bar.slow span{background:linear-gradient(90deg,#f59e0b,#b54708);}
+  .schema-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:14px 0 0;}
+  .schema-list div{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px;}
+  .schema-list dt{font-weight:700;margin:0 0 4px;}
+  .schema-list dd{margin:0;color:var(--muted);font-size:14px;}
+  @media(max-width:860px){.controlbar{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media(max-width:560px){.controlbar{grid-template-columns:1fr;}}
   /* docs nav + tables */
   .docnav{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 26px;}
   .docnav a{font-size:13px;background:#eef1f5;border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--fg);}
   .docnav a:hover{border-color:#c8cfdb;text-decoration:none;}
   .docsec{padding-top:14px;}
-  .docsec h3{scroll-margin-top:14px;}
+  .docsec h3{scroll-margin-top:72px;}
   table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;}
   th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top;}
   th{background:#f3f5f9;font-weight:600;}
@@ -64,7 +121,77 @@
 </head>
 <body>
 
-<header class="hero">
+<nav class="site-nav" aria-label="Primary navigation">
+  <div class="wrap">
+    <a class="brand" href="#top">CodingAgentRunner</a>
+    <div class="nav-links">
+      <details class="nav-menu">
+        <summary>Overview</summary>
+        <div class="nav-menu-panel">
+          <a href="#overview">Your CLI subscription</a>
+          <a href="#sessions">One-shot or session</a>
+        </div>
+      </details>
+      <details class="nav-menu">
+        <summary>Agents</summary>
+        <div class="nav-menu-panel">
+          <a href="#agents">Supported agents</a>
+          <a href="#agent-claude">Claude Code</a>
+          <a href="#agent-codex">OpenAI Codex</a>
+          <a href="#agent-gemini">Google Gemini</a>
+          <a href="#agent-antigravity">Google Antigravity</a>
+          <a href="#agent-copilot">Copilot removed</a>
+          <a href="#descriptor-catalog">Descriptor catalog</a>
+          <a href="#normalization">One vocabulary across CLIs</a>
+        </div>
+      </details>
+      <details class="nav-menu">
+        <summary>Runtime</summary>
+        <div class="nav-menu-panel">
+          <a href="#windows">Windows hardening</a>
+          <a href="#features">Features</a>
+          <a href="#status">Status</a>
+          <a href="#license">License</a>
+        </div>
+      </details>
+      <details class="nav-menu">
+        <summary>CLI Perf</summary>
+        <div class="nav-menu-panel">
+          <a href="#cli-performance">CLI performance</a>
+          <a href="#benchmark-overview">Host-side overhead</a>
+          <a href="#cli-performance-observations">CLI observations</a>
+          <a href="#cli-results-table">Results table</a>
+          <a href="#scenario-ladder">Scenario ladder</a>
+        </div>
+      </details>
+      <details class="nav-menu">
+        <summary>Docs</summary>
+        <div class="nav-menu-panel">
+          <a href="#docs">Documentation</a>
+          <a href="#quickstart">Quickstart</a>
+          <a href="#identity">Run identity</a>
+          <a href="#events">Event stream</a>
+          <a href="#config">Configuration</a>
+          <a href="#capabilities">Capabilities</a>
+          <a href="#watchdog">Watchdog</a>
+          <a href="#quota">Quota</a>
+          <a href="#metrics-rendering">Metrics &amp; rendering</a>
+          <a href="#benchmarks">Benchmarks</a>
+          <a href="#cli-performance-data-contract">CLI data contract</a>
+          <a href="#streaming">Push vs pull</a>
+        </div>
+      </details>
+      <span class="nav-separator" aria-hidden="true"></span>
+      <a class="external-link" href="https://github.com/RobertMischke/coding-agent-runner" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository, opens an external site">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.87c.68 0 1.36.09 2 .26 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        <span>GitHub</span>
+        <svg class="external-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h6v6"/><path d="m5 11 7-7"/><path d="M12 12v1H3V4h1"/></svg>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<header id="top" class="hero">
   <div class="wrap">
     <span class="badge">.NET library · Apache-2.0 · stable core, pre-1.0</span>
     <h1>Coding<span class="grad">AgentRunner</span></h1>
@@ -77,11 +204,11 @@
   </div>
 </header>
 
-<section>
+<section id="overview">
   <div class="wrap two">
     <div>
       <h2>Your CLI subscription, called from code</h2>
-      <p class="lead">You already sign in to a coding-agent CLI — Claude Code, Codex, Gemini, or Antigravity — on your machine. CodingAgentRunner lets a .NET program start that CLI, send it a prompt, and read its output as a typed event stream. The run uses your existing sign-in, so there is no API key to manage and no separate billing to set up. Any .NET application can get an LLM on the local development machine this way.</p>
+      <p class="lead">You already sign in to a coding-agent CLI — Claude Code, Codex, Antigravity, or legacy Gemini — on your machine. CodingAgentRunner lets a .NET program start that CLI, send it a prompt, and read its output as a typed event stream. The run uses your existing sign-in, so there is no API key to manage and no separate billing to set up. Any .NET application can get an LLM on the local development machine this way.</p>
     </div>
     <div>
       <pre><span class="c">// Wire the library once; resolve a driver per CLI.</span>
@@ -99,7 +226,7 @@
   </div>
 </section>
 
-<section>
+<section id="sessions">
   <div class="wrap two">
     <div>
       <h2>One-shot, or a full session</h2>
@@ -124,15 +251,81 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
   </div>
 </section>
 
-<section>
+<section id="agents">
   <div class="wrap">
     <h2>Supported agents</h2>
-    <p class="lead">Claude Code · OpenAI Codex · Google Antigravity (the <code>agentapi</code> CLI). The library targets these CLIs in their specific versions — it is purpose-built for them, not a generic "wrap any CLI" framework. Drivers are built in: there is no "add your own CLI" hook, though you can inject a custom process spawner via <code>CliOptions.Spawner</code>.</p>
-    <p class="lead" style="font-size:14px;">A Gemini driver still ships but is deprecated; Antigravity (Google's <code>agentapi</code> CLI) is the maintained replacement and reuses Gemini's event adapter. Clean-context isolation applies to Claude and Codex; Gemini and Antigravity run with shared state. The GitHub Copilot driver has been removed.</p>
+    <p class="lead">CodingAgentRunner is deliberately a catalog of known coding-agent CLIs, not a generic process wrapper. Each row below names the real CLI surface, its type id, support status, context behavior and adapter story.</p>
+
+    <div class="table-wrap">
+      <table>
+        <tr><th>Agent</th><th>Type id</th><th>Status</th><th>Context</th><th>Adapter / stream</th><th>Notes</th></tr>
+        <tr><td><b>Claude Code</b></td><td><code>claude</code></td><td><span class="pill done">supported</span></td><td>clean or shared</td><td>Claude <code>stream-json</code> adapter</td><td>Primary supported CLI with native structured output and clean-context isolation.</td></tr>
+        <tr><td><b>OpenAI Codex</b></td><td><code>codex</code></td><td><span class="pill done">supported</span></td><td>clean or shared</td><td>Codex <code>stream-json</code> adapter</td><td>Primary supported CLI; reasoning models may emit heartbeat-style liveness while thinking.</td></tr>
+        <tr><td><b>Google Gemini</b></td><td><code>gemini</code></td><td><span class="pill wip">deprecated</span></td><td>shared only</td><td>Gemini adapter</td><td>Legacy Google driver kept for compatibility; receives no new feature work.</td></tr>
+        <tr><td><b>Google Antigravity</b></td><td><code>antigravity</code></td><td><span class="pill done">driver shipped</span></td><td>shared only</td><td>Reuses Gemini adapter</td><td>Maintained Google path via <code>agentapi</code>; deliberately not in the default selectable set until a consumer migrates.</td></tr>
+        <tr><td><b>GitHub Copilot</b></td><td><code>copilot</code></td><td><span class="pill removed">removed</span></td><td>n/a</td><td>no supported adapter</td><td>Dropped because the headless path was PTY/TUI-dependent instead of fitting the hardened structured stream engine.</td></tr>
+      </table>
+    </div>
+
+    <div class="cards" style="margin-top:18px;">
+      <div class="card" id="agent-claude">
+        <h3><span class="dot"></span>Claude Code <span class="pill done">supported</span></h3>
+        <p>Claude Code is a first-class driver. It can run with clean isolated CLI homes, emits structured output through its own adapter, and participates in the shared event, watchdog, quota and metrics flow.</p>
+      </div>
+      <div class="card" id="agent-codex">
+        <h3><span class="dot"></span>OpenAI Codex <span class="pill done">supported</span></h3>
+        <p>Codex is a first-class driver with clean-context support, a Codex-specific stream adapter, and capability metadata for thinking levels and reasoning-model liveness behavior.</p>
+      </div>
+      <div class="card" id="agent-gemini">
+        <h3><span class="dot"></span>Google Gemini <span class="pill wip">deprecated</span></h3>
+        <p>The Gemini driver still ships for existing consumers, but it is the legacy Google surface. It is shared-context only and receives no new feature work; new Google work should move to Antigravity.</p>
+      </div>
+      <div class="card" id="agent-antigravity">
+        <h3><span class="dot"></span>Google Antigravity <span class="pill done">driver shipped</span></h3>
+        <p>Antigravity is Google's maintained <code>agentapi</code> path and the replacement direction for Gemini. It currently reuses the Gemini adapter, runs shared-context only, and stays out of <code>CliTypes.All</code> until a consumer migration makes it selectable by default.</p>
+      </div>
+      <div class="card" id="agent-copilot">
+        <h3><span class="dot"></span>GitHub Copilot <span class="pill removed">removed</span></h3>
+        <p>Copilot support was dropped. Its practical headless flow depended on PTY/TUI behavior and token-coupled interactive state, which did not fit the library's testable contract: spawn a known CLI, read structured stream output, normalize events.</p>
+      </div>
+    </div>
+
+    <h3 id="descriptor-catalog">Use, don't extend: the descriptor catalog</h3>
+    <p class="lead">Each CLI is a <code>CliDescriptor</code> — data plus a few pure delegates (<code>BuildLaunch</code>, <code>Parse</code>, <code>InterruptClassifier</code>, <code>Capabilities</code>) — held in a fixed internal catalog (<code>ICliCatalog</code>). There is exactly one <code>internal sealed</code> run engine, parameterized by the descriptor; you consume the records and interfaces it exposes and never subclass it. Covering a CLI means a descriptor inside the library, not a plug-in you register from the outside.</p>
   </div>
 </section>
 
-<section>
+<section id="normalization">
+  <div class="wrap two">
+    <div>
+      <h2>One vocabulary across CLIs</h2>
+      <p class="lead">All the supported CLIs stream NDJSON on stdout — one JSON object per line — but each uses its own frame vocabulary for the same ideas. A session start is a <code>system</code> frame in Claude, <code>thread.started</code> in Codex, and <code>init</code> in Antigravity; the id it carries is <code>session_id</code> in some and <code>thread_id</code> in others; the cached-token field has three names — <code>cache_read</code>, <code>cached_input</code>, <code>cached</code>.</p>
+      <p class="lead">A per-CLI adapter folds all of that onto one closed <code>CliRunEvent</code> sum type. Your run logic is written once against that one vocabulary and never branches on which CLI — or which model — produced a line: you parse by frame type, not by model. The adapters are public, so <code>ClaudeEventAdapter.Map(line, runId)</code> (and the <code>Codex</code> / <code>Gemini</code> equivalents) turn one output line into events without spawning a process.</p>
+      <p class="lead" style="font-size:14px;">The full per-frame mapping is in <a href="https://github.com/RobertMischke/coding-agent-runner/blob/main/docs/cross-cli-normalization.md">docs/cross-cli-normalization.md</a>.</p>
+    </div>
+    <div>
+      <table>
+        <tr><th>Concept</th><th>Claude</th><th>Codex</th><th>Antigravity</th><th>Normalized to</th></tr>
+        <tr><td>Session start</td><td><code>system</code></td><td><code>thread.started</code></td><td><code>init</code></td><td><code>SessionStarted</code></td></tr>
+        <tr><td>Tool call</td><td><code>tool_use</code></td><td><code>command_call</code></td><td><code>tool_call</code></td><td><code>ToolStarted</code></td></tr>
+        <tr><td>Turn complete</td><td><code>result</code></td><td><code>turn.completed</code></td><td><code>result</code></td><td><code>TurnCompleted</code></td></tr>
+        <tr><td>Token usage</td><td><code>cache_read</code></td><td><code>cached_input</code></td><td><code>cached</code></td><td>usage on <code>TurnCompleted</code></td></tr>
+      </table>
+      <pre><span class="c">// One switch — same cases for every CLI.</span>
+driver.OnRunEvent += (runId, e) =&gt;
+{
+    <span class="k">switch</span> (e)
+    {
+        <span class="k">case</span> CliRunEvent.SessionStarted s: Track(s.SessionId);    <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.ToolStarted t:    Log(t.ToolName);       <span class="k">break</span>;
+        <span class="k">case</span> CliRunEvent.TurnCompleted c:  Meter(c.UsageSummary); <span class="k">break</span>;
+    }
+};</pre>
+    </div>
+  </div>
+</section>
+
+<section id="windows">
   <div class="wrap">
     <h2>What it handles on Windows</h2>
     <p class="lead">Running a CLI as a child process on Windows, unattended, has a handful of specific failure modes. The library handles each one, and each fix ships with a test that records why it exists.</p>
@@ -147,7 +340,7 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
   </div>
 </section>
 
-<section>
+<section id="features">
   <div class="wrap two">
     <div>
       <h2>Features</h2>
@@ -161,29 +354,113 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
         <li><b>Pluggable process spawner (<code>CliOptions.Spawner</code>)</b><span class="pill done">done</span></li>
         <li><b>Run metrics from the event stream (<code>RunMetricsRecorder</code>)</b><span class="pill done">done</span></li>
         <li><b>Optional <code>CodingAgentRunner.Rendering</code> — span model, Markdown/HTML</b><span class="pill done">done</span></li>
+        <li><b>BenchmarkDotNet micro-benchmarks for parse / metrics / render paths</b><span class="pill done">done</span></li>
+        <li><b>CLI performance observations JSON database</b><span class="pill wip">seeded</span></li>
         <li><b>Built-in PTY quota probes</b><span class="pill wip">planned</span></li>
       </ul>
     </div>
     <div>
-      <h2>Status</h2>
-      <div class="note">Stable core, pre-1.0. The spawn engine, the descriptor-driven CLI catalog, the event contract, the outcome model, the watchdog and the quota module are implemented and tested (366 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases. NuGet package coming.</div>
-      <h2 style="margin-top:22px;">License</h2>
+      <h2 id="status">Status</h2>
+      <div class="note">Stable core, pre-1.0. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, watchdog, quota module, metrics recorder, optional rendering package and micro-benchmarks are implemented and tested (366 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.</div>
+      <h2 id="license" style="margin-top:22px;">License</h2>
       <p class="lead">Apache-2.0. Issues and pull requests welcome on <a href="https://github.com/RobertMischke/coding-agent-runner">GitHub</a>.</p>
     </div>
+  </div>
+</section>
+
+<section id="cli-performance">
+  <div class="wrap">
+    <h2>CLI performance</h2>
+    <p class="lead">CLI performance has two layers here: the host-side overhead CodingAgentRunner adds around a stream, and the wall-clock behavior of real CLI runs. Keep them separate, but read them together.</p>
+
+    <div id="benchmark-overview" class="two">
+      <div>
+        <h3>Measured host-side overhead</h3>
+        <p class="lead">The benchmark project measures the work CodingAgentRunner itself does while a run streams: adapter parsing from <code>stream-json</code> to typed events, usage parsing for metrics, and optional Markdown/HTML rendering. These are library micro-benchmarks, not model comparisons, so they are CI-friendly and do not spawn real CLIs or burn tokens.</p>
+        <div class="cards">
+          <div class="card"><h3><span class="dot"></span> Adapter parsing</h3><p>Representative Claude, Codex and Gemini transcripts exercise the real adapter branches: session start, text, tools, plans and terminal completion.</p></div>
+          <div class="card"><h3><span class="dot"></span> Metrics &amp; rendering</h3><p><code>UsageSummaryParser</code> and the optional rendering package are measured separately so UI consumers know the cost they opt into.</p></div>
+        </div>
+      </div>
+      <div>
+        <pre><span class="c"># full statistical run</span>
+dotnet run -c Release \
+  --project benchmarks/CodingAgentRunner.Benchmarks \
+  -- --filter <span class="s">'*'</span>
+
+<span class="c"># fast smoke check</span>
+dotnet run -c Release \
+  --project benchmarks/CodingAgentRunner.Benchmarks \
+  -- --filter <span class="s">'*'</span> --job dry</pre>
+      </div>
+    </div>
+
+    <h3 id="cli-performance-observations">CLI performance observations</h3>
+    <p class="lead">This part is only about the CLIs themselves: which CLI, model, thinking level and context size produced the first visible output, completed the run, and passed the scenario checks.</p>
+    <div class="note"><b>Not real measurements yet.</b> The rows below are committed placeholder data from <code>website/data/cli-performance-observations.json</code>. Scenario definitions already point at real source tests; timing values should be replaced by repeatable CLI-run output.</div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><span>Primary question</span><strong>How fast does the CLI feel?</strong><small>time to first output gets its own weight beside total wall-clock and p90.</small></div>
+      <div class="kpi"><span>Quality gate</span><strong>Did it pass?</strong><small>speed only counts when the expected answer, tests or review rubric succeeded.</small></div>
+      <div class="kpi"><span>Dimensions</span><strong>CLI + model + thinking</strong><small>Codex models such as GPT 5.5 Code, Claude Opus 4.8 / Sonnet 4.6, Antigravity and future drivers.</small></div>
+      <div class="kpi"><span>Context</span><strong>tiny to large repos</strong><small>input tokens, files touched, transcript size and clean/shared context mode.</small></div>
+    </div>
+
+    <h3 id="cli-results-table">CLI results table concept</h3>
+    <p class="lead">A real data file can contain thousands of individual runs; the page should show aggregated rows first. The first-output column is intentionally visual because it determines whether the CLI feels responsive while a longer task is still running.</p>
+    <div class="controlbar" aria-label="CLI performance filters">
+      <label for="perf-cli">CLI
+        <select id="perf-cli" data-cli-filter="cli" data-cli-all="All CLIs"><option value="all">All CLIs</option></select>
+      </label>
+      <label for="perf-model">Model
+        <select id="perf-model" data-cli-filter="model" data-cli-all="All models"><option value="all">All models</option></select>
+      </label>
+      <label for="perf-thinking">Thinking
+        <select id="perf-thinking" data-cli-filter="thinking" data-cli-all="All levels"><option value="all">All levels</option></select>
+      </label>
+      <label for="perf-context">Context
+        <select id="perf-context" data-cli-filter="contextBucket" data-cli-all="All sizes"><option value="all">All sizes</option></select>
+      </label>
+      <label for="perf-complexity">Scenario
+        <select id="perf-complexity" data-cli-filter="complexity" data-cli-all="All scenarios"><option value="all">All scenarios</option></select>
+      </label>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Scenario</th><th>CLI / model</th><th>Thinking</th><th>Context</th><th>Runs</th><th>Median</th><th>P90</th><th>First output feel</th><th>Pass rate</th></tr>
+        </thead>
+        <tbody id="cli-performance-results">
+          <tr><td colspan="9"><span class="perf-status sample">placeholder</span> Rows render from embedded concept data, not measured results.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="scenario-ladder">Scenario ladder</h3>
+    <dl class="schema-list">
+      <div><dt>Simple question</dt><dd>Answer-only prompts with no repo mutation. Captures startup overhead and first useful output.</dd></div>
+      <div><dt>Repo question</dt><dd>Read code, summarize behavior, cite files. Measures context loading and tool-call latency.</dd></div>
+      <div><dt>Small fix</dt><dd>One localized edit plus tests. Measures patch quality, file I/O, compile/test loop and recovery.</dd></div>
+      <div><dt>Complex task</dt><dd>Multi-file implementation with validation. Measures planning, tool churn, final correctness and total time.</dd></div>
+    </dl>
   </div>
 </section>
 
 <section id="docs" class="docsec">
   <div class="wrap">
     <h2>Documentation</h2>
-    <p class="lead">The public API is small: most uses need five types — <code>CliRunner</code>, <code>CliOptions</code>, <code>CliRunRequest</code>, <code>CliRunInfo</code>, and <code>CliRunEvent</code>. Everything below is example-first and accurate to the current API.</p>
+    <p class="lead">The public API is small: most run-control uses need five types — <code>CliRunner</code>, <code>CliOptions</code>, <code>CliRunRequest</code>, <code>CliRunInfo</code>, and <code>CliRunEvent</code>. Metrics and rendering are opt-in layers on top of the same event stream. Everything below is example-first and accurate to the current API.</p>
     <div class="docnav">
       <a href="#quickstart">Quickstart</a>
       <a href="#identity">Run identity</a>
       <a href="#events">Event stream</a>
       <a href="#config">Configuration</a>
+      <a href="#capabilities">Capabilities &amp; defaults</a>
       <a href="#watchdog">Watchdog &amp; plans</a>
       <a href="#quota">Quota</a>
+      <a href="#metrics-rendering">Metrics &amp; rendering</a>
+      <a href="#benchmarks">Benchmarks</a>
+      <a href="#cli-performance-data-contract">CLI performance data</a>
       <a href="#streaming">Push vs pull</a>
     </div>
 
@@ -281,6 +558,18 @@ driver.OnRunEvent += (runId, e) =&gt;
       <tr><td>Interrupt signal</td><td><code>Interrupt</code></td><td>A classifier-raised stop condition with a typed <code>InterruptReason</code> (<code>EnvironmentBlocker</code>, <code>QuotaExhausted</code>, <code>Sentinel</code>, <code>SelfReference</code>, <code>NeedsInput</code>, <code>SilentCompletion</code>) and an <code>IsFatal</code> flag — end a run stuck against a wall before the watchdog's silence budget runs out.</td></tr>
       <tr><td>Reserved</td><td><code>NeedsInput</code>, <code>ApprovalRequested</code></td><td>Defined in the contract; no adapter emits them today.</td></tr>
     </table>
+
+    <p class="exlabel">Interrupt classification <span>— a stop-worthy line becomes a typed event</span></p>
+    <p class="lead">An <code>IInterruptClassifier</code> runs per output line. When it recognizes a stop-worthy condition it emits a typed <code>CliRunEvent.Interrupt(InterruptReason, Detail, IsFatal)</code> into the same stream — for cases like <code>EnvironmentBlocker</code>, <code>QuotaExhausted</code>, <code>Sentinel</code>, <code>SelfReference</code>, <code>NeedsInput</code>, and <code>SilentCompletion</code>. The library only raises the event; you keep <code>Stop()</code> authority and decide how to act on <code>IsFatal</code>. The mechanism is wired into the engine read-loop and a starter <code>EnvironmentBlocker</code> classifier ships, but every built-in descriptor leaves its <code>InterruptClassifier</code> unset, so no built-in CLI emits <code>Interrupt</code> until you opt in.</p>
+    <pre>driver.OnRunEvent += (runId, e) =&gt;
+{
+    <span class="k">if</span> (e <span class="k">is</span> CliRunEvent.Interrupt i)
+    {
+        Log($<span class="s">"interrupt {i.Reason}: {i.Detail}"</span>);
+        <span class="k">if</span> (i.IsFatal) driver.Stop(runId, RunStopReason.UserStop); <span class="c">// your call</span>
+    }
+};</pre>
+
     <p class="exlabel">Raw output, live and after the run</p>
     <pre><span class="c">// live: every raw line, tagged stdout/stderr</span>
 driver.OnOutput += (runId, line) =&gt; sink.Append($<span class="s">"{line.Stream}: {line.Text}"</span>);
@@ -315,12 +604,6 @@ driver.OnFinished += (runId, info) =&gt;
 <span class="c">// …or deliberately let the agent use git:</span>
 <span class="k">var</span> trusting = <span class="k">new</span> CliOptions { AllowAgentGitMutation = <span class="k">true</span> };</pre>
 
-    <p class="exlabel">Clean vs shared context</p>
-    <pre><span class="c">// Clean = isolated per-run home (only prompt + versioned repo files).</span>
-<span class="c">// Only Claude/Codex can isolate; Gemini/Antigravity are shared-only.</span>
-<span class="k">if</span> (driver.SupportsCleanContext)
-    request = request <span class="k">with</span> { ContextMode = CliContextModes.Clean };</pre>
-
     <p class="exlabel">Registration in DI (ASP.NET)</p>
     <pre>builder.Services.AddSingleton(sp =&gt; <span class="k">new</span> CliRunner(
     <span class="k">new</span> CliOptions(),
@@ -328,6 +611,27 @@ driver.OnFinished += (runId, info) =&gt;
 
 <span class="c">// in an endpoint / service:</span>
 <span class="k">var</span> driver = runner.Get(request.Cli);</pre>
+
+    <h3 id="capabilities">Capabilities &amp; overridable defaults</h3>
+    <p class="lead">Ask what a CLI can do instead of switching on its type. <code>CliCapabilities</code> answers per CLI: <code>SupportsCleanContext</code>, <code>SupportsResume</code>, <code>EmitsHeartbeatDuringThinking</code> (true for Codex's reasoning models), and the available <code>ThinkingLevels</code> with a <code>DefaultThinkingLevel</code>. Use those flags to keep a shared selection UI honest across CLIs rather than special-casing each one.</p>
+    <pre><span class="k">var</span> caps = driver.Capabilities(model);   <span class="c">// CliCapabilities, resolved per model</span>
+<span class="k">if</span> (caps.SupportsCleanContext)
+    request = request <span class="k">with</span> { ContextMode = CliContextModes.Clean };
+<span class="k">if</span> (!caps.SupportsResume)
+    request = request <span class="k">with</span> { ResumeSessionId = <span class="k">null</span> };   <span class="c">// this CLI can't resume; start fresh</span>
+
+<span class="c">// Codex reasoning models stay silent but emit Heartbeat; the watchdog already</span>
+<span class="c">// treats Heartbeat as activity, so EmitsHeartbeatDuringThinking just informs budgets.</span></pre>
+
+    <p class="exlabel">Overridable defaults <span>— resolve by specificity</span></p>
+    <p class="lead">A default resolves from most specific to least: CLI ▸ model ▸ thinking level, falling back to a global default. A <code>CliScope</code> (<code>CliType</code>, optional <code>Model</code>, optional <code>ThinkingLevel</code>) selects the layer; <code>Set(scope, value)</code> is the one-line override. The library ships the real per-CLI/model tables it needs — <code>CliThinkingLevels</code> and <code>CliReasoningFlags</code> — not a pre-seeded battery of every default.</p>
+    <pre><span class="c">// A default silence budget in seconds; override for one CLI, then one model.</span>
+<span class="k">var</span> silenceBudget = <span class="k">new</span> CliDefault&lt;<span class="k">int</span>&gt;(300);
+silenceBudget.Set(<span class="k">new</span> CliScope(<span class="s">"codex"</span>), 600);                       <span class="c">// Codex: 10 min</span>
+silenceBudget.Set(<span class="k">new</span> CliScope(<span class="s">"codex"</span>, Model: <span class="s">"gpt-5.5"</span>), 1200);    <span class="c">// that model: 20 min</span>
+
+<span class="c">// Resolution walks CLI ▸ model ▸ thinking level, then the global fallback.</span>
+<span class="k">int</span> seconds = silenceBudget.Resolve(<span class="k">new</span> CliScope(<span class="s">"codex"</span>, Model: <span class="s">"gpt-5.5"</span>));   <span class="c">// 1200</span></pre>
 
     <h3 id="watchdog">Watchdog &amp; plan tracking</h3>
     <p class="lead">The engine already tracks each run's phase and last activity. Attach the built-in watchdog in one line instead of wiring your own timer; it stops a hung run as <code>RunStopReason.Watchdog</code> — a deliberate stop, not a crash. Budgets are per phase (a model still "thinking" inside a tool call is fine for minutes; no handshake right after spawn is a fast failure).</p>
@@ -383,6 +687,119 @@ quota.Cap(<span class="s">"claude"</span>, stopAtPercent: 97);
 QuotaGate gate = quota.Gate(<span class="s">"claude"</span>);
 <span class="k">if</span> (!gate.Allowed) Skip(reason: gate.Reason, retryAfter: gate.RetryAfter);</pre>
 
+    <h3 id="metrics-rendering">Metrics &amp; optional rendering</h3>
+    <p class="lead">Metrics are reconstructed from the same typed events your UI, watchdog or quota layer already receives. The optional rendering package is separate: core never references it, so non-UI consumers do not pay for Markdown parsing or Markdig.</p>
+    <pre><span class="k">using</span> CodingAgentRunner.Metrics;
+<span class="k">using</span> CodingAgentRunner.Rendering;
+
+<span class="k">var</span> recorder = <span class="k">new</span> RunMetricsRecorder();
+driver.OnRunEvent += (_, e) =&gt; recorder.Observe(e);
+
+driver.OnFinished += (runId, _) =&gt;
+{
+    RunMetrics metrics = recorder.Build();
+    Console.WriteLine($<span class="s">"first output: {metrics.TimeToFirstOutputMs / 1000.0:F1}s"</span>);
+};
+
+IReadOnlyList&lt;RenderedLine&gt; lines = MarkdownRenderer.ToLines(agentMarkdown);
+<span class="k">string</span> html = <span class="k">string</span>.Concat(lines.Select(HtmlRenderer.SpansToHtml));</pre>
+
+    <p class="exlabel">Injected link policy <span>— one renderer, any app's link rules</span></p>
+    <p class="lead">The renderer emits link spans that carry a raw target and a <code>LinkKind</code> (<code>Url</code>, <code>FilePath</code>, <code>TaskRef</code>, <code>Anchor</code>); it does not decide what the href becomes. You inject one <code>LinkResolver</code> delegate that turns a <code>LinkSpec</code> into a <code>ResolvedLink</code> (href, target, rel, data-attributes), so the same renderer serves any app's link policy. The default is <code>LinkExtractor.WebDefault</code>, and <code>LinkExtractor.IsSafeUrl</code> enforces an http/https/mailto allowlist — it rejects <code>javascript:</code> and <code>data:</code> targets.</p>
+    <pre><span class="c">// Decide per link what the href and target become.</span>
+LinkResolver resolve = spec =&gt; spec.Kind <span class="k">switch</span>
+{
+    LinkKind.FilePath =&gt; <span class="k">new</span> ResolvedLink(Href: $<span class="s">"vscode://file/{spec.RawTarget}"</span>),
+    LinkKind.TaskRef  =&gt; <span class="k">new</span> ResolvedLink(Href: $<span class="s">"/tasks/{spec.RawTarget}"</span>),
+    _                 =&gt; LinkExtractor.WebDefault(spec),   <span class="c">// http/https/mailto only</span>
+};
+
+<span class="k">string</span> html = <span class="k">string</span>.Concat(lines.Select(l =&gt; HtmlRenderer.SpansToHtml(l, resolve)));</pre>
+
+    <h3 id="benchmarks">Benchmarks</h3>
+    <p class="lead">The benchmark project covers the host-side hot paths: adapter parsing, usage parsing, and optional rendering. It measures the library's overhead and allocation profile, not agent quality or CLI wall-clock time.</p>
+    <pre><span class="c"># all benchmarks (full statistical run)</span>
+dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --filter <span class="s">'*'</span>
+
+<span class="c"># one class</span>
+dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --filter <span class="s">'*AdapterParsing*'</span>
+
+<span class="c"># fast smoke check</span>
+dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --filter <span class="s">'*'</span> --job dry</pre>
+
+    <h3 id="cli-performance-data-contract">CLI performance data contract</h3>
+    <p class="lead">CLI performance numbers should come from real CLI executions, not from the host-side BenchmarkDotNet project. Store raw runs as JSON, then render aggregate rows by scenario, CLI, model, thinking level and context bucket.</p>
+    <pre>{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-26T00:00:00Z",
+  "runner": {
+    "packageVersion": "0.0.0-local",
+    "gitCommit": "replace-with-source-commit"
+  },
+  "environment": {
+    "os": "Windows 11",
+    "cpu": "replace-with-cpu",
+    "memoryGb": 32,
+    "network": "office-wifi",
+    "workspace": "fixture-or-repo-hash"
+  },
+  "runs": [
+    {
+      "runId": "2026-06-26-codex-default-medium-simple-001",
+      "scenario": {
+        "id": "simple-question.001",
+        "complexity": "simple",
+        "promptHash": "sha256:replace-with-prompt-hash",
+        "fixture": "none",
+        "checks": ["answer-key"],
+        "sourceTests": [
+          {
+            "path": "tests/CodingAgentRunner.Tests/Metrics/RunMetricsTests.cs",
+            "name": "Recorder_DerivesTtfo_Ttsi_TurnWallClock_TokensPerSec_FromTheStream"
+          }
+        ]
+      },
+      "variant": {
+        "cli": "codex",
+        "cliVersion": "replace-with-cli-version",
+        "model": "GPT 5.5 Code",
+        "thinkingLevel": "medium",
+        "contextMode": "clean",
+        "contextBucket": "tiny"
+      },
+      "measurements": {
+        "timeToFirstOutputMs": 0,
+        "wallClockMs": 0,
+        "toolCalls": 0,
+        "filesChanged": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      },
+      "outcome": {
+        "status": "completed",
+        "passed": true,
+        "exitCode": 0,
+        "rubricScore": 1.0
+      },
+      "artifacts": {
+        "transcript": "artifacts/cli-performance/simple-question.001/run.jsonl",
+        "diff": "artifacts/cli-performance/simple-question.001/run.patch",
+        "testLog": "artifacts/cli-performance/simple-question.001/test.log"
+      }
+    }
+  ]
+}</pre>
+    <table>
+      <tr><th>Group</th><th>Why it matters</th></tr>
+      <tr><td><code>environment</code></td><td>Separates machine, OS, network and fixture effects from model/CLI behavior.</td></tr>
+      <tr><td><code>scenario</code></td><td>Makes simple prompts, repo-reading prompts, small fixes and complex tasks comparable over time. Include <code>sourceTests</code> so each scenario links back to the source-level contract it exercises.</td></tr>
+      <tr><td><code>variant</code></td><td>Captures the exact CLI, model, thinking level, permission mode and context mode used for the run.</td></tr>
+      <tr><td><code>measurements</code></td><td>Records first output, total wall-clock, tool churn, token counts and touched files.</td></tr>
+      <tr><td><code>outcome</code></td><td>Prevents a fast failure from looking like a good result; pass rate belongs beside duration.</td></tr>
+      <tr><td><code>artifacts</code></td><td>Lets readers audit the transcript, generated patch and validation output behind every aggregate row.</td></tr>
+    </table>
+    <p class="lead">Recommended aggregate key: <code>scenario.id + variant.cli + variant.model + variant.thinkingLevel + variant.contextBucket</code>. Publish <code>n</code>, median, p90, min/max, time to first output, pass rate and the top failure reasons for each aggregate.</p>
+
     <h3 id="streaming">Push events vs pull streaming</h3>
     <p class="lead">Two shapes for the same events. The <code>event</code> handlers are best for multiplexing many concurrent runs through one handler (route by <code>evt.RunId</code>). <code>StreamAsync</code> is the ergonomic choice for a single run — <code>await foreach</code>, natural control flow, built-in cancellation. They coexist.</p>
     <pre><span class="c">// PULL (single run): one await foreach — done.</span>
@@ -405,5 +822,304 @@ QuotaGate gate = quota.Gate(<span class="s">"claude"</span>);
   </div>
 </footer>
 
+<script type="application/json" id="cli-performance-data" data-src="data/cli-performance-observations.json">
+{
+  "schemaVersion": 1,
+  "state": "placeholder",
+  "generatedAt": "2026-06-26T00:00:00Z",
+  "sourceTruth": "Placeholder aggregates for the website concept. Scenario definitions point at real source tests; timing rows are not measured results yet.",
+  "scenarios": [
+    {
+      "id": "simple-question.001",
+      "label": "Simple answer",
+      "complexity": "simple",
+      "description": "Answer-only prompt with no tool use. Validates basic output visibility and metric extraction.",
+      "sourceTests": [
+        {"path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs", "name": "Gemini_UserMessageIgnored_AssistantMessageIsOutput"},
+        {"path": "tests/CodingAgentRunner.Tests/Metrics/RunMetricsTests.cs", "name": "Recorder_DerivesTtfo_Ttsi_TurnWallClock_TokensPerSec_FromTheStream"}
+      ]
+    },
+    {
+      "id": "repo-question.002",
+      "label": "Explain parser flow",
+      "complexity": "repo question",
+      "description": "Read-only source navigation and explanation of adapter behavior across CLIs.",
+      "sourceTests": [
+        {"path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs", "name": "EveryAdapter_TagsEveryEventWithTheRunId"},
+        {"path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs", "name": "EveryAdapter_MapsAnUnknownTypeString_ToUnknown_Capped200"},
+        {"path": "tests/CodingAgentRunner.Tests/Adapters/CodexReasoningHeartbeatTests.cs", "name": "ItemCompletedReasoning_EmitsHeartbeat_NotToolCompleted"}
+      ]
+    },
+    {
+      "id": "small-fix.003",
+      "label": "One-file test fix",
+      "complexity": "small fix",
+      "description": "Small implementation or test repair touching one focused behavior and running targeted validation.",
+      "sourceTests": [
+        {"path": "tests/CodingAgentRunner.Tests/Execution/CliDriverEngineTests.cs", "name": "Run_StreamsOutput_RaisesTypedEvents_AndClassifiesCleanExitAsCompleted"},
+        {"path": "tests/CodingAgentRunner.Tests/Execution/Hardening/AgentGitCommandGuardTests.cs", "name": "IsForbidden_DetectsMutatingCommandPastGlobalOptions"},
+        {"path": "tests/CodingAgentRunner.Tests/Execution/CleanContextPreparerTests.cs", "name": "PrepareClaude_CreatesIsolatedHome_SeedsAllowlist_AndRedirectsEnv"}
+      ]
+    },
+    {
+      "id": "complex-task.004",
+      "label": "Multi-file feature",
+      "complexity": "complex task",
+      "description": "Multi-file implementation touching lifecycle, model capabilities, watchdog behavior or rendering.",
+      "sourceTests": [
+        {"path": "tests/CodingAgentRunner.Tests/Execution/CliDriverEngineTests.cs", "name": "RunWatchdog_AutoStops_AHungRun"},
+        {"path": "tests/CodingAgentRunner.Tests/Model/ThinkingLevelNormalizationTests.cs", "name": "Codex_XHigh_OnGpt55_ButFallsToDefaultOnGpt5"},
+        {"path": "tests/CodingAgentRunner.Tests/Rendering/MarkdownRenderTests.cs", "name": "MultiBlock_DocumentProducesOneLinePerBlock"}
+      ]
+    }
+  ],
+  "observations": [
+    {"state": "placeholder", "scenario": "simple-question.001", "cli": "Codex", "model": "GPT 5.5", "thinking": "medium", "contextBucket": "tiny", "runs": 12, "medianMs": 8200, "p90Ms": 11600, "firstOutputMs": 1450, "successPct": 100, "notes": "answer-only; no tools"},
+    {"state": "placeholder", "scenario": "simple-question.001", "cli": "Claude", "model": "Claude Sonnet 4.6", "thinking": "medium", "contextBucket": "tiny", "runs": 12, "medianMs": 9100, "p90Ms": 14100, "firstOutputMs": 1700, "successPct": 100, "notes": "answer-only; no tools"},
+    {"state": "placeholder", "scenario": "repo-question.002", "cli": "Antigravity", "model": "Gemini 3 Pro", "thinking": "medium", "contextBucket": "medium", "runs": 8, "medianMs": 54000, "p90Ms": 81000, "firstOutputMs": 2700, "successPct": 88, "notes": "read-only code navigation"},
+    {"state": "placeholder", "scenario": "small-fix.003", "cli": "Codex", "model": "GPT 5.5 Code", "thinking": "high", "contextBucket": "medium", "runs": 8, "medianMs": 126000, "p90Ms": 190000, "firstOutputMs": 3200, "successPct": 75, "notes": "edit plus unit test"},
+    {"state": "placeholder", "scenario": "small-fix.003", "cli": "Claude", "model": "Claude Sonnet 4.6", "thinking": "high", "contextBucket": "medium", "runs": 8, "medianMs": 139000, "p90Ms": 214000, "firstOutputMs": 3900, "successPct": 88, "notes": "edit plus unit test"},
+    {"state": "placeholder", "scenario": "small-fix.003", "cli": "Codex", "model": "GPT 5.5 Mini", "thinking": "low", "contextBucket": "medium", "runs": 8, "medianMs": 98000, "p90Ms": 151000, "firstOutputMs": 2400, "successPct": 70, "notes": "edit plus unit test"},
+    {"state": "placeholder", "scenario": "complex-task.004", "cli": "Claude", "model": "Claude Opus 4.8", "thinking": "xhigh", "contextBucket": "large", "runs": 6, "medianMs": 420000, "p90Ms": 610000, "firstOutputMs": 6400, "successPct": 67, "notes": "multi-file implementation"},
+    {"state": "placeholder", "scenario": "complex-task.004", "cli": "Codex", "model": "GPT 5.5 Code", "thinking": "xhigh", "contextBucket": "large", "runs": 6, "medianMs": 405000, "p90Ms": 590000, "firstOutputMs": 5800, "successPct": 67, "notes": "multi-file implementation"}
+  ]
+}
+</script>
+<script>
+(function () {
+  var dataNode = document.getElementById("cli-performance-data");
+  var tbody = document.getElementById("cli-performance-results");
+  if (!dataNode || !tbody) return;
+
+  var dataSrc = dataNode.getAttribute("data-src");
+  var fallbackPayload = JSON.parse(dataNode.textContent);
+  var selects = Array.prototype.slice.call(document.querySelectorAll("[data-cli-filter]"));
+  var records = [];
+  var maxFirstOutputMs = 1;
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, function (ch) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[ch];
+    });
+  }
+
+  function title(value) {
+    return String(value).replace(/-/g, " ").replace(/\b\w/g, function (ch) { return ch.toUpperCase(); });
+  }
+
+  function formatMs(value) {
+    if (value >= 60000) return (value / 60000).toFixed(1) + "m";
+    return (value / 1000).toFixed(1) + "s";
+  }
+
+  function normalizePayload(payload) {
+    var scenarios = {};
+    var scenarioList = Array.isArray(payload.scenarios) ? payload.scenarios : [];
+    var observations = Array.isArray(payload) ? payload : (payload.observations || []);
+
+    scenarioList.forEach(function (scenario) {
+      scenarios[scenario.id] = scenario;
+    });
+
+    return observations.map(function (record) {
+      var scenario = scenarios[record.scenario] || {};
+      return Object.assign({}, record, {
+        scenarioLabel: record.scenarioLabel || scenario.label || record.scenario,
+        complexity: record.complexity || scenario.complexity || "unknown",
+        sourceTests: record.sourceTests || scenario.sourceTests || []
+      });
+    });
+  }
+
+  function sourceUrl(path) {
+    return "https://github.com/RobertMischke/coding-agent-runner/blob/main/" +
+      String(path).split("/").map(encodeURIComponent).join("/");
+  }
+
+  function sourceLabel(testRef) {
+    var file = String(testRef.path || "").split("/").pop().replace(/\.cs$/, "");
+    return file + "." + testRef.name;
+  }
+
+  function sourceTestsLine(record) {
+    var refs = record.sourceTests || [];
+    if (!refs.length) return "";
+    return "<span class=\"perf-meta source-tests\">source tests: " +
+      refs.map(function (testRef) {
+        var path = testRef.path || "";
+        return "<a href=\"" + escapeHtml(sourceUrl(path)) + "\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"" +
+          escapeHtml(path) + "\">" + escapeHtml(sourceLabel(testRef)) + "</a>";
+      }).join(", ") +
+      "</span>";
+  }
+
+  function statusBadge(record) {
+    var measured = record.state === "measured";
+    return "<span class=\"perf-status " + (measured ? "measured" : "sample") + "\">" +
+      (measured ? "measured" : "placeholder") +
+      "</span>";
+  }
+
+  function firstOutputCell(record) {
+    var value = record.firstOutputMs;
+    var width = Math.max(8, Math.round((value / maxFirstOutputMs) * 100));
+    var tone = value >= 5000 ? " slow" : "";
+    return "<td class=\"first-output-cell\">" +
+      "<span class=\"first-output-value\">" + escapeHtml(formatMs(value)) + "</span>" +
+      "<div class=\"time-bar" + tone + "\" aria-hidden=\"true\"><span style=\"width:" + width + "%\"></span></div>" +
+      "<span class=\"perf-meta\">time to first visible output</span>" +
+      "</td>";
+  }
+
+  function hydrateFilters() {
+    selects.forEach(function (select) {
+      var key = select.getAttribute("data-cli-filter");
+      var allLabel = select.getAttribute("data-cli-all") || "All";
+      var values = records.map(function (r) { return r[key]; })
+        .filter(function (value, index, all) { return all.indexOf(value) === index; })
+        .sort();
+      select.innerHTML = "<option value=\"all\">" + escapeHtml(allLabel) + "</option>" +
+        values.map(function (value) {
+          return "<option value=\"" + escapeHtml(value) + "\">" + escapeHtml(title(value)) + "</option>";
+        }).join("");
+      select.addEventListener("change", render);
+    });
+  }
+
+  function render() {
+    var active = {};
+    selects.forEach(function (select) {
+      var value = select.value;
+      if (value !== "all") active[select.getAttribute("data-cli-filter")] = value;
+    });
+
+    var filtered = records.filter(function (record) {
+      return Object.keys(active).every(function (key) { return record[key] === active[key]; });
+    });
+
+    if (!filtered.length) {
+      tbody.innerHTML = "<tr><td colspan=\"9\">No placeholder rows match these filters.</td></tr>";
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(function (r) {
+      return "<tr>" +
+        "<td><b>" + escapeHtml(r.scenarioLabel) + "</b><span class=\"perf-meta\">" + escapeHtml(r.scenario) + " - " + escapeHtml(r.complexity) + "</span>" + sourceTestsLine(r) + "</td>" +
+        "<td><b>" + escapeHtml(r.cli) + "</b><span class=\"perf-meta\">" + escapeHtml(r.model) + "</span></td>" +
+        "<td>" + escapeHtml(title(r.thinking)) + "</td>" +
+        "<td>" + escapeHtml(title(r.contextBucket)) + "</td>" +
+        "<td>" + escapeHtml(r.runs) + "</td>" +
+        "<td>" + escapeHtml(formatMs(r.medianMs)) + "</td>" +
+        "<td>" + escapeHtml(formatMs(r.p90Ms)) + "</td>" +
+        firstOutputCell(r) +
+        "<td><b>" + escapeHtml(r.successPct) + "%</b><span class=\"perf-meta\">" + statusBadge(r) + " " + escapeHtml(r.notes) + "</span></td>" +
+        "</tr>";
+    }).join("");
+  }
+
+  function start(payload) {
+    records = normalizePayload(payload);
+    maxFirstOutputMs = Math.max.apply(null, records.map(function (r) { return r.firstOutputMs; }));
+    hydrateFilters();
+    render();
+  }
+
+  if (dataSrc && typeof window.fetch === "function") {
+    window.fetch(dataSrc, { cache: "no-store" })
+      .then(function (response) {
+        if (!response.ok) throw new Error("failed to load CLI performance data");
+        return response.json();
+      })
+      .then(start)
+      .catch(function () { start(fallbackPayload); });
+  } else {
+    start(fallbackPayload);
+  }
+})();
+</script>
+<script>
+(function () {
+  var nav = document.querySelector(".site-nav");
+  var links = Array.prototype.slice.call(document.querySelectorAll(".nav-links a[href^='#']"));
+  var menus = Array.prototype.slice.call(document.querySelectorAll(".nav-menu"));
+  var items = links.map(function (link) {
+    var id = link.getAttribute("href").slice(1);
+    return { id: id, link: link, section: document.getElementById(id) };
+  }).filter(function (item) {
+    return item.section;
+  });
+  var ticking = false;
+
+  if (!items.length) return;
+
+  function setActive(activeId) {
+    items.forEach(function (item) {
+      var isActive = item.id === activeId;
+      item.link.classList.toggle("is-active", isActive);
+      if (isActive) item.link.setAttribute("aria-current", "location");
+      else item.link.removeAttribute("aria-current");
+    });
+
+    menus.forEach(function (menu) {
+      var hasActiveChild = !!menu.querySelector("a.is-active");
+      menu.classList.toggle("is-active", hasActiveChild);
+      var summary = menu.querySelector("summary");
+      if (!summary) return;
+      if (hasActiveChild) summary.setAttribute("aria-current", "location");
+      else summary.removeAttribute("aria-current");
+    });
+  }
+
+  function currentSectionId() {
+    var navHeight = nav ? nav.getBoundingClientRect().height : 0;
+    var checkpoint = window.scrollY + navHeight + 24;
+    var current = items[0].id;
+
+    items.forEach(function (item) {
+      if (item.section.offsetTop <= checkpoint) current = item.id;
+    });
+
+    return current;
+  }
+
+  function updateActiveNav() {
+    ticking = false;
+    setActive(currentSectionId());
+  }
+
+  function requestUpdate() {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(updateActiveNav);
+  }
+
+  window.addEventListener("scroll", requestUpdate, { passive: true });
+  window.addEventListener("resize", requestUpdate);
+  window.addEventListener("hashchange", requestUpdate);
+
+  links.forEach(function (link) {
+    link.addEventListener("click", function () {
+      var menu = link.closest(".nav-menu");
+      if (menu) menu.open = false;
+    });
+  });
+
+  menus.forEach(function (menu) {
+    menu.addEventListener("toggle", function () {
+      if (!menu.open) return;
+      menus.forEach(function (other) {
+        if (other !== menu) other.open = false;
+      });
+    });
+  });
+
+  document.addEventListener("click", function (event) {
+    if (nav && nav.contains(event.target)) return;
+    menus.forEach(function (menu) { menu.open = false; });
+  });
+
+  requestUpdate();
+})();
+</script>
 </body>
 </html>

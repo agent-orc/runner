@@ -50,15 +50,25 @@ var (run, error) = await driver.StartAsync(new CliRunRequest
 
 Most uses need five public types — `CliRunner`, `CliOptions`, `CliRunRequest`,
 `CliRunInfo`, and `CliRunEvent`. One layer down the descriptor model is also public
-and inspectable: `CliDescriptor`, `ICliCatalog` / `CliCatalog`, `BuiltInDescriptors`,
-and the launch-time `LaunchSpec` / `CliLaunchContext`. The per-CLI stream-json
-adapters are public too — `ClaudeEventAdapter` / `CodexEventAdapter` /
-`GeminiEventAdapter` each expose a static `Map(line, runId)`, so you can turn a CLI's
-output line into typed events without spawning a process (replay, tests, benchmarks).
-The spawner, the hardening, and the log stores stay `internal`: that machine room is
-not part of the contract, and there is **no "add your own CLI" extension point**
-today — the descriptors are a fixed, inspectable catalog, not a registration hook.
-The one launch-time seam is `CliOptions.Spawner` (see below).
+and inspectable: `CliDescriptor`, `ICliCatalog` / `CliCatalog`, and the launch-time
+`LaunchSpec` / `CliLaunchContext`. The per-CLI stream-json adapters are public too —
+`ClaudeEventAdapter` / `CodexEventAdapter` / `GeminiEventAdapter` each expose a static
+`Map(line, runId)`, so you can turn a CLI's output line into typed events without
+spawning a process (replay, tests, benchmarks). The built-in descriptors and the run
+engine (`CliRunEngine`) stay `internal` — reachable only through `CliRunner` / the
+catalog. The spawner, the hardening, and the log stores stay `internal` too: that
+machine room is not part of the contract, and there is **no "add your own CLI"
+extension point** today — the descriptors are a fixed, inspectable catalog, not a
+registration hook. The one launch-time seam is `CliOptions.Spawner` (see below).
+
+**Use, don't extend.** You consume the library through interfaces and records; you do
+not subclass it. A CLI is *data* — a `CliDescriptor` is a sealed record of fields plus
+a few pure delegates (`BuildLaunch`, `Parse`, `InterruptClassifier`, `Capabilities`,
+optional `CleanContext` / liveness), not a base class with `protected virtual` seams.
+There is exactly one run engine, `internal sealed`, parameterized by the descriptor;
+a consumer cannot subclass it or even name it. That is the design's load-bearing
+invariant: a new CLI is one descriptor's worth of data, and nothing about the engine
+changes.
 
 ## Modules
 
@@ -79,6 +89,18 @@ plus process exit (surfaced as `TurnCompleted` and the single terminal `RunEnded
 **not** from scraping a `[[TASK_DONE]]` sentinel, which is a fragile heuristic and
 stays in the consumer's run protocol, not here.
 
+### Cross-CLI normalization
+The three CLIs speak the same ideas in different dialects: a session start is a
+`system` frame in Claude, a `thread.started` in Codex, an `init` in Antigravity; the
+id it carries is `session_id` in two and `thread_id` in the third; the cached-token
+field has three different names. The adapters fold all of that onto one event
+vocabulary, so a consumer's run logic is written once and never branches on the CLI
+(or the model). Parsing is by frame *type*, never by model — the model is metadata, so
+a new model needs no new parser branch. The per-CLI dialect table, the structural
+asymmetries the model absorbs, and the two shipped projections (the event stream and
+the optional render line/span model) are in
+[Cross-CLI normalization](cross-cli-normalization.md).
+
 ### Interrupt classification
 Beyond the terminal `RunEnded`, a run can surface a typed
 `CliRunEvent.Interrupt(InterruptReason Reason, string Detail, bool IsFatal)` when a
@@ -91,7 +113,30 @@ completion marker), `SelfReference` (the scanner self-reference trap — raised 
 input that won't arrive unattended), and `SilentCompletion` (a legacy CLI that stopped
 without a terminal completion frame). Classifiers implement `IInterruptClassifier`;
 the library raises the event, and the consumer keeps `Stop()` authority — deciding
-based on `IsFatal`.
+based on `IsFatal`. The mechanism and a starter `EnvironmentBlocker` classifier ship;
+the built-in descriptors leave the classifier unset by default, so a consumer opts in
+(or supplies its own grammar) rather than getting surprise stops.
+
+### Capabilities
+A descriptor answers "what can this CLI do?" through `CliCapabilities`, resolved per
+model via `ICliDriver.Capabilities(model)`: `SupportsCleanContext`, `SupportsResume`,
+`SupportsThinking` with the `ThinkingLevels` / `DefaultThinkingLevel` it accepts,
+`EmitsHeartbeatDuringThinking` (true for Codex's reasoning models, which ping while
+they think, and false for the others), and an open `Knobs` dictionary for the rest.
+The point is that a consumer **asks the capability, not the CLI type** — so logic
+written against `EmitsHeartbeatDuringThinking` (to widen a silence budget, say) covers
+a new CLI the moment its descriptor is registered, with no `if (cliType == …)` branch.
+
+### Defaults — batteries-included, overridable
+The "normal knowledge" lives in the library, not the consumer. Thinking levels
+normalize against the model (`CliThinkingLevels`) and reasoning flags are per CLI and
+model (`CliReasoningFlags`), so the sensible value is the default and the consumer
+overrides only its delta. For layering your own defaults the same way, `CliScope`
+(`CliType`, optional `Model`, optional `ThinkingLevel`) plus `CliDefault<T>` resolve a
+value most-specific-first — CLI + Model + ThinkingLevel, then CLI + Model, then
+CLI + ThinkingLevel, then CLI, then a global fallback — and `Set(scope, value)` is the
+one-line override. (The resolution primitive ships; the library does not yet pre-seed
+a registry of `CliDefault<T>` values beyond the thinking/reasoning tables above.)
 
 ### Lifecycle
 Stop a run — reported as `RunEnded(Stopped, …)`, a deliberate stop, never a crash —
@@ -125,15 +170,16 @@ consumer that only needs the event stream never references it.
 
 ## Supported CLIs
 
-| CLI | Type id | Notes |
-|-----|---------|-------|
-| Claude Code | `claude` | clean-context capable |
-| OpenAI Codex | `codex` | clean-context capable |
-| Google Antigravity (`agentapi`) | `antigravity` | the maintained Google integration; shared-only; reuses the Gemini event adapter |
-| Google Gemini | `gemini` | **deprecated**, superseded by Antigravity; shared-only |
+| CLI | Type id | Status | Context | Adapter / stream | Notes |
+|-----|---------|--------|---------|------------------|-------|
+| Claude Code | `claude` | supported | clean or shared | Claude adapter | First-class driver. |
+| OpenAI Codex | `codex` | supported | clean or shared | Codex adapter | First-class driver, including reasoning-model liveness metadata. |
+| Google Gemini | `gemini` | deprecated | shared only | Gemini adapter | Legacy Google driver kept for compatibility; no new feature work. |
+| Google Antigravity (`agentapi`) | `antigravity` | driver shipped | shared only | reuses Gemini adapter | Maintained Google path; kept out of `CliTypes.All` until a consumer migrates. |
 
 The GitHub Copilot driver was supported earlier but has been removed: its headless
-surface couldn't share the hardened spawn/stream engine cleanly.
+surface was PTY/TUI-dependent and couldn't share the hardened structured spawn/stream
+engine cleanly.
 
 ## Abstractions the library leans on
 

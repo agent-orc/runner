@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "state": "placeholder",
+  "generatedAt": "2026-06-26T00:00:00Z",
+  "sourceTruth": "Placeholder aggregates for the website concept. Scenario definitions point at real source tests; timing rows are not measured results yet.",
+  "scenarios": [
+    {
+      "id": "simple-question.001",
+      "label": "Simple answer",
+      "complexity": "simple",
+      "description": "Answer-only prompt with no tool use. Validates basic output visibility and metric extraction.",
+      "sourceTests": [
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs",
+          "name": "Gemini_UserMessageIgnored_AssistantMessageIsOutput"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Metrics/RunMetricsTests.cs",
+          "name": "Recorder_DerivesTtfo_Ttsi_TurnWallClock_TokensPerSec_FromTheStream"
+        }
+      ]
+    },
+    {
+      "id": "repo-question.002",
+      "label": "Explain parser flow",
+      "complexity": "repo question",
+      "description": "Read-only source navigation and explanation of adapter behavior across CLIs.",
+      "sourceTests": [
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs",
+          "name": "EveryAdapter_TagsEveryEventWithTheRunId"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs",
+          "name": "EveryAdapter_MapsAnUnknownTypeString_ToUnknown_Capped200"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/CodexReasoningHeartbeatTests.cs",
+          "name": "ItemCompletedReasoning_EmitsHeartbeat_NotToolCompleted"
+        }
+      ]
+    },
+    {
+      "id": "small-fix.003",
+      "label": "One-file test fix",
+      "complexity": "small fix",
+      "description": "Small implementation or test repair touching one focused behavior and running targeted validation.",
+      "sourceTests": [
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/CliDriverEngineTests.cs",
+          "name": "Run_StreamsOutput_RaisesTypedEvents_AndClassifiesCleanExitAsCompleted"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/Hardening/AgentGitCommandGuardTests.cs",
+          "name": "IsForbidden_DetectsMutatingCommandPastGlobalOptions"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/CleanContextPreparerTests.cs",
+          "name": "PrepareClaude_CreatesIsolatedHome_SeedsAllowlist_AndRedirectsEnv"
+        }
+      ]
+    },
+    {
+      "id": "complex-task.004",
+      "label": "Multi-file feature",
+      "complexity": "complex task",
+      "description": "Multi-file implementation touching lifecycle, model capabilities, watchdog behavior or rendering.",
+      "sourceTests": [
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/CliDriverEngineTests.cs",
+          "name": "RunWatchdog_AutoStops_AHungRun"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Model/ThinkingLevelNormalizationTests.cs",
+          "name": "Codex_XHigh_OnGpt55_ButFallsToDefaultOnGpt5"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Rendering/MarkdownRenderTests.cs",
+          "name": "MultiBlock_DocumentProducesOneLinePerBlock"
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "state": "placeholder",
+      "scenario": "simple-question.001",
+      "cli": "Codex",
+      "model": "GPT 5.5",
+      "thinking": "medium",
+      "contextBucket": "tiny",
+      "runs": 12,
+      "medianMs": 8200,
+      "p90Ms": 11600,
+      "firstOutputMs": 1450,
+      "successPct": 100,
+      "notes": "answer-only; no tools"
+    },
+    {
+      "state": "placeholder",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
+      "model": "Claude Sonnet 4.6",
+      "thinking": "medium",
+      "contextBucket": "tiny",
+      "runs": 12,
+      "medianMs": 9100,
+      "p90Ms": 14100,
+      "firstOutputMs": 1700,
+      "successPct": 100,
+      "notes": "answer-only; no tools"
+    },
+    {
+      "state": "placeholder",
+      "scenario": "repo-question.002",
+      "cli": "Antigravity",
+      "model": "Gemini 3 Pro",
+      "thinking": "medium",
+      "contextBucket": "medium",
+      "runs": 8,
+      "medianMs": 54000,
+      "p90Ms": 81000,
+      "firstOutputMs": 2700,
+      "successPct": 88,
+      "notes": "read-only code navigation"
+    },
+    {
+      "state": "placeholder",
+      "scenario": "small-fix.003",
+      "cli": "Codex",
+      "model": "GPT 5.5 Code",
+      "thinking": "high",
+      "contextBucket": "medium",
+      "runs": 8,
+      "medianMs": 126000,
+      "p90Ms": 190000,
+      "firstOutputMs": 3200,
+      "successPct": 75,
+      "notes": "edit plus unit test"
+    },
+    {
+      "state": "placeholder",
+      "scenario": "small-fix.003",
+      "cli": "Claude",
+      "model": "Claude Sonnet 4.6",
+      "thinking": "high",
+      "contextBucket": "medium",
+      "runs": 8,
+      "medianMs": 139000,
+      "p90Ms": 214000,
+      "firstOutputMs": 3900,
+      "successPct": 88,
+      "notes": "edit plus unit test"
+    },
+    {
+      "state": "placeholder",
+      "scenario": "small-fix.003",
+      "cli": "Codex",
+      "model": "GPT 5.5 Mini",
+      "thinking": "low",
+      "contextBucket": "medium",
+      "runs": 8,
+      "medianMs": 98000,
+      "p90Ms": 151000,
+      "firstOutputMs": 2400,
+      "successPct": 70,
+      "notes": "edit plus unit test"
+    },
+    {
+      "state": "placeholder",
+      "scenario": "complex-task.004",
+      "cli": "Claude",
+      "model": "Claude Opus 4.8",
+      "thinking": "xhigh",
+      "contextBucket": "large",
+      "runs": 6,
+      "medianMs": 420000,
+      "p90Ms": 610000,
+      "firstOutputMs": 6400,
+      "successPct": 67,
+      "notes": "multi-file implementation"
+    },
+    {
+      "state": "placeholder",
+      "scenario": "complex-task.004",
+      "cli": "Codex",
+      "model": "GPT 5.5 Code",
+      "thinking": "xhigh",
+      "contextBucket": "large",
+      "runs": 6,
+      "medianMs": 405000,
+      "p90Ms": 590000,
+      "firstOutputMs": 5800,
+      "successPct": 67,
+      "notes": "multi-file implementation"
+    }
+  ]
+}
