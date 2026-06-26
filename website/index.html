@@ -141,6 +141,7 @@
           <a href="#agent-gemini">Google Gemini</a>
           <a href="#agent-antigravity">Google Antigravity</a>
           <a href="#agent-copilot">Copilot removed</a>
+          <a href="#context-modes">Clean vs shared context</a>
           <a href="#descriptor-catalog">Descriptor catalog</a>
           <a href="#normalization">One vocabulary across CLIs</a>
         </div>
@@ -261,8 +262,8 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
         <tr><th>Agent</th><th>Type id</th><th>Status</th><th>Context</th><th>Adapter / stream</th><th>Notes</th></tr>
         <tr><td><b>Claude Code</b></td><td><code>claude</code></td><td><span class="pill done">supported</span></td><td>clean or shared</td><td>Claude <code>stream-json</code> adapter</td><td>Primary supported CLI with native structured output and clean-context isolation.</td></tr>
         <tr><td><b>OpenAI Codex</b></td><td><code>codex</code></td><td><span class="pill done">supported</span></td><td>clean or shared</td><td>Codex <code>stream-json</code> adapter</td><td>Primary supported CLI; reasoning models may emit heartbeat-style liveness while thinking.</td></tr>
-        <tr><td><b>Google Gemini</b></td><td><code>gemini</code></td><td><span class="pill wip">deprecated</span></td><td>shared only</td><td>Gemini adapter</td><td>Legacy Google driver kept for compatibility; receives no new feature work.</td></tr>
-        <tr><td><b>Google Antigravity</b></td><td><code>antigravity</code></td><td><span class="pill done">driver shipped</span></td><td>shared only</td><td>Reuses Gemini adapter</td><td>Maintained Google path via <code>agentapi</code>; deliberately not in the default selectable set until a consumer migrates.</td></tr>
+        <tr><td><b>Google Gemini</b></td><td><code>gemini</code></td><td><span class="pill wip">deprecated</span></td><td>shared only</td><td>Gemini adapter</td><td>Legacy Google driver kept for compatibility; uses the operator's normal Gemini home and receives no new feature work.</td></tr>
+        <tr><td><b>Google Antigravity</b></td><td><code>antigravity</code></td><td><span class="pill done">driver shipped</span></td><td>shared only</td><td>Reuses Gemini adapter</td><td>Maintained Google path via <code>agentapi</code>; uses shared CLI state and stays out of the default selectable set until a consumer migrates.</td></tr>
         <tr><td><b>GitHub Copilot</b></td><td><code>copilot</code></td><td><span class="pill removed">removed</span></td><td>n/a</td><td>no supported adapter</td><td>Dropped because the headless path was PTY/TUI-dependent instead of fitting the hardened structured stream engine.</td></tr>
       </table>
     </div>
@@ -278,16 +279,26 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
       </div>
       <div class="card" id="agent-gemini">
         <h3><span class="dot"></span>Google Gemini <span class="pill wip">deprecated</span></h3>
-        <p>The Gemini driver still ships for existing consumers, but it is the legacy Google surface. It is shared-context only and receives no new feature work; new Google work should move to Antigravity.</p>
+        <p>The Gemini driver still ships for existing consumers, but it is the legacy Google surface. It is shared-context only, meaning it uses the normal signed-in Gemini CLI home; new Google work should move to Antigravity.</p>
       </div>
       <div class="card" id="agent-antigravity">
         <h3><span class="dot"></span>Google Antigravity <span class="pill done">driver shipped</span></h3>
-        <p>Antigravity is Google's maintained <code>agentapi</code> path and the replacement direction for Gemini. It currently reuses the Gemini adapter, runs shared-context only, and stays out of <code>CliTypes.All</code> until a consumer migration makes it selectable by default.</p>
+        <p>Antigravity is Google's maintained <code>agentapi</code> path and the replacement direction for Gemini. It currently reuses the Gemini adapter, runs against shared CLI state, and stays out of <code>CliTypes.All</code> until a consumer migration makes it selectable by default.</p>
       </div>
       <div class="card" id="agent-copilot">
         <h3><span class="dot"></span>GitHub Copilot <span class="pill removed">removed</span></h3>
         <p>Copilot support was dropped. Its practical headless flow depended on PTY/TUI behavior and token-coupled interactive state, which did not fit the library's testable contract: spawn a known CLI, read structured stream output, normalize events.</p>
       </div>
+    </div>
+
+    <h3 id="context-modes">Clean vs shared context</h3>
+    <p class="lead"><code>ContextMode</code> is about the CLI's persistent home, not about the repository, the prompt window, or whether repo instruction files are loaded. In <b>clean</b> mode the runner creates a temporary per-run CLI home, seeds only the minimum auth/base config, points the CLI at that home, and removes it later. In <b>shared</b> mode the CLI uses the operator's normal signed-in home: existing settings, cached state, session history and any CLI-level memory are visible to the run.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Mode</th><th>CLI state used</th><th>Supported by</th><th>What stays the same</th></tr>
+        <tr><td><code>clean</code></td><td>Temporary per-run CLI home seeded from the user's base config.</td><td>Claude Code via <code>CLAUDE_CONFIG_DIR</code>; Codex via <code>CODEX_HOME</code>.</td><td>The working directory, versioned repo files and repo instruction files such as <code>AGENTS.md</code> / <code>CLAUDE.md</code> are still visible.</td></tr>
+        <tr><td><code>shared</code></td><td>The operator's real CLI home, login, settings, cache, memory and prior CLI state.</td><td>All CLIs; required for Gemini and Antigravity because they do not expose a clean-home redirect in this runner.</td><td>The run is still spawned, logged, normalized and supervised by CodingAgentRunner.</td></tr>
+      </table>
     </div>
 
     <h3 id="descriptor-catalog">Use, don't extend: the descriptor catalog</h3>
@@ -487,7 +498,8 @@ dotnet run -c Release \
     Model            = <span class="s">"claude-opus-4-8"</span>,
     ThinkingLevel    = CliThinkingLevels.XHigh,   <span class="c">// normalized against the model</span>
     PermissionMode   = CliPermissionModes.Yolo,   <span class="c">// unattended; never prompts</span>
-    <span class="c">// ContextMode defaults to 'clean' — an isolated per-run CLI home</span>
+    <span class="c">// ContextMode defaults to 'clean' — an isolated per-run CLI home.</span>
+    <span class="c">// Use 'shared' to run against the operator's normal signed-in CLI home.</span>
 }, ct);</pre>
 
     <p class="exlabel">Check availability across CLIs</p>
@@ -613,7 +625,7 @@ driver.OnFinished += (runId, info) =&gt;
 <span class="k">var</span> driver = runner.Get(request.Cli);</pre>
 
     <h3 id="capabilities">Capabilities &amp; overridable defaults</h3>
-    <p class="lead">Ask what a CLI can do instead of switching on its type. <code>CliCapabilities</code> answers per CLI: <code>SupportsCleanContext</code>, <code>SupportsResume</code>, <code>EmitsHeartbeatDuringThinking</code> (true for Codex's reasoning models), and the available <code>ThinkingLevels</code> with a <code>DefaultThinkingLevel</code>. Use those flags to keep a shared selection UI honest across CLIs rather than special-casing each one.</p>
+    <p class="lead">Ask what a CLI can do instead of switching on its type. <code>CliCapabilities</code> answers per CLI: <code>SupportsCleanContext</code>, <code>SupportsResume</code>, <code>EmitsHeartbeatDuringThinking</code> (true for Codex's reasoning models), and the available <code>ThinkingLevels</code> with a <code>DefaultThinkingLevel</code>. A shared context is still a normal supervised run; only the CLI home changes from a temporary clean home to the user's real signed-in state. Use those flags to keep a selection UI honest across CLIs rather than special-casing each one.</p>
     <pre><span class="k">var</span> caps = driver.Capabilities(model);   <span class="c">// CliCapabilities, resolved per model</span>
 <span class="k">if</span> (caps.SupportsCleanContext)
     request = request <span class="k">with</span> { ContextMode = CliContextModes.Clean };

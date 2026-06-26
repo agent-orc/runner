@@ -181,6 +181,22 @@ The GitHub Copilot driver was supported earlier but has been removed: its headle
 surface was PTY/TUI-dependent and couldn't share the hardened structured spawn/stream
 engine cleanly.
 
+## Context modes
+
+`ContextMode` describes which persistent CLI home a run uses. It does **not** describe
+the repository contents, the prompt size, or whether repo instruction files are active.
+
+- `clean` creates a temporary per-run CLI home and seeds only the minimum auth/base
+  config. Claude uses `CLAUDE_CONFIG_DIR`; Codex uses `CODEX_HOME`.
+- `shared` uses the operator's normal signed-in CLI home: settings, cache, memory,
+  session history and any other CLI-level state are visible to the run.
+
+Claude and Codex can redirect their home/config directory, so they support both modes.
+Gemini and Antigravity currently expose no clean-home redirect in this runner, so they
+are shared-only. In both modes the working directory remains the same: versioned repo
+files and repo-local instructions such as `AGENTS.md` / `CLAUDE.md` still load from the
+checkout.
+
 ## Abstractions the library leans on
 
 - **Logging** — `Microsoft.Extensions.Logging.Abstractions` (`ILogger`); no concrete sink.

@@ -36,6 +36,13 @@ The library targets known coding-agent CLIs in their specific versions — it is
 | Google Antigravity (`agentapi`) | `antigravity` | driver shipped | shared only | reuses Gemini adapter | Maintained Google path; kept out of the default selectable set (`CliTypes.All`) until a consumer migrates. |
 | GitHub Copilot | `copilot` | removed | n/a | no supported adapter | Removed because the headless path was PTY/TUI-dependent and did not fit the hardened structured stream engine. |
 
+`Context` means the CLI's persistent home/state, not the repository or prompt size.
+`clean` creates a temporary per-run CLI home and seeds only the minimum auth/base config
+(Claude via `CLAUDE_CONFIG_DIR`, Codex via `CODEX_HOME`). `shared` uses the operator's
+normal signed-in CLI home, including settings, cache, memory and prior CLI state. Repo
+files and repo instruction files such as `AGENTS.md` / `CLAUDE.md` remain visible in
+both modes because they come from the checkout, not from the CLI home.
+
 Internally each CLI is a `CliDescriptor` — data plus a few pure delegates — in a fixed catalog, and one `internal sealed` engine is parameterized by it; covering a CLI is a descriptor in the library, not a subclass and not a consumer plug-in. The adapters fold each CLI's own dialect onto one event vocabulary, so your run logic is written once. See [Architecture](docs/architecture.md) and [Cross-CLI normalization](docs/cross-cli-normalization.md).
 
 > **Google status:** Gemini is deprecated and superseded by Antigravity, Google's `agentapi` CLI. The Gemini driver stays in place for existing consumers; Antigravity is where new Google integration work belongs.
