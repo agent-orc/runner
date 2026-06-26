@@ -1,9 +1,9 @@
 # Why Windows hardening
 
-Running a coding-agent CLI from another process *looks* trivial — until you do it
-on Windows, at scale, unattended. Each behaviour below cost real debugging time in
-a production orchestrator. CodingAgentRunner encodes the fix, and each ships with a
-test so the reason can't be quietly refactored away.
+Running a coding-agent CLI from another process on Windows, unattended, hits several
+specific failure modes. Each behaviour below cost real debugging time in a production
+orchestrator. CodingAgentRunner encodes the fix, and each ships with a test so the
+reason can't be quietly refactored away.
 
 ---
 

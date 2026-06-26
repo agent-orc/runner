@@ -165,8 +165,11 @@ records, it does not poll.
 has **no** dependency on it; the dependency points one way, Rendering → core. It maps
 agent output onto a presentation-agnostic span/line model, injects links through a
 pluggable `LinkResolver` (so task-refs, file links and web URLs are the consumer's
-policy, not the library's), and materializes Markdown or HTML (Markdig-backed). A
-consumer that only needs the event stream never references it.
+policy, not the library's), and materializes Markdown or HTML (Markdig-backed). The
+default resolver (`LinkExtractor.WebDefault`) enforces one safe-URL policy — an
+http/https/mailto allowlist that rejects `javascript:` / `data:` targets — so the
+default is XSS-safe without the consumer wiring anything. A consumer that only needs
+the event stream never references the package.
 
 ## Supported CLIs
 

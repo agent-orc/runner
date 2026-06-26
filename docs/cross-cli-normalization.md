@@ -21,13 +21,13 @@ an empty cell means that CLI has no such concept. The right column is the single
 |---|---|---|---|---|
 | Session start | `system` init frame, `session_id` | `thread.started`, `thread_id` | `init`, `session_id` | `SessionStarted` |
 | Assistant text | `assistant` content `text` block | `item` `agent_message` | `message` (`content` string) | `OutputDelta` |
-| Thinking / reasoning | `thinking` content block | `reasoning` item (also pings `Heartbeat`) | — | `OutputDelta` / `Heartbeat` |
+| Thinking / reasoning | `thinking` block (dropped from the typed stream) | `reasoning` item | — | `Heartbeat` (Codex); Claude thinking emits no typed event |
 | Tool call | `tool_use` `{ name, input }` | `item` `command_call` | `tool_call` `{ name, parameters }` (snake_case: `run_shell_command`, `read_file`) | `ToolStarted` |
-| Tool result | `tool_result` content | `command_execution` completion | `tool_result` | `ToolCompleted` |
+| Tool result | `tool_result` content | the `command_call` item's `item.completed` | `tool_result` | `ToolCompleted` |
 | Plan / TODO update | `tool_use` `TodoWrite` | `item` `update_plan` | — | `PlanUpdated` |
 | Turn complete | `result`, `is_error=false` | `turn.completed` | `result`, `status=success` | `TurnCompleted` |
 | Turn error | `result`, `is_error=true` | `turn.failed`, `error.message` | `result`, `status!=success` | `TurnFailed` |
-| Token usage | `usage` `{ input, output, cache_read, cache_creation }` | `usage` `{ input, cached_input, output, reasoning_output }` | `stats` `{ input, output, cached, tool_calls }` | usage summary on `TurnCompleted` |
+| Token usage | `usage` `{ input_tokens, output_tokens, cache_read_input_tokens }` | `usage` `{ input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens }` | `stats` `{ input_tokens, output_tokens, cached }` | usage summary on `TurnCompleted` |
 | Rate limit | `rate_limit_event` | — | — | `RateLimitObserved` |
 
 The adapters are public — you can call
@@ -38,7 +38,8 @@ without spawning a process. That is what the parsing tests and benchmarks use.
 ## The asymmetries the normalized model absorbs
 
 The three dialects do not differ only in spelling. The normalized model has to absorb
-real structural differences, and a hand-rolled per-CLI parser is where they bite:
+real structural differences that a hand-rolled per-CLI parser would have to handle
+case by case:
 
 1. **Turn granularity.** Claude packs a whole turn into one `content` array; Codex
    scatters the same turn across many `item.*` frames. The event stream makes both
@@ -48,10 +49,11 @@ real structural differences, and a hand-rolled per-CLI parser is where they bite
    lacks is simply an event that never arrives — an empty cell, not an error.
 3. **Implicit tools.** Codex has no explicit "read file" or "search" tool; those go
    through shell commands. The same intent surfaces as a different frame.
-4. **Token vocabulary.** The cached-token field alone has three names — `cache_read`
-   (Claude), `cached_input` (Codex), `cached` (Gemini) — and only Codex reports
-   `reasoning_output`. A usage parser that knows one dialect silently drops tokens on
-   the others. [`UsageSummaryParser`](../src/CodingAgentRunner/Metrics/UsageSummaryParser.cs)
+4. **Token vocabulary.** The cached-token field alone has three names —
+   `cache_read_input_tokens` (Claude), `cached_input_tokens` (Codex), `cached`
+   (Gemini) — and only Codex reports a `reasoning_output_tokens` count. A usage parser
+   that knows one dialect silently drops tokens on the others.
+   [`UsageSummaryParser`](../src/CodingAgentRunner/Metrics/UsageSummaryParser.cs)
    folds all of them into one `UsageTokens`.
 5. **Text form.** Text is an array of blocks in one dialect and a bare string in
    another; tool arguments are `input` here and `parameters` there.

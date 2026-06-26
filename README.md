@@ -4,11 +4,11 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-**CodingAgentRunner** is a .NET library for launching and supervising terminal-native coding agents (Claude Code, OpenAI Codex, Google Antigravity / `agentapi`, and the legacy Gemini CLI) as child processes — reliably, especially on Windows.
+**CodingAgentRunner** gives a .NET application an LLM on your local machine, using the coding-agent CLI you already sign in to — with no API keys. Run a single prompt, or a full multi-turn session. It launches and supervises terminal-native coding agents (Claude Code, OpenAI Codex, Google Antigravity / `agentapi`, and the legacy Gemini CLI) as child processes — reliably, especially on Windows.
 
-It is the "boring but critical" infrastructure layer: it spawns the agent CLI with the right binary, environment, and isolation; normalizes its `stream-json` output — a different frame dialect per CLI — into one structured event vocabulary; classifies the run's outcome; enforces a *platform-owns-git* boundary; tracks remaining quota with a smart cache; records run metrics; and can render agent Markdown through an optional package. Think of it as one level above [CliWrap](https://github.com/Tyrrrz/CliWrap): not "run any process", but "run a *coding agent* and understand it".
+It is the process-and-protocol layer for those CLIs: it spawns the agent CLI with the right binary, environment, and isolation; normalizes its `stream-json` output — a different frame dialect per CLI — into one structured event vocabulary; classifies the run's outcome; enforces a *platform-owns-git* boundary; tracks remaining quota with a cache that polls more often as usage approaches the limit; records run metrics; and can render agent Markdown through an optional package. Unlike a general process wrapper such as [CliWrap](https://github.com/Tyrrrz/CliWrap), it is specialized to coding-agent CLIs — it parses their `stream-json` output and classifies the run's outcome.
 
-> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, quota module, metrics recorder, optional rendering package and BenchmarkDotNet micro-benchmarks are implemented and tested (366 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.
+> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, quota module, metrics recorder and optional rendering package are implemented and tested (366 tests, CI on Windows + Linux). BenchmarkDotNet micro-benchmarks are available as an optional manual run. The public API may still shift before 1.0 — pin a version and watch releases.
 
 ## Why
 
@@ -61,7 +61,7 @@ Internally each CLI is a `CliDescriptor` — data plus a few pure delegates — 
 - ✅ Quota cache · escalation · cap/gate · free event-harvest (poll harder near the limit; skip a run before it hits the wall).
 - ✅ Pluggable process spawner (`CliOptions.Spawner` / `ICliProcessSpawner`) — inject a custom launcher (e.g. a Windows PTY); null uses redirected pipes.
 - ✅ Run metrics from the event stream (`RunMetricsRecorder`) plus an optional `CodingAgentRunner.Rendering` package for Markdown/HTML UI output.
-- ✅ BenchmarkDotNet micro-benchmarks for adapter parsing, usage parsing and rendering hot paths.
+- ✅ Optional BenchmarkDotNet micro-benchmarks for adapter parsing, usage parsing and rendering hot paths.
 - 🚧 Concrete PTY-based quota probes (the `IQuotaProbe` contract + cache are done; plug your own probe today).
 
 ## Quickstart
@@ -154,7 +154,9 @@ string html = string.Concat(lines.Select(HtmlRenderer.SpansToHtml));
 `CodingAgentRunner.Rendering` is opt-in and one-way (`Rendering` depends on core;
 core never references `Rendering`). It maps agent Markdown onto a presentation-neutral
 span/line model, injects links through a pluggable `LinkResolver`, and can materialize
-Markdown or HTML for UI consumers. Event-stream consumers never pay this dependency.
+Markdown or HTML for UI consumers. The default resolver (`LinkExtractor.WebDefault`)
+enforces an http/https/mailto allowlist that rejects `javascript:` / `data:` targets,
+so HTML output is XSS-safe by default. Event-stream consumers never pay this dependency.
 
 ## Project layout
 
@@ -176,7 +178,7 @@ benchmarks/CodingAgentRunner.Benchmarks/  BenchmarkDotNet micro-bench: parse / m
 docs/                           developer wiki (architecture, the "why")
 website/                        project website (static, English)
 website/data/cli-performance-observations.json
-                                placeholder end-to-end CLI performance scenario data with source-test references
+                                measured end-to-end CLI performance scenario data with source-test references
 ```
 
 ## Build & test
@@ -188,11 +190,12 @@ dotnet test
 
 Requires the .NET 10 SDK.
 
-### Benchmarks
+### Optional benchmarks
 
 Micro-benchmarks of the library's own parsing, metrics and rendering overhead — the
 per-line cost the host pays while reading agent output (not end-to-end *model*
-benchmarks, which would mean spawning a real CLI):
+benchmarks, which would mean spawning a real CLI). These are optional manual runs;
+`dotnet test` and release validation do not execute BenchmarkDotNet:
 
 ```bash
 dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --filter '*'
@@ -204,8 +207,8 @@ for the benchmark classes and the fast smoke command.
 
 End-to-end CLI performance observations live separately in
 [website/data/cli-performance-observations.json](website/data/cli-performance-observations.json).
-Those rows are placeholder values until a repeatable CLI harness writes real measurements,
-but each scenario already links to source-level tests through `sourceTests`.
+Those rows are measured local CLI executions, and each scenario links to source-level
+tests through `sourceTests`.
 
 ## Releasing
 

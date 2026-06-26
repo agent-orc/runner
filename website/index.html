@@ -316,6 +316,7 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
       <h2>One vocabulary across CLIs</h2>
       <p class="lead">All the supported CLIs stream NDJSON on stdout — one JSON object per line — but each uses its own frame vocabulary for the same ideas. A session start is a <code>system</code> frame in Claude, <code>thread.started</code> in Codex, and <code>init</code> in Antigravity; the id it carries is <code>session_id</code> in some and <code>thread_id</code> in others; the cached-token field has three names — <code>cache_read</code>, <code>cached_input</code>, <code>cached</code>.</p>
       <p class="lead">A per-CLI adapter folds all of that onto one closed <code>CliRunEvent</code> sum type. Your run logic is written once against that one vocabulary and never branches on which CLI — or which model — produced a line: you parse by frame type, not by model. The adapters are public, so <code>ClaudeEventAdapter.Map(line, runId)</code> (and the <code>Codex</code> / <code>Gemini</code> equivalents) turn one output line into events without spawning a process.</p>
+      <p class="lead">This model presupposes a structured wire protocol — NDJSON / JSON frames on stdout. A PTY/TUI-only CLI with no machine-readable output is the one shape CodingAgentRunner deliberately does not cover.</p>
       <p class="lead" style="font-size:14px;">The full per-frame mapping is in <a href="https://github.com/RobertMischke/coding-agent-runner/blob/main/docs/cross-cli-normalization.md">docs/cross-cli-normalization.md</a>.</p>
     </div>
     <div>
@@ -369,14 +370,14 @@ driver.OnRunEvent += (runId, e) =&gt;
         <li><b>Pluggable process spawner (<code>CliOptions.Spawner</code>)</b><span class="pill done">done</span></li>
         <li><b>Run metrics from the event stream (<code>RunMetricsRecorder</code>)</b><span class="pill done">done</span></li>
         <li><b>Optional <code>CodingAgentRunner.Rendering</code> — span model, Markdown/HTML</b><span class="pill done">done</span></li>
-        <li><b>BenchmarkDotNet micro-benchmarks for parse / metrics / render paths</b><span class="pill done">done</span></li>
+        <li><b>Optional BenchmarkDotNet micro-benchmarks for parse / metrics / render paths</b><span class="pill done">done</span></li>
         <li><b>CLI performance observations JSON database</b><span class="pill wip">seeded</span></li>
         <li><b>Built-in PTY quota probes</b><span class="pill wip">planned</span></li>
       </ul>
     </div>
     <div>
       <h2 id="status">Status</h2>
-      <div class="note">Stable core, pre-1.0. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, watchdog, quota module, metrics recorder, optional rendering package and micro-benchmarks are implemented and tested (366 tests, CI on Windows + Linux). The public API may still shift before 1.0 — pin a version and watch releases.</div>
+      <div class="note">Stable core, pre-1.0. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, watchdog, quota module, metrics recorder and optional rendering package are implemented and tested (366 tests, CI on Windows + Linux). BenchmarkDotNet micro-benchmarks are available as an optional manual run. The public API may still shift before 1.0 — pin a version and watch releases.</div>
       <h2 id="license" style="margin-top:22px;">License</h2>
       <p class="lead">Apache-2.0. Issues and pull requests welcome on <a href="https://github.com/RobertMischke/coding-agent-runner">GitHub</a>.</p>
     </div>
@@ -412,7 +413,7 @@ dotnet run -c Release \
 
     <h3 id="cli-performance-observations">CLI performance observations</h3>
     <p class="lead">This part is only about the CLIs themselves: which CLI, model, thinking level and context size produced the first visible output, completed the run, and passed the scenario checks.</p>
-    <div class="note"><b>Not real measurements yet.</b> The rows below are committed placeholder data from <code>website/data/cli-performance-observations.json</code>. Scenario definitions already point at real source tests; timing values should be replaced by repeatable CLI-run output.</div>
+    <div class="note"><b>Measured locally on 2026-06-26.</b> Rows load from <code>website/data/cli-performance-observations.json</code> and aggregate real Claude/Codex CLI executions on this workstation. Gemini and Antigravity are omitted from timing rows because this local Gemini install failed before stdout and <code>agentapi</code> was not installed.</div>
 
     <div class="kpi-grid">
       <div class="kpi"><span>Primary question</span><strong>How fast does the CLI feel?</strong><small>time to first output gets its own weight beside total wall-clock and p90.</small></div>
@@ -446,7 +447,7 @@ dotnet run -c Release \
           <tr><th>Scenario</th><th>CLI / model</th><th>Thinking</th><th>Context</th><th>Runs</th><th>Median</th><th>P90</th><th>First output feel</th><th>Pass rate</th></tr>
         </thead>
         <tbody id="cli-performance-results">
-          <tr><td colspan="9"><span class="perf-status sample">placeholder</span> Rows render from embedded concept data, not measured results.</td></tr>
+          <tr><td colspan="9"><span class="perf-status measured">measured</span> Loading CLI performance data.</td></tr>
         </tbody>
       </table>
     </div>
@@ -732,9 +733,9 @@ LinkResolver resolve = spec =&gt; spec.Kind <span class="k">switch</span>
 
 <span class="k">string</span> html = <span class="k">string</span>.Concat(lines.Select(l =&gt; HtmlRenderer.SpansToHtml(l, resolve)));</pre>
 
-    <h3 id="benchmarks">Benchmarks</h3>
-    <p class="lead">The benchmark project covers the host-side hot paths: adapter parsing, usage parsing, and optional rendering. It measures the library's overhead and allocation profile, not agent quality or CLI wall-clock time.</p>
-    <pre><span class="c"># all benchmarks (full statistical run)</span>
+    <h3 id="benchmarks">Optional benchmarks</h3>
+    <p class="lead">The benchmark project covers the host-side hot paths: adapter parsing, usage parsing, and optional rendering. It is not part of the normal test suite or release gate; run it manually when you want overhead/allocation numbers. It measures the library's overhead and allocation profile, not agent quality or CLI wall-clock time.</p>
+    <pre><span class="c"># optional: all benchmarks (full statistical run)</span>
 dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --filter <span class="s">'*'</span>
 
 <span class="c"># one class</span>
@@ -841,63 +842,198 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
 <script type="application/json" id="cli-performance-data" data-src="data/cli-performance-observations.json">
 {
   "schemaVersion": 1,
-  "state": "placeholder",
-  "generatedAt": "2026-06-26T00:00:00Z",
-  "sourceTruth": "Placeholder aggregates for the website concept. Scenario definitions point at real source tests; timing rows are not measured results yet.",
+  "state": "measured",
+  "generatedAt": "2026-06-26T08:43:00Z",
+  "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows.",
+  "runner": {
+    "gitCommit": "deddf76bd3d7c6eb7960a02db367605f0bad9f51",
+    "workspace": "C:/Projects/coding-agent-runner"
+  },
+  "environment": {
+    "os": "Windows",
+    "shell": "PowerShell",
+    "cwd": "C:/Projects/coding-agent-runner",
+    "notes": [
+      "Measurements include CLI startup, local plugin/config loading and network/model latency.",
+      "The harness measured first stdout JSONL line as first output and process exit as wall clock."
+    ]
+  },
+  "cliVersions": [
+    {
+      "cli": "Claude",
+      "version": "2.1.186",
+      "path": "C:/Users/rmisc/AppData/Roaming/npm/claude.cmd"
+    },
+    {
+      "cli": "Codex",
+      "version": "0.142.0",
+      "path": "C:/Users/rmisc/AppData/Roaming/npm/codex.cmd"
+    },
+    {
+      "cli": "Gemini",
+      "version": "0.41.2",
+      "path": "C:/Users/rmisc/AppData/Roaming/npm/gemini.cmd"
+    }
+  ],
+  "unavailableDrivers": [
+    {
+      "cli": "Antigravity",
+      "reason": "agentapi was not found on PATH during measurement."
+    },
+    {
+      "cli": "Gemini",
+      "reason": "gemini 0.41.2 failed before producing stdout because bundle/policies/sandbox-default.toml was missing in the local npm installation."
+    }
+  ],
   "scenarios": [
     {
       "id": "simple-question.001",
       "label": "Simple answer",
       "complexity": "simple",
-      "description": "Answer-only prompt with no tool use. Validates basic output visibility and metric extraction.",
+      "description": "Answer-only prompt with no tool use. Prompt: Answer exactly: CAR-OK",
       "sourceTests": [
-        {"path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs", "name": "Gemini_UserMessageIgnored_AssistantMessageIsOutput"},
-        {"path": "tests/CodingAgentRunner.Tests/Metrics/RunMetricsTests.cs", "name": "Recorder_DerivesTtfo_Ttsi_TurnWallClock_TokensPerSec_FromTheStream"}
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs",
+          "name": "Gemini_UserMessageIgnored_AssistantMessageIsOutput"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Metrics/RunMetricsTests.cs",
+          "name": "Recorder_DerivesTtfo_Ttsi_TurnWallClock_TokensPerSec_FromTheStream"
+        }
       ]
     },
     {
       "id": "repo-question.002",
       "label": "Explain parser flow",
       "complexity": "repo question",
-      "description": "Read-only source navigation and explanation of adapter behavior across CLIs.",
+      "description": "Read-only source navigation prompt asking where CliThinkingLevels.Normalize handles gpt-5.5 xhigh.",
       "sourceTests": [
-        {"path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs", "name": "EveryAdapter_TagsEveryEventWithTheRunId"},
-        {"path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs", "name": "EveryAdapter_MapsAnUnknownTypeString_ToUnknown_Capped200"},
-        {"path": "tests/CodingAgentRunner.Tests/Adapters/CodexReasoningHeartbeatTests.cs", "name": "ItemCompletedReasoning_EmitsHeartbeat_NotToolCompleted"}
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs",
+          "name": "EveryAdapter_TagsEveryEventWithTheRunId"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs",
+          "name": "EveryAdapter_MapsAnUnknownTypeString_ToUnknown_Capped200"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/CodexReasoningHeartbeatTests.cs",
+          "name": "ItemCompletedReasoning_EmitsHeartbeat_NotToolCompleted"
+        }
       ]
     },
     {
       "id": "small-fix.003",
       "label": "One-file test fix",
       "complexity": "small fix",
-      "description": "Small implementation or test repair touching one focused behavior and running targeted validation.",
+      "description": "Defined for future measured implementation runs; not included in the current measured aggregate because no mutating CLI run was executed.",
       "sourceTests": [
-        {"path": "tests/CodingAgentRunner.Tests/Execution/CliDriverEngineTests.cs", "name": "Run_StreamsOutput_RaisesTypedEvents_AndClassifiesCleanExitAsCompleted"},
-        {"path": "tests/CodingAgentRunner.Tests/Execution/Hardening/AgentGitCommandGuardTests.cs", "name": "IsForbidden_DetectsMutatingCommandPastGlobalOptions"},
-        {"path": "tests/CodingAgentRunner.Tests/Execution/CleanContextPreparerTests.cs", "name": "PrepareClaude_CreatesIsolatedHome_SeedsAllowlist_AndRedirectsEnv"}
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/CliDriverEngineTests.cs",
+          "name": "Run_StreamsOutput_RaisesTypedEvents_AndClassifiesCleanExitAsCompleted"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/Hardening/AgentGitCommandGuardTests.cs",
+          "name": "IsForbidden_DetectsMutatingCommandPastGlobalOptions"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/CleanContextPreparerTests.cs",
+          "name": "PrepareClaude_CreatesIsolatedHome_SeedsAllowlist_AndRedirectsEnv"
+        }
       ]
     },
     {
       "id": "complex-task.004",
       "label": "Multi-file feature",
       "complexity": "complex task",
-      "description": "Multi-file implementation touching lifecycle, model capabilities, watchdog behavior or rendering.",
+      "description": "Defined for future measured implementation runs; not included in the current measured aggregate because no mutating multi-file CLI run was executed.",
       "sourceTests": [
-        {"path": "tests/CodingAgentRunner.Tests/Execution/CliDriverEngineTests.cs", "name": "RunWatchdog_AutoStops_AHungRun"},
-        {"path": "tests/CodingAgentRunner.Tests/Model/ThinkingLevelNormalizationTests.cs", "name": "Codex_XHigh_OnGpt55_ButFallsToDefaultOnGpt5"},
-        {"path": "tests/CodingAgentRunner.Tests/Rendering/MarkdownRenderTests.cs", "name": "MultiBlock_DocumentProducesOneLinePerBlock"}
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/CliDriverEngineTests.cs",
+          "name": "RunWatchdog_AutoStops_AHungRun"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Model/ThinkingLevelNormalizationTests.cs",
+          "name": "Codex_XHigh_OnGpt55_ButFallsToDefaultOnGpt5"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Rendering/MarkdownRenderTests.cs",
+          "name": "MultiBlock_DocumentProducesOneLinePerBlock"
+        }
       ]
     }
   ],
   "observations": [
-    {"state": "placeholder", "scenario": "simple-question.001", "cli": "Codex", "model": "GPT 5.5", "thinking": "medium", "contextBucket": "tiny", "runs": 12, "medianMs": 8200, "p90Ms": 11600, "firstOutputMs": 1450, "successPct": 100, "notes": "answer-only; no tools"},
-    {"state": "placeholder", "scenario": "simple-question.001", "cli": "Claude", "model": "Claude Sonnet 4.6", "thinking": "medium", "contextBucket": "tiny", "runs": 12, "medianMs": 9100, "p90Ms": 14100, "firstOutputMs": 1700, "successPct": 100, "notes": "answer-only; no tools"},
-    {"state": "placeholder", "scenario": "repo-question.002", "cli": "Antigravity", "model": "Gemini 3 Pro", "thinking": "medium", "contextBucket": "medium", "runs": 8, "medianMs": 54000, "p90Ms": 81000, "firstOutputMs": 2700, "successPct": 88, "notes": "read-only code navigation"},
-    {"state": "placeholder", "scenario": "small-fix.003", "cli": "Codex", "model": "GPT 5.5 Code", "thinking": "high", "contextBucket": "medium", "runs": 8, "medianMs": 126000, "p90Ms": 190000, "firstOutputMs": 3200, "successPct": 75, "notes": "edit plus unit test"},
-    {"state": "placeholder", "scenario": "small-fix.003", "cli": "Claude", "model": "Claude Sonnet 4.6", "thinking": "high", "contextBucket": "medium", "runs": 8, "medianMs": 139000, "p90Ms": 214000, "firstOutputMs": 3900, "successPct": 88, "notes": "edit plus unit test"},
-    {"state": "placeholder", "scenario": "small-fix.003", "cli": "Codex", "model": "GPT 5.5 Mini", "thinking": "low", "contextBucket": "medium", "runs": 8, "medianMs": 98000, "p90Ms": 151000, "firstOutputMs": 2400, "successPct": 70, "notes": "edit plus unit test"},
-    {"state": "placeholder", "scenario": "complex-task.004", "cli": "Claude", "model": "Claude Opus 4.8", "thinking": "xhigh", "contextBucket": "large", "runs": 6, "medianMs": 420000, "p90Ms": 610000, "firstOutputMs": 6400, "successPct": 67, "notes": "multi-file implementation"},
-    {"state": "placeholder", "scenario": "complex-task.004", "cli": "Codex", "model": "GPT 5.5 Code", "thinking": "xhigh", "contextBucket": "large", "runs": 6, "medianMs": 405000, "p90Ms": 590000, "firstOutputMs": 5800, "successPct": 67, "notes": "multi-file implementation"}
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
+      "model": "Claude Sonnet 4.6",
+      "thinking": "medium",
+      "contextBucket": "tiny",
+      "runs": 3,
+      "medianMs": 3578,
+      "p90Ms": 3760,
+      "firstOutputMs": 1486,
+      "successPct": 100,
+      "notes": "3 successful answer-only runs; command used claude -p --model claude-sonnet-4-6 --effort medium --output-format stream-json --verbose --permission-mode dontAsk --no-session-persistence"
+    },
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Codex",
+      "model": "GPT 5.5",
+      "thinking": "medium",
+      "contextBucket": "tiny",
+      "runs": 3,
+      "medianMs": 5821,
+      "p90Ms": 8239,
+      "firstOutputMs": 839,
+      "successPct": 100,
+      "notes": "3 successful answer-only runs; command used codex exec --json -m gpt-5.5 -c model_reasoning_effort=medium --sandbox read-only"
+    },
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
+      "model": "Claude Opus 4.8",
+      "thinking": "high",
+      "contextBucket": "tiny",
+      "runs": 1,
+      "medianMs": 8278,
+      "p90Ms": 8278,
+      "firstOutputMs": 1122,
+      "successPct": 100,
+      "notes": "1 successful answer-only run; command used claude -p --model claude-opus-4-8 --effort high --output-format stream-json --verbose --permission-mode dontAsk --no-session-persistence"
+    },
+    {
+      "state": "measured",
+      "scenario": "repo-question.002",
+      "cli": "Claude",
+      "model": "Claude Sonnet 4.6",
+      "thinking": "medium",
+      "contextBucket": "medium",
+      "runs": 1,
+      "medianMs": 8604,
+      "p90Ms": 8604,
+      "firstOutputMs": 1127,
+      "successPct": 100,
+      "notes": "1 successful read-only repo question; result named src/CodingAgentRunner/Model/CliThinkingLevels.cs"
+    },
+    {
+      "state": "measured",
+      "scenario": "repo-question.002",
+      "cli": "Codex",
+      "model": "GPT 5.5",
+      "thinking": "medium",
+      "contextBucket": "medium",
+      "runs": 1,
+      "medianMs": 16260,
+      "p90Ms": 16260,
+      "firstOutputMs": 470,
+      "successPct": 100,
+      "notes": "1 successful read-only repo question; command used --sandbox read-only"
+    }
   ]
 }
 </script>
@@ -986,7 +1122,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   function statusBadge(record) {
     var measured = record.state === "measured";
     return "<span class=\"perf-status " + (measured ? "measured" : "sample") + "\">" +
-      (measured ? "measured" : "placeholder") +
+      (measured ? "measured" : "sample") +
       "</span>";
   }
 
@@ -1028,7 +1164,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     });
 
     if (!filtered.length) {
-      tbody.innerHTML = "<tr><td colspan=\"9\">No placeholder rows match these filters.</td></tr>";
+      tbody.innerHTML = "<tr><td colspan=\"9\">No measured rows match these filters.</td></tr>";
       return;
     }
 
