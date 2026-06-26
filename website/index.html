@@ -91,16 +91,28 @@
   .perf-table-wrap{overflow:visible;}
   .perf-table-wrap table{width:100%;min-width:0;table-layout:fixed;}
   .perf-table th,.perf-table td{padding:clamp(6px,1vw,10px);font-size:clamp(12px,1.2vw,14px);line-height:1.35;overflow-wrap:anywhere;}
-  .perf-table .perf-col-scenario{width:22%;}
+  .perf-table .perf-col-scenario{width:21%;}
   .perf-table .perf-col-model{width:12%;}
   .perf-table .perf-col-thinking{width:8%;}
   .perf-table .perf-col-context{width:11%;}
   .perf-table .perf-col-tokens{width:15%;}
-  .perf-table .perf-col-runs{width:5%;}
+  .perf-table .perf-col-runs{width:6%;}
   .perf-table .perf-col-time{width:7%;}
   .perf-table .perf-col-frame{width:13%;}
+  .perf-table th:nth-child(6),.perf-table td:nth-child(6){white-space:nowrap;}
   .perf-table .source-tests{gap:4px;}
   .perf-table .github-source-badge{font-size:9px;padding:2px 4px;}
+  .scenario-cell{display:grid;gap:5px;}
+  .scenario-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .scenario-title{font-weight:800;color:var(--fg);}
+  .scenario-chip{border-radius:999px;background:#eef1f5;color:#475467;font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:2px 6px;}
+  .scenario-id{font:12px/1.3 ui-monospace,Consolas,monospace;color:var(--muted);}
+  .cli-cell{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:start;}
+  .cli-icon{display:inline-grid;place-items:center;width:26px;height:26px;border:1px solid var(--line);border-radius:8px;background:#f7f9fc;color:var(--fg);font-size:11px;font-weight:850;line-height:1;}
+  .cli-icon-claude{background:#fff7ed;border-color:#fed7aa;color:#9a3412;}
+  .cli-icon-codex{background:#eef3ff;border-color:#c9dcff;color:#1d4ed8;}
+  .cli-icon-gemini{background:#eefdf8;border-color:#b9f0dc;color:#047857;}
+  .cli-icon-antigravity{background:#f5f3ff;border-color:#ddd6fe;color:#6d28d9;}
   .perf-meta{display:block;color:var(--muted);font-size:12.5px;}
   .source-tests{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;line-height:1.35;}
   .source-tests-label{color:var(--muted);margin-right:2px;}
@@ -112,7 +124,10 @@
   .perf-status.sample{background:#edf5ff;color:#1d4ed8;}
   .perf-status.measured{background:#e7f6ed;color:var(--ok);}
   .first-output-cell{min-width:0;}
+  .frame-cell-head{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;}
   .first-output-value{font-size:16px;font-weight:800;color:var(--fg);}
+  .frame-detail-button{border:1px solid var(--line);background:#fff;color:var(--fg);border-radius:7px;padding:3px 6px;font-size:11px;font-weight:800;line-height:1.2;cursor:pointer;}
+  .frame-detail-button:hover{border-color:#c8cfdb;background:#f7f9fc;}
   .time-bar{height:9px;background:#eef1f5;border-radius:999px;margin:6px 0 5px;overflow:hidden;}
   .time-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#14b8a6,#2f6df6);}
   .time-bar.slow span{background:linear-gradient(90deg,#f59e0b,#b54708);}
@@ -126,6 +141,7 @@
   .frame-modal p{margin:0 0 12px;color:var(--muted);}
   .frame-modal .table-wrap{max-height:390px;overflow:auto;margin-top:12px;}
   .frame-modal table{min-width:720px;}
+  .frame-size{font-variant-numeric:tabular-nums;}
   .frame-modal-close{flex:0 0 auto;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--fg);font:13px/1.2 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-weight:700;padding:6px 10px;cursor:pointer;}
   .frame-modal-close:hover{border-color:#c8cfdb;background:#f7f9fc;}
   .frame-visible{font-weight:750;color:var(--ok);}
@@ -517,10 +533,10 @@ dotnet run -c Release \
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>#</th><th>Elapsed</th><th>Type</th><th>Event</th><th>Visible text?</th><th>Summary</th></tr>
+              <tr><th>#</th><th>Elapsed</th><th>Type</th><th>Category</th><th>Event</th><th>Visible text?</th><th>Size</th><th>Summary</th></tr>
             </thead>
             <tbody id="cli-frame-example-rows">
-              <tr><td colspan="6">Loading frame example.</td></tr>
+              <tr><td colspan="8">Loading frame example.</td></tr>
             </tbody>
           </table>
         </div>
@@ -925,7 +941,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
 {
   "schemaVersion": 2,
   "state": "measured",
-  "generatedAt": "2026-06-26T11:22:10Z",
+  "generatedAt": "2026-06-26T11:39:13Z",
   "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows. Token counts come from CLI-reported usage objects.",
   "runner": {
     "gitCommit": "c38edc8d0095c6852fc27fc7a3f9cb3a0f8e2537",
@@ -979,95 +995,118 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   "frameExamples": [
     {
       "id": "claude-haiku-repo-none-2026-06-26",
-      "measuredAt": "2026-06-26T11:22:10Z",
+      "measuredAt": "2026-06-26T11:39:13Z",
       "cli": "Claude",
       "model": "Claude Haiku 4.5",
       "thinking": "none",
       "scenario": "repo-question.002",
       "prompt": "In one concise sentence, name the source file that defines CliThinkingLevels.Normalize and what it does for gpt-5.5 xhigh. Do not modify files.",
-      "wallClockMs": 13449,
-      "stdoutFrameCount": 21,
+      "wallClockMs": 12434,
+      "stdoutFrameCount": 17,
+      "totalFrameBytes": 25354,
+      "totalStdoutBytes": 25371,
+      "frameSizeDefinition": "UTF-8 bytes of each JSON frame payload, excluding the newline separator. totalStdoutBytes includes one newline separator per frame.",
       "definition": "A CLI frame is one newline-delimited JSON object emitted by the agent CLI on stdout. Frames can be metadata, rate-limit notices, thinking-token updates, assistant messages, tool calls, tool results or the terminal result. Only some frames become user-visible text in the application UI.",
       "frames": [
         {
           "index": 1,
-          "elapsedMs": 2816,
+          "elapsedMs": 2393,
           "type": "system",
           "event": "init",
+          "category": "Session metadata",
           "userVisibleText": false,
+          "frameBytes": 1747,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 2,
-          "elapsedMs": 3922,
-          "type": "rate_limit_event",
-          "event": "rate_limit_event",
+          "elapsedMs": 3966,
+          "type": "system",
+          "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
-          "summary": "Protocol frame emitted by the CLI."
+          "frameBytes": 191,
+          "summary": "CLI/session metadata frame."
         },
         {
           "index": 3,
-          "elapsedMs": 4208,
+          "elapsedMs": 3970,
           "type": "system",
           "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
+          "frameBytes": 193,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 4,
-          "elapsedMs": 4209,
+          "elapsedMs": 4165,
           "type": "system",
           "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
+          "frameBytes": 193,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 5,
-          "elapsedMs": 4411,
+          "elapsedMs": 4369,
           "type": "system",
           "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
+          "frameBytes": 193,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 6,
-          "elapsedMs": 4651,
+          "elapsedMs": 4636,
           "type": "system",
           "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
+          "frameBytes": 192,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 7,
-          "elapsedMs": 4911,
+          "elapsedMs": 4636,
           "type": "system",
           "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
+          "frameBytes": 194,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 8,
-          "elapsedMs": 4929,
+          "elapsedMs": 4652,
           "type": "assistant",
           "event": "assistant",
+          "category": "Assistant protocol",
           "userVisibleText": false,
+          "frameBytes": 1918,
           "summary": "Assistant frame without text content."
         },
         {
           "index": 9,
-          "elapsedMs": 5175,
+          "elapsedMs": 5012,
           "type": "assistant",
           "event": "assistant",
+          "category": "Tool call",
           "userVisibleText": false,
+          "frameBytes": 864,
           "summary": "tool_use: Grep"
         },
         {
           "index": 10,
-          "elapsedMs": 5294,
-          "type": "user",
-          "event": "user/tool_result",
+          "elapsedMs": 5100,
+          "type": "rate_limit_event",
+          "event": "rate_limit_event",
+          "category": "Rate-limit telemetry",
           "userVisibleText": false,
-          "summary": "Tool result or echoed user-side frame from the CLI protocol."
+          "frameBytes": 292,
+          "summary": "Rate-limit/quota telemetry emitted by the CLI."
         }
       ]
     }
@@ -1371,7 +1410,6 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   var frameModal = document.getElementById("cli-frame-modal");
   var frameModalContext = document.getElementById("cli-frame-modal-context");
   var frameRows = document.getElementById("cli-frame-example-rows");
-  var frameOpenButtons = Array.prototype.slice.call(document.querySelectorAll("[data-open-cli-frame-modal]"));
   var frameCloseButtons = Array.prototype.slice.call(document.querySelectorAll("[data-close-cli-frame-modal]"));
   var dataSrc = dataNode.getAttribute("data-src");
   var fallbackPayload = JSON.parse(dataNode.textContent);
@@ -1390,6 +1428,10 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     return String(value).replace(/-/g, " ").replace(/\b\w/g, function (ch) { return ch.toUpperCase(); });
   }
 
+  function slug(value) {
+    return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  }
+
   function formatMs(value) {
     if (value >= 60000) return (value / 60000).toFixed(1) + "m";
     return (value / 1000).toFixed(1) + "s";
@@ -1399,6 +1441,14 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     var number = Number(value);
     if (!Number.isFinite(number)) return "n/a";
     return number.toLocaleString("en-US");
+  }
+
+  function formatBytes(value) {
+    var number = Number(value);
+    if (!Number.isFinite(number)) return "n/a";
+    if (number >= 1024 * 1024) return (number / (1024 * 1024)).toFixed(1) + " MB";
+    if (number >= 1024) return (number / 1024).toFixed(1) + " KB";
+    return number.toLocaleString("en-US") + " B";
   }
 
   function normalizePayload(payload) {
@@ -1457,12 +1507,36 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "</span>";
   }
 
+  function scenarioCell(record) {
+    return "<td data-label=\"Scenario\"><div class=\"scenario-cell\">" +
+      "<div class=\"scenario-head\"><span class=\"scenario-title\">" + escapeHtml(record.scenarioLabel) + "</span>" +
+      "<span class=\"scenario-chip\">" + escapeHtml(record.complexity) + "</span></div>" +
+      "<span class=\"scenario-id\">" + escapeHtml(record.scenario) + "</span>" +
+      sourceTestsLine(record) +
+      "</div></td>";
+  }
+
+  function cliIcon(record) {
+    var labels = { Claude: "Cl", Codex: "Cx", Gemini: "G", Antigravity: "Ag" };
+    var label = labels[record.cli] || String(record.cli || "?").slice(0, 2);
+    return "<span class=\"cli-icon cli-icon-" + escapeHtml(slug(record.cli)) + "\" aria-hidden=\"true\">" +
+      escapeHtml(label) + "</span>";
+  }
+
+  function cliCell(record) {
+    return "<td data-label=\"CLI / model\"><div class=\"cli-cell\">" +
+      cliIcon(record) +
+      "<div><b>" + escapeHtml(record.cli) + "</b><span class=\"perf-meta\">" + escapeHtml(record.model) + "</span></div>" +
+      "</div></td>";
+  }
+
   function firstFrameCell(record) {
     var value = record.firstCliFrameMs || record.firstOutputMs;
     var width = Math.max(8, Math.round((value / maxFirstOutputMs) * 100));
     var tone = value >= 5000 ? " slow" : "";
     return "<td class=\"first-output-cell\" data-label=\"First CLI frame\">" +
-      "<span class=\"first-output-value\">" + escapeHtml(formatMs(value)) + "</span>" +
+      "<div class=\"frame-cell-head\"><span class=\"first-output-value\">" + escapeHtml(formatMs(value)) + "</span>" +
+      "<button type=\"button\" class=\"frame-detail-button\" data-open-cli-frame-modal>Frames</button></div>" +
       "<div class=\"time-bar" + tone + "\" aria-hidden=\"true\"><span style=\"width:" + width + "%\"></span></div>" +
       "<span class=\"perf-meta\">first stdout JSONL frame</span>" +
       "</td>";
@@ -1473,13 +1547,16 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     var examples = Array.isArray(payload.frameExamples) ? payload.frameExamples : [];
     var example = examples[0];
     if (!example || !Array.isArray(example.frames)) {
-      frameRows.innerHTML = "<tr><td colspan=\"6\">No measured frame example is available.</td></tr>";
+      frameRows.innerHTML = "<tr><td colspan=\"8\">No measured frame example is available.</td></tr>";
       return;
     }
 
     frameModalContext.textContent = example.cli + " / " + example.model + " / " +
       example.scenario + " measured " + example.measuredAt + ". " +
-      example.stdoutFrameCount + " stdout frames total, wall-clock " + formatMs(example.wallClockMs) + ".";
+      example.stdoutFrameCount + " stdout frames total, " +
+      formatBytes(example.totalFrameBytes) + " frame payload, " +
+      formatBytes(example.totalStdoutBytes) + " stdout including newlines, wall-clock " +
+      formatMs(example.wallClockMs) + ".";
     frameRows.innerHTML = example.frames.map(function (frame) {
       var visible = frame.userVisibleText ? "yes" : "no";
       var visibleClass = frame.userVisibleText ? "frame-visible" : "frame-hidden";
@@ -1487,8 +1564,10 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
         "<td>" + escapeHtml(frame.index) + "</td>" +
         "<td><b>" + escapeHtml(formatMs(frame.elapsedMs)) + "</b><span class=\"perf-meta\">" + escapeHtml(frame.elapsedMs) + "ms</span></td>" +
         "<td><code>" + escapeHtml(frame.type) + "</code></td>" +
+        "<td>" + escapeHtml(frame.category || "Protocol frame") + "</td>" +
         "<td>" + escapeHtml(frame.event) + "</td>" +
         "<td><span class=\"" + visibleClass + "\">" + visible + "</span></td>" +
+        "<td class=\"frame-size\">" + escapeHtml(formatBytes(frame.frameBytes)) + "</td>" +
         "<td>" + escapeHtml(frame.summary) + "</td>" +
         "</tr>";
     }).join("");
@@ -1548,8 +1627,8 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
 
     tbody.innerHTML = filtered.map(function (r) {
       return "<tr>" +
-        "<td data-label=\"Scenario\"><b>" + escapeHtml(r.scenarioLabel) + "</b><span class=\"perf-meta\">" + escapeHtml(r.scenario) + " - " + escapeHtml(r.complexity) + "</span>" + sourceTestsLine(r) + "</td>" +
-        "<td data-label=\"CLI / model\"><b>" + escapeHtml(r.cli) + "</b><span class=\"perf-meta\">" + escapeHtml(r.model) + "</span></td>" +
+        scenarioCell(r) +
+        cliCell(r) +
         "<td data-label=\"Thinking\">" + escapeHtml(title(r.thinking)) + "</td>" +
         contextTokensCell(r) +
         tokenUsageCell(r) +
@@ -1569,12 +1648,11 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     render();
   }
 
-  frameOpenButtons.forEach(function (button) {
-    button.addEventListener("click", function () {
-      if (!frameModal) return;
-      if (typeof frameModal.showModal === "function") frameModal.showModal();
-      else frameModal.setAttribute("open", "open");
-    });
+  document.addEventListener("click", function (event) {
+    var openButton = event.target.closest("[data-open-cli-frame-modal]");
+    if (!openButton || !frameModal) return;
+    if (typeof frameModal.showModal === "function") frameModal.showModal();
+    else frameModal.setAttribute("open", "open");
   });
 
   frameCloseButtons.forEach(function (button) {

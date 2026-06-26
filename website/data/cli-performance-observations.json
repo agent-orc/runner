@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "state": "measured",
-  "generatedAt": "2026-06-26T11:22:10Z",
+  "generatedAt": "2026-06-26T11:39:13Z",
   "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows. Token counts come from CLI-reported usage objects.",
   "runner": {
     "gitCommit": "c38edc8d0095c6852fc27fc7a3f9cb3a0f8e2537",
@@ -55,95 +55,118 @@
   "frameExamples": [
     {
       "id": "claude-haiku-repo-none-2026-06-26",
-      "measuredAt": "2026-06-26T11:22:10Z",
+      "measuredAt": "2026-06-26T11:39:13Z",
       "cli": "Claude",
       "model": "Claude Haiku 4.5",
       "thinking": "none",
       "scenario": "repo-question.002",
       "prompt": "In one concise sentence, name the source file that defines CliThinkingLevels.Normalize and what it does for gpt-5.5 xhigh. Do not modify files.",
-      "wallClockMs": 13449,
-      "stdoutFrameCount": 21,
+      "wallClockMs": 12434,
+      "stdoutFrameCount": 17,
+      "totalFrameBytes": 25354,
+      "totalStdoutBytes": 25371,
+      "frameSizeDefinition": "UTF-8 bytes of each JSON frame payload, excluding the newline separator. totalStdoutBytes includes one newline separator per frame.",
       "definition": "A CLI frame is one newline-delimited JSON object emitted by the agent CLI on stdout. Frames can be metadata, rate-limit notices, thinking-token updates, assistant messages, tool calls, tool results or the terminal result. Only some frames become user-visible text in the application UI.",
       "frames": [
         {
           "index": 1,
-          "elapsedMs": 2816,
+          "elapsedMs": 2393,
           "type": "system",
           "event": "init",
+          "category": "Session metadata",
           "userVisibleText": false,
+          "frameBytes": 1747,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 2,
-          "elapsedMs": 3922,
-          "type": "rate_limit_event",
-          "event": "rate_limit_event",
+          "elapsedMs": 3966,
+          "type": "system",
+          "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
-          "summary": "Protocol frame emitted by the CLI."
+          "frameBytes": 191,
+          "summary": "CLI/session metadata frame."
         },
         {
           "index": 3,
-          "elapsedMs": 4208,
+          "elapsedMs": 3970,
           "type": "system",
           "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
+          "frameBytes": 193,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 4,
-          "elapsedMs": 4209,
+          "elapsedMs": 4165,
           "type": "system",
           "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
+          "frameBytes": 193,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 5,
-          "elapsedMs": 4411,
+          "elapsedMs": 4369,
           "type": "system",
           "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
+          "frameBytes": 193,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 6,
-          "elapsedMs": 4651,
+          "elapsedMs": 4636,
           "type": "system",
           "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
+          "frameBytes": 192,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 7,
-          "elapsedMs": 4911,
+          "elapsedMs": 4636,
           "type": "system",
           "event": "thinking_tokens",
+          "category": "Thinking telemetry",
           "userVisibleText": false,
+          "frameBytes": 194,
           "summary": "CLI/session metadata frame."
         },
         {
           "index": 8,
-          "elapsedMs": 4929,
+          "elapsedMs": 4652,
           "type": "assistant",
           "event": "assistant",
+          "category": "Assistant protocol",
           "userVisibleText": false,
+          "frameBytes": 1918,
           "summary": "Assistant frame without text content."
         },
         {
           "index": 9,
-          "elapsedMs": 5175,
+          "elapsedMs": 5012,
           "type": "assistant",
           "event": "assistant",
+          "category": "Tool call",
           "userVisibleText": false,
+          "frameBytes": 864,
           "summary": "tool_use: Grep"
         },
         {
           "index": 10,
-          "elapsedMs": 5294,
-          "type": "user",
-          "event": "user/tool_result",
+          "elapsedMs": 5100,
+          "type": "rate_limit_event",
+          "event": "rate_limit_event",
+          "category": "Rate-limit telemetry",
           "userVisibleText": false,
-          "summary": "Tool result or echoed user-side frame from the CLI protocol."
+          "frameBytes": 292,
+          "summary": "Rate-limit/quota telemetry emitted by the CLI."
         }
       ]
     }
