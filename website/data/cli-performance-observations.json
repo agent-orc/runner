@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "state": "measured",
-  "generatedAt": "2026-06-26T08:43:00Z",
-  "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows.",
+  "generatedAt": "2026-06-26T09:16:48Z",
+  "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows. Token counts come from CLI-reported usage objects.",
   "runner": {
-    "gitCommit": "deddf76bd3d7c6eb7960a02db367605f0bad9f51",
+    "gitCommit": "c38edc8d0095c6852fc27fc7a3f9cb3a0f8e2537",
     "workspace": "C:/Projects/coding-agent-runner"
   },
   "environment": {
@@ -13,7 +13,9 @@
     "cwd": "C:/Projects/coding-agent-runner",
     "notes": [
       "Measurements include CLI startup, local plugin/config loading and network/model latency.",
-      "The harness measured first stdout JSONL line as first output and process exit as wall clock."
+      "The harness measured first stdout JSONL line as first output and process exit as wall clock.",
+      "contextTokens is the prompt-side context observed by the CLI. For Claude it sums input_tokens, cache_read_input_tokens and cache_creation_input_tokens; for Codex it uses reported input_tokens and records cached_input_tokens separately.",
+      "thinking=none means no explicit thinking or reasoning level was passed. The model or CLI may still report reasoning tokens."
     ]
   },
   "cliVersions": [
@@ -25,12 +27,29 @@
     {
       "cli": "Codex",
       "version": "0.142.0",
-      "path": "C:/Users/rmisc/AppData/Roaming/npm/codex.cmd"
+      "path": "C:/Users/rmisc/.vscode-insiders/extensions/openai.chatgpt-26.5616.71553-win32-x64/bin/windows-x86_64/codex.exe"
     },
     {
       "cli": "Gemini",
       "version": "0.41.2",
       "path": "C:/Users/rmisc/AppData/Roaming/npm/gemini.cmd"
+    }
+  ],
+  "contextScale": [
+    {
+      "bucket": "small",
+      "tokenRange": "20000-35000",
+      "description": "Short answer-only prompt plus the CLI's loaded local configuration, instructions and session envelope."
+    },
+    {
+      "bucket": "large",
+      "tokenRange": "50000-90000",
+      "description": "Read-only repository question with source navigation and project context."
+    },
+    {
+      "bucket": "xl",
+      "tokenRange": "100000-200000",
+      "description": "Large loaded context and multi-turn/tool work; useful for first-feedback latency checks."
     }
   ],
   "unavailableDrivers": [
@@ -126,29 +145,64 @@
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Claude",
+      "model": "Claude Haiku 4.5",
+      "thinking": "none",
+      "contextBucket": "small",
+      "contextTokens": 28521,
+      "inputTokens": 10,
+      "cachedInputTokens": 28511,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 52,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 28573,
+      "runs": 2,
+      "medianMs": 3755,
+      "p90Ms": 4374,
+      "firstOutputMs": 1262,
+      "successPct": 100,
+      "notes": "2 successful answer-only runs; command used claude -p --model claude-haiku-4-5 without --effort."
+    },
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
+      "model": "Claude Sonnet 4.6",
+      "thinking": "none",
+      "contextBucket": "small",
+      "contextTokens": 27696,
+      "inputTokens": 3,
+      "cachedInputTokens": 27693,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 7,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 27703,
+      "runs": 1,
+      "medianMs": 7744,
+      "p90Ms": 7744,
+      "firstOutputMs": 1082,
+      "successPct": 100,
+      "notes": "1 successful answer-only run; command used claude -p --model claude-sonnet-4-6 without --effort."
+    },
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
       "model": "Claude Sonnet 4.6",
       "thinking": "medium",
-      "contextBucket": "tiny",
+      "contextBucket": "small",
+      "contextTokens": 27741,
+      "inputTokens": 3,
+      "cachedInputTokens": 27738,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 7,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 27748,
       "runs": 3,
       "medianMs": 3578,
       "p90Ms": 3760,
       "firstOutputMs": 1486,
       "successPct": 100,
-      "notes": "3 successful answer-only runs; command used claude -p --model claude-sonnet-4-6 --effort medium --output-format stream-json --verbose --permission-mode dontAsk --no-session-persistence"
-    },
-    {
-      "state": "measured",
-      "scenario": "simple-question.001",
-      "cli": "Codex",
-      "model": "GPT 5.5",
-      "thinking": "medium",
-      "contextBucket": "tiny",
-      "runs": 3,
-      "medianMs": 5821,
-      "p90Ms": 8239,
-      "firstOutputMs": 839,
-      "successPct": 100,
-      "notes": "3 successful answer-only runs; command used codex exec --json -m gpt-5.5 -c model_reasoning_effort=medium --sandbox read-only"
+      "notes": "3 successful answer-only runs; command used claude -p --model claude-sonnet-4-6 --effort medium."
     },
     {
       "state": "measured",
@@ -156,13 +210,62 @@
       "cli": "Claude",
       "model": "Claude Opus 4.8",
       "thinking": "high",
-      "contextBucket": "tiny",
+      "contextBucket": "small",
+      "contextTokens": 26237,
+      "inputTokens": 2648,
+      "cachedInputTokens": 20641,
+      "cacheCreationInputTokens": 2948,
+      "outputTokens": 8,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 26245,
       "runs": 1,
       "medianMs": 8278,
       "p90Ms": 8278,
       "firstOutputMs": 1122,
       "successPct": 100,
-      "notes": "1 successful answer-only run; command used claude -p --model claude-opus-4-8 --effort high --output-format stream-json --verbose --permission-mode dontAsk --no-session-persistence"
+      "notes": "1 successful answer-only run; command used claude -p --model claude-opus-4-8 --effort high."
+    },
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Codex",
+      "model": "GPT 5.5",
+      "thinking": "none",
+      "contextBucket": "small",
+      "contextTokens": 22657,
+      "inputTokens": 22657,
+      "cachedInputTokens": 15744,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 28,
+      "reasoningTokens": 19,
+      "totalTokensUsed": 22704,
+      "runs": 1,
+      "medianMs": 8350,
+      "p90Ms": 8350,
+      "firstOutputMs": 820,
+      "successPct": 100,
+      "notes": "1 successful answer-only run; command used codex exec --json -m gpt-5.5 without model_reasoning_effort override."
+    },
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Codex",
+      "model": "GPT 5.5",
+      "thinking": "medium",
+      "contextBucket": "small",
+      "contextTokens": 22657,
+      "inputTokens": 22657,
+      "cachedInputTokens": 2432,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 7,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 22664,
+      "runs": 3,
+      "medianMs": 5821,
+      "p90Ms": 8239,
+      "firstOutputMs": 839,
+      "successPct": 100,
+      "notes": "3 successful answer-only runs; command used codex exec --json -m gpt-5.5 -c model_reasoning_effort=medium --sandbox read-only."
     },
     {
       "state": "measured",
@@ -170,13 +273,20 @@
       "cli": "Claude",
       "model": "Claude Sonnet 4.6",
       "thinking": "medium",
-      "contextBucket": "medium",
+      "contextBucket": "large",
+      "contextTokens": 56830,
+      "inputTokens": 4,
+      "cachedInputTokens": 48437,
+      "cacheCreationInputTokens": 8389,
+      "outputTokens": 213,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 57043,
       "runs": 1,
       "medianMs": 8604,
       "p90Ms": 8604,
       "firstOutputMs": 1127,
       "successPct": 100,
-      "notes": "1 successful read-only repo question; result named src/CodingAgentRunner/Model/CliThinkingLevels.cs"
+      "notes": "1 successful read-only repo question; result named src/CodingAgentRunner/Model/CliThinkingLevels.cs."
     },
     {
       "state": "measured",
@@ -184,13 +294,41 @@
       "cli": "Codex",
       "model": "GPT 5.5",
       "thinking": "medium",
-      "contextBucket": "medium",
+      "contextBucket": "large",
+      "contextTokens": 76556,
+      "inputTokens": 76556,
+      "cachedInputTokens": 57472,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 252,
+      "reasoningTokens": 46,
+      "totalTokensUsed": 76854,
       "runs": 1,
       "medianMs": 16260,
       "p90Ms": 16260,
       "firstOutputMs": 470,
       "successPct": 100,
-      "notes": "1 successful read-only repo question; command used --sandbox read-only"
+      "notes": "1 successful read-only repo question; command used --sandbox read-only."
+    },
+    {
+      "state": "measured",
+      "scenario": "repo-question.002",
+      "cli": "Claude",
+      "model": "Claude Haiku 4.5",
+      "thinking": "none",
+      "contextBucket": "xl",
+      "contextTokens": 147495,
+      "inputTokens": 31,
+      "cachedInputTokens": 130033,
+      "cacheCreationInputTokens": 17431,
+      "outputTokens": 586,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 148081,
+      "runs": 1,
+      "medianMs": 15650,
+      "p90Ms": 15650,
+      "firstOutputMs": 1357,
+      "successPct": 100,
+      "notes": "1 successful read-only repo question; command used claude -p --model claude-haiku-4-5 without --effort."
     }
   ]
 }

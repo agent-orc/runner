@@ -208,7 +208,9 @@ for the benchmark classes and the fast smoke command.
 End-to-end CLI performance observations live separately in
 [website/data/cli-performance-observations.json](website/data/cli-performance-observations.json).
 Those rows are measured local CLI executions, and each scenario links to source-level
-tests through `sourceTests`.
+tests through `sourceTests`. The JSON also records `contextTokens`,
+cached/cache-creation input tokens, output tokens, reasoning tokens and
+`totalTokensUsed` so first-output latency can be compared against real prompt size.
 
 ## Releasing
 

@@ -86,7 +86,7 @@
   .controlbar label{display:block;color:var(--muted);font-size:12px;font-weight:700;}
   .controlbar select{width:100%;margin-top:4px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--fg);font:14px/1.4 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:8px 10px;}
   .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:10px;}
-  .table-wrap table{margin:0;min-width:820px;}
+  .table-wrap table{margin:0;min-width:1080px;}
   .table-wrap .pill{margin-left:0;}
   .perf-meta{display:block;color:var(--muted);font-size:12.5px;}
   .source-tests{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;line-height:1.35;}
@@ -419,7 +419,7 @@ dotnet run -c Release \
       <div class="kpi"><span>Primary question</span><strong>How fast does the CLI feel?</strong><small>time to first output gets its own weight beside total wall-clock and p90.</small></div>
       <div class="kpi"><span>Quality gate</span><strong>Did it pass?</strong><small>speed only counts when the expected answer, tests or review rubric succeeded.</small></div>
       <div class="kpi"><span>Dimensions</span><strong>CLI + model + thinking</strong><small>Codex models such as GPT 5.5 Code, Claude Opus 4.8 / Sonnet 4.6, Antigravity and future drivers.</small></div>
-      <div class="kpi"><span>Context</span><strong>tiny to large repos</strong><small>input tokens, files touched, transcript size and clean/shared context mode.</small></div>
+      <div class="kpi"><span>Context</span><strong>tokens, not guesses</strong><small>each row shows CLI-reported context tokens and token usage.</small></div>
     </div>
 
     <h3 id="cli-results-table">CLI results table concept</h3>
@@ -434,8 +434,8 @@ dotnet run -c Release \
       <label for="perf-thinking">Thinking
         <select id="perf-thinking" data-cli-filter="thinking" data-cli-all="All levels"><option value="all">All levels</option></select>
       </label>
-      <label for="perf-context">Context
-        <select id="perf-context" data-cli-filter="contextBucket" data-cli-all="All sizes"><option value="all">All sizes</option></select>
+      <label for="perf-context">Context tokens
+        <select id="perf-context" data-cli-filter="contextBucket" data-cli-all="All token sizes"><option value="all">All token sizes</option></select>
       </label>
       <label for="perf-complexity">Scenario
         <select id="perf-complexity" data-cli-filter="complexity" data-cli-all="All scenarios"><option value="all">All scenarios</option></select>
@@ -444,10 +444,10 @@ dotnet run -c Release \
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Scenario</th><th>CLI / model</th><th>Thinking</th><th>Context</th><th>Runs</th><th>Median</th><th>P90</th><th>First output feel</th><th>Pass rate</th></tr>
+          <tr><th>Scenario</th><th>CLI / model</th><th>Thinking</th><th>Context tokens</th><th>Tokens used</th><th>Runs</th><th>Median</th><th>P90</th><th>First output feel</th><th>Pass rate</th></tr>
         </thead>
         <tbody id="cli-performance-results">
-          <tr><td colspan="9"><span class="perf-status measured">measured</span> Loading CLI performance data.</td></tr>
+          <tr><td colspan="10"><span class="perf-status measured">measured</span> Loading CLI performance data.</td></tr>
         </tbody>
       </table>
     </div>
@@ -745,9 +745,9 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
 dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --filter <span class="s">'*'</span> --job dry</pre>
 
     <h3 id="cli-performance-data-contract">CLI performance data contract</h3>
-    <p class="lead">CLI performance numbers should come from real CLI executions, not from the host-side BenchmarkDotNet project. Store raw runs as JSON, then render aggregate rows by scenario, CLI, model, thinking level and context bucket.</p>
+    <p class="lead">CLI performance numbers should come from real CLI executions, not from the host-side BenchmarkDotNet project. Store raw runs as JSON, then render aggregate rows by scenario, CLI, model, thinking level, context token bucket and measured token usage.</p>
     <pre>{
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "generatedAt": "2026-06-26T00:00:00Z",
   "runner": {
     "packageVersion": "0.0.0-local",
@@ -782,15 +782,20 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
         "model": "GPT 5.5 Code",
         "thinkingLevel": "medium",
         "contextMode": "clean",
-        "contextBucket": "tiny"
+        "contextBucket": "small"
       },
       "measurements": {
         "timeToFirstOutputMs": 0,
         "wallClockMs": 0,
         "toolCalls": 0,
         "filesChanged": 0,
+        "contextTokens": 22657,
         "inputTokens": 0,
-        "outputTokens": 0
+        "cachedInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "outputTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokensUsed": 0
       },
       "outcome": {
         "status": "completed",
@@ -810,12 +815,12 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       <tr><th>Group</th><th>Why it matters</th></tr>
       <tr><td><code>environment</code></td><td>Separates machine, OS, network and fixture effects from model/CLI behavior.</td></tr>
       <tr><td><code>scenario</code></td><td>Makes simple prompts, repo-reading prompts, small fixes and complex tasks comparable over time. Include <code>sourceTests</code> so each scenario links back to the source-level contract it exercises.</td></tr>
-      <tr><td><code>variant</code></td><td>Captures the exact CLI, model, thinking level, permission mode and context mode used for the run.</td></tr>
-      <tr><td><code>measurements</code></td><td>Records first output, total wall-clock, tool churn, token counts and touched files.</td></tr>
+      <tr><td><code>variant</code></td><td>Captures the exact CLI, model, thinking level, permission mode, context mode and context token bucket used for the run.</td></tr>
+      <tr><td><code>measurements</code></td><td>Records first output, total wall-clock, tool churn, touched files, context tokens, cached tokens, output tokens, reasoning tokens and total tokens used.</td></tr>
       <tr><td><code>outcome</code></td><td>Prevents a fast failure from looking like a good result; pass rate belongs beside duration.</td></tr>
       <tr><td><code>artifacts</code></td><td>Lets readers audit the transcript, generated patch and validation output behind every aggregate row.</td></tr>
     </table>
-    <p class="lead">Recommended aggregate key: <code>scenario.id + variant.cli + variant.model + variant.thinkingLevel + variant.contextBucket</code>. Publish <code>n</code>, median, p90, min/max, time to first output, pass rate and the top failure reasons for each aggregate.</p>
+    <p class="lead">Recommended aggregate key: <code>scenario.id + variant.cli + variant.model + variant.thinkingLevel + variant.contextBucket</code>. Publish <code>n</code>, median, p90, min/max, time to first output, pass rate, median <code>contextTokens</code>, token sub-counts and the top failure reasons for each aggregate.</p>
 
     <h3 id="streaming">Push events vs pull streaming</h3>
     <p class="lead">Two shapes for the same events. The <code>event</code> handlers are best for multiplexing many concurrent runs through one handler (route by <code>evt.RunId</code>). <code>StreamAsync</code> is the ergonomic choice for a single run — <code>await foreach</code>, natural control flow, built-in cancellation. They coexist.</p>
@@ -841,12 +846,12 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
 
 <script type="application/json" id="cli-performance-data" data-src="data/cli-performance-observations.json">
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "state": "measured",
-  "generatedAt": "2026-06-26T08:43:00Z",
-  "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows.",
+  "generatedAt": "2026-06-26T09:16:48Z",
+  "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows. Token counts come from CLI-reported usage objects.",
   "runner": {
-    "gitCommit": "deddf76bd3d7c6eb7960a02db367605f0bad9f51",
+    "gitCommit": "c38edc8d0095c6852fc27fc7a3f9cb3a0f8e2537",
     "workspace": "C:/Projects/coding-agent-runner"
   },
   "environment": {
@@ -855,7 +860,9 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     "cwd": "C:/Projects/coding-agent-runner",
     "notes": [
       "Measurements include CLI startup, local plugin/config loading and network/model latency.",
-      "The harness measured first stdout JSONL line as first output and process exit as wall clock."
+      "The harness measured first stdout JSONL line as first output and process exit as wall clock.",
+      "contextTokens is the prompt-side context observed by the CLI. For Claude it sums input_tokens, cache_read_input_tokens and cache_creation_input_tokens; for Codex it uses reported input_tokens and records cached_input_tokens separately.",
+      "thinking=none means no explicit thinking or reasoning level was passed. The model or CLI may still report reasoning tokens."
     ]
   },
   "cliVersions": [
@@ -867,12 +874,29 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     {
       "cli": "Codex",
       "version": "0.142.0",
-      "path": "C:/Users/rmisc/AppData/Roaming/npm/codex.cmd"
+      "path": "C:/Users/rmisc/.vscode-insiders/extensions/openai.chatgpt-26.5616.71553-win32-x64/bin/windows-x86_64/codex.exe"
     },
     {
       "cli": "Gemini",
       "version": "0.41.2",
       "path": "C:/Users/rmisc/AppData/Roaming/npm/gemini.cmd"
+    }
+  ],
+  "contextScale": [
+    {
+      "bucket": "small",
+      "tokenRange": "20000-35000",
+      "description": "Short answer-only prompt plus the CLI's loaded local configuration, instructions and session envelope."
+    },
+    {
+      "bucket": "large",
+      "tokenRange": "50000-90000",
+      "description": "Read-only repository question with source navigation and project context."
+    },
+    {
+      "bucket": "xl",
+      "tokenRange": "100000-200000",
+      "description": "Large loaded context and multi-turn/tool work; useful for first-feedback latency checks."
     }
   ],
   "unavailableDrivers": [
@@ -968,29 +992,64 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Claude",
+      "model": "Claude Haiku 4.5",
+      "thinking": "none",
+      "contextBucket": "small",
+      "contextTokens": 28521,
+      "inputTokens": 10,
+      "cachedInputTokens": 28511,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 52,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 28573,
+      "runs": 2,
+      "medianMs": 3755,
+      "p90Ms": 4374,
+      "firstOutputMs": 1262,
+      "successPct": 100,
+      "notes": "2 successful answer-only runs; command used claude -p --model claude-haiku-4-5 without --effort."
+    },
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
+      "model": "Claude Sonnet 4.6",
+      "thinking": "none",
+      "contextBucket": "small",
+      "contextTokens": 27696,
+      "inputTokens": 3,
+      "cachedInputTokens": 27693,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 7,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 27703,
+      "runs": 1,
+      "medianMs": 7744,
+      "p90Ms": 7744,
+      "firstOutputMs": 1082,
+      "successPct": 100,
+      "notes": "1 successful answer-only run; command used claude -p --model claude-sonnet-4-6 without --effort."
+    },
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
       "model": "Claude Sonnet 4.6",
       "thinking": "medium",
-      "contextBucket": "tiny",
+      "contextBucket": "small",
+      "contextTokens": 27741,
+      "inputTokens": 3,
+      "cachedInputTokens": 27738,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 7,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 27748,
       "runs": 3,
       "medianMs": 3578,
       "p90Ms": 3760,
       "firstOutputMs": 1486,
       "successPct": 100,
-      "notes": "3 successful answer-only runs; command used claude -p --model claude-sonnet-4-6 --effort medium --output-format stream-json --verbose --permission-mode dontAsk --no-session-persistence"
-    },
-    {
-      "state": "measured",
-      "scenario": "simple-question.001",
-      "cli": "Codex",
-      "model": "GPT 5.5",
-      "thinking": "medium",
-      "contextBucket": "tiny",
-      "runs": 3,
-      "medianMs": 5821,
-      "p90Ms": 8239,
-      "firstOutputMs": 839,
-      "successPct": 100,
-      "notes": "3 successful answer-only runs; command used codex exec --json -m gpt-5.5 -c model_reasoning_effort=medium --sandbox read-only"
+      "notes": "3 successful answer-only runs; command used claude -p --model claude-sonnet-4-6 --effort medium."
     },
     {
       "state": "measured",
@@ -998,13 +1057,62 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "cli": "Claude",
       "model": "Claude Opus 4.8",
       "thinking": "high",
-      "contextBucket": "tiny",
+      "contextBucket": "small",
+      "contextTokens": 26237,
+      "inputTokens": 2648,
+      "cachedInputTokens": 20641,
+      "cacheCreationInputTokens": 2948,
+      "outputTokens": 8,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 26245,
       "runs": 1,
       "medianMs": 8278,
       "p90Ms": 8278,
       "firstOutputMs": 1122,
       "successPct": 100,
-      "notes": "1 successful answer-only run; command used claude -p --model claude-opus-4-8 --effort high --output-format stream-json --verbose --permission-mode dontAsk --no-session-persistence"
+      "notes": "1 successful answer-only run; command used claude -p --model claude-opus-4-8 --effort high."
+    },
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Codex",
+      "model": "GPT 5.5",
+      "thinking": "none",
+      "contextBucket": "small",
+      "contextTokens": 22657,
+      "inputTokens": 22657,
+      "cachedInputTokens": 15744,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 28,
+      "reasoningTokens": 19,
+      "totalTokensUsed": 22704,
+      "runs": 1,
+      "medianMs": 8350,
+      "p90Ms": 8350,
+      "firstOutputMs": 820,
+      "successPct": 100,
+      "notes": "1 successful answer-only run; command used codex exec --json -m gpt-5.5 without model_reasoning_effort override."
+    },
+    {
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Codex",
+      "model": "GPT 5.5",
+      "thinking": "medium",
+      "contextBucket": "small",
+      "contextTokens": 22657,
+      "inputTokens": 22657,
+      "cachedInputTokens": 2432,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 7,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 22664,
+      "runs": 3,
+      "medianMs": 5821,
+      "p90Ms": 8239,
+      "firstOutputMs": 839,
+      "successPct": 100,
+      "notes": "3 successful answer-only runs; command used codex exec --json -m gpt-5.5 -c model_reasoning_effort=medium --sandbox read-only."
     },
     {
       "state": "measured",
@@ -1012,13 +1120,20 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "cli": "Claude",
       "model": "Claude Sonnet 4.6",
       "thinking": "medium",
-      "contextBucket": "medium",
+      "contextBucket": "large",
+      "contextTokens": 56830,
+      "inputTokens": 4,
+      "cachedInputTokens": 48437,
+      "cacheCreationInputTokens": 8389,
+      "outputTokens": 213,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 57043,
       "runs": 1,
       "medianMs": 8604,
       "p90Ms": 8604,
       "firstOutputMs": 1127,
       "successPct": 100,
-      "notes": "1 successful read-only repo question; result named src/CodingAgentRunner/Model/CliThinkingLevels.cs"
+      "notes": "1 successful read-only repo question; result named src/CodingAgentRunner/Model/CliThinkingLevels.cs."
     },
     {
       "state": "measured",
@@ -1026,13 +1141,41 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "cli": "Codex",
       "model": "GPT 5.5",
       "thinking": "medium",
-      "contextBucket": "medium",
+      "contextBucket": "large",
+      "contextTokens": 76556,
+      "inputTokens": 76556,
+      "cachedInputTokens": 57472,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 252,
+      "reasoningTokens": 46,
+      "totalTokensUsed": 76854,
       "runs": 1,
       "medianMs": 16260,
       "p90Ms": 16260,
       "firstOutputMs": 470,
       "successPct": 100,
-      "notes": "1 successful read-only repo question; command used --sandbox read-only"
+      "notes": "1 successful read-only repo question; command used --sandbox read-only."
+    },
+    {
+      "state": "measured",
+      "scenario": "repo-question.002",
+      "cli": "Claude",
+      "model": "Claude Haiku 4.5",
+      "thinking": "none",
+      "contextBucket": "xl",
+      "contextTokens": 147495,
+      "inputTokens": 31,
+      "cachedInputTokens": 130033,
+      "cacheCreationInputTokens": 17431,
+      "outputTokens": 586,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 148081,
+      "runs": 1,
+      "medianMs": 15650,
+      "p90Ms": 15650,
+      "firstOutputMs": 1357,
+      "successPct": 100,
+      "notes": "1 successful read-only repo question; command used claude -p --model claude-haiku-4-5 without --effort."
     }
   ]
 }
@@ -1048,6 +1191,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   var selects = Array.prototype.slice.call(document.querySelectorAll("[data-cli-filter]"));
   var records = [];
   var maxFirstOutputMs = 1;
+  var contextOrder = [];
 
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (ch) {
@@ -1064,10 +1208,17 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     return (value / 1000).toFixed(1) + "s";
   }
 
+  function formatNumber(value) {
+    var number = Number(value);
+    if (!Number.isFinite(number)) return "n/a";
+    return number.toLocaleString("en-US");
+  }
+
   function normalizePayload(payload) {
     var scenarios = {};
     var scenarioList = Array.isArray(payload.scenarios) ? payload.scenarios : [];
     var observations = Array.isArray(payload) ? payload : (payload.observations || []);
+    contextOrder = Array.isArray(payload.contextScale) ? payload.contextScale.map(function (entry) { return entry.bucket; }) : [];
 
     scenarioList.forEach(function (scenario) {
       scenarios[scenario.id] = scenario;
@@ -1137,13 +1288,34 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "</td>";
   }
 
+  function contextTokensCell(record) {
+    return "<td><b>" + escapeHtml(formatNumber(record.contextTokens)) + "</b>" +
+      "<span class=\"perf-meta\">" + escapeHtml(title(record.contextBucket)) + " bucket</span></td>";
+  }
+
+  function tokenUsageCell(record) {
+    var parts = [];
+    if (record.inputTokens !== undefined) parts.push("in " + formatNumber(record.inputTokens));
+    if (record.cachedInputTokens) parts.push("cached " + formatNumber(record.cachedInputTokens));
+    if (record.cacheCreationInputTokens) parts.push("cache new " + formatNumber(record.cacheCreationInputTokens));
+    if (record.outputTokens !== undefined) parts.push("out " + formatNumber(record.outputTokens));
+    if (record.reasoningTokens) parts.push("reasoning " + formatNumber(record.reasoningTokens));
+    return "<td><b>" + escapeHtml(formatNumber(record.totalTokensUsed)) + "</b>" +
+      "<span class=\"perf-meta\">" + escapeHtml(parts.join(" / ")) + "</span></td>";
+  }
+
   function hydrateFilters() {
     selects.forEach(function (select) {
       var key = select.getAttribute("data-cli-filter");
       var allLabel = select.getAttribute("data-cli-all") || "All";
       var values = records.map(function (r) { return r[key]; })
         .filter(function (value, index, all) { return all.indexOf(value) === index; })
-        .sort();
+        .sort(function (a, b) {
+          if (key === "contextBucket" && contextOrder.length) {
+            return contextOrder.indexOf(a) - contextOrder.indexOf(b);
+          }
+          return String(a).localeCompare(String(b));
+        });
       select.innerHTML = "<option value=\"all\">" + escapeHtml(allLabel) + "</option>" +
         values.map(function (value) {
           return "<option value=\"" + escapeHtml(value) + "\">" + escapeHtml(title(value)) + "</option>";
@@ -1164,7 +1336,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     });
 
     if (!filtered.length) {
-      tbody.innerHTML = "<tr><td colspan=\"9\">No measured rows match these filters.</td></tr>";
+      tbody.innerHTML = "<tr><td colspan=\"10\">No measured rows match these filters.</td></tr>";
       return;
     }
 
@@ -1173,7 +1345,8 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
         "<td><b>" + escapeHtml(r.scenarioLabel) + "</b><span class=\"perf-meta\">" + escapeHtml(r.scenario) + " - " + escapeHtml(r.complexity) + "</span>" + sourceTestsLine(r) + "</td>" +
         "<td><b>" + escapeHtml(r.cli) + "</b><span class=\"perf-meta\">" + escapeHtml(r.model) + "</span></td>" +
         "<td>" + escapeHtml(title(r.thinking)) + "</td>" +
-        "<td>" + escapeHtml(title(r.contextBucket)) + "</td>" +
+        contextTokensCell(r) +
+        tokenUsageCell(r) +
         "<td>" + escapeHtml(r.runs) + "</td>" +
         "<td>" + escapeHtml(formatMs(r.medianMs)) + "</td>" +
         "<td>" + escapeHtml(formatMs(r.p90Ms)) + "</td>" +
