@@ -89,8 +89,12 @@
   .table-wrap table{margin:0;min-width:820px;}
   .table-wrap .pill{margin-left:0;}
   .perf-meta{display:block;color:var(--muted);font-size:12.5px;}
-  .source-tests{margin-top:5px;line-height:1.35;}
-  .source-tests a{color:var(--accent);font-weight:650;}
+  .source-tests{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;line-height:1.35;}
+  .source-tests-label{color:var(--muted);margin-right:2px;}
+  .source-tests a.github-source-link{display:inline-flex;align-items:center;gap:4px;color:var(--fg);font-weight:650;border:1px solid var(--line);border-radius:999px;background:#fff;padding:2px 6px;text-decoration:none;}
+  .source-tests a.github-source-link:hover{border-color:#c8cfdb;background:#f7f9fc;}
+  .github-source-badge{font-size:10px;line-height:1;border-radius:999px;background:#eef1f5;color:#475467;padding:2px 5px;text-transform:uppercase;letter-spacing:.03em;}
+  .source-external-icon{width:10px;height:10px;color:var(--muted);flex:0 0 auto;}
   .perf-status{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:750;background:#eef1f5;color:var(--muted);}
   .perf-status.sample{background:#edf5ff;color:#1d4ed8;}
   .perf-status.measured{background:#e7f6ed;color:var(--ok);}
@@ -949,19 +953,33 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   }
 
   function sourceLabel(testRef) {
-    var file = String(testRef.path || "").split("/").pop().replace(/\.cs$/, "");
-    return file + "." + testRef.name;
+    return String(testRef.path || "").split("/").pop().replace(/Tests\.cs$/, "").replace(/\.cs$/, "");
+  }
+
+  function sourceTitle(group) {
+    var names = group.tests.map(function (testRef) { return testRef.name; }).join(", ");
+    return group.path + (names ? " :: " + names : "");
   }
 
   function sourceTestsLine(record) {
     var refs = record.sourceTests || [];
     if (!refs.length) return "";
-    return "<span class=\"perf-meta source-tests\">source tests: " +
-      refs.map(function (testRef) {
-        var path = testRef.path || "";
-        return "<a href=\"" + escapeHtml(sourceUrl(path)) + "\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"" +
-          escapeHtml(path) + "\">" + escapeHtml(sourceLabel(testRef)) + "</a>";
-      }).join(", ") +
+    var groups = refs.reduce(function (all, testRef) {
+      var path = testRef.path || "";
+      if (!all[path]) all[path] = { path: path, tests: [] };
+      all[path].tests.push(testRef);
+      return all;
+    }, {});
+    return "<span class=\"perf-meta source-tests\"><span class=\"source-tests-label\">source tests</span>" +
+      Object.keys(groups).map(function (path) {
+        var group = groups[path];
+        return "<a class=\"github-source-link\" href=\"" + escapeHtml(sourceUrl(path)) + "\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"" +
+          escapeHtml(sourceTitle(group)) + "\" aria-label=\"Open " + escapeHtml(sourceLabel(group)) + " source test on GitHub\">" +
+          "<span>" + escapeHtml(sourceLabel(group)) + "</span>" +
+          "<span class=\"github-source-badge\">GitHub</span>" +
+          "<svg class=\"source-external-icon\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 4h6v6\"/><path d=\"m5 11 7-7\"/><path d=\"M12 12v1H3V4h1\"/></svg>" +
+          "</a>";
+      }).join("") +
       "</span>";
   }
 
