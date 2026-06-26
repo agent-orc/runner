@@ -85,9 +85,22 @@
   .controlbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:18px 0 14px;}
   .controlbar label{display:block;color:var(--muted);font-size:12px;font-weight:700;}
   .controlbar select{width:100%;margin-top:4px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--fg);font:14px/1.4 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:8px 10px;}
-  .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:10px;}
-  .table-wrap table{margin:0;min-width:980px;}
+  .table-wrap{overflow-x:visible;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:10px;}
+  .table-wrap table{margin:0;width:100%;min-width:0;table-layout:fixed;}
   .table-wrap .pill{margin-left:0;}
+  .perf-table-wrap{overflow:visible;}
+  .perf-table-wrap table{width:100%;min-width:0;table-layout:fixed;}
+  .perf-table th,.perf-table td{padding:clamp(6px,1vw,10px);font-size:clamp(12px,1.2vw,14px);line-height:1.35;overflow-wrap:anywhere;}
+  .perf-table .perf-col-scenario{width:22%;}
+  .perf-table .perf-col-model{width:12%;}
+  .perf-table .perf-col-thinking{width:8%;}
+  .perf-table .perf-col-context{width:11%;}
+  .perf-table .perf-col-tokens{width:15%;}
+  .perf-table .perf-col-runs{width:5%;}
+  .perf-table .perf-col-time{width:7%;}
+  .perf-table .perf-col-frame{width:13%;}
+  .perf-table .source-tests{gap:4px;}
+  .perf-table .github-source-badge{font-size:9px;padding:2px 4px;}
   .perf-meta{display:block;color:var(--muted);font-size:12.5px;}
   .source-tests{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;line-height:1.35;}
   .source-tests-label{color:var(--muted);margin-right:2px;}
@@ -98,7 +111,7 @@
   .perf-status{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:750;background:#eef1f5;color:var(--muted);}
   .perf-status.sample{background:#edf5ff;color:#1d4ed8;}
   .perf-status.measured{background:#e7f6ed;color:var(--ok);}
-  .first-output-cell{min-width:160px;}
+  .first-output-cell{min-width:0;}
   .first-output-value{font-size:16px;font-weight:800;color:var(--fg);}
   .time-bar{height:9px;background:#eef1f5;border-radius:999px;margin:6px 0 5px;overflow:hidden;}
   .time-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#14b8a6,#2f6df6);}
@@ -122,6 +135,20 @@
   .schema-list dt{font-weight:700;margin:0 0 4px;}
   .schema-list dd{margin:0;color:var(--muted);font-size:14px;}
   @media(max-width:860px){.controlbar{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media(max-width:760px){
+    pre{white-space:pre-wrap;overflow-wrap:anywhere;}
+    pre span{white-space:inherit;}
+    .perf-table-wrap{border:0;background:transparent;}
+    .perf-table-wrap table,.perf-table-wrap tbody,.perf-table-wrap tr,.perf-table-wrap td{display:block;width:100%;}
+    .perf-table-wrap table{border-collapse:separate;border-spacing:0;}
+    .perf-table-wrap thead{display:none;}
+    .perf-table-wrap tr{background:#fff;border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:8px 10px;}
+    .perf-table-wrap td{border:0;border-bottom:1px solid #eef1f5;display:grid;grid-template-columns:minmax(96px,34%) minmax(0,1fr);gap:10px;padding:7px 0;font-size:14px;}
+    .perf-table-wrap td:last-child{border-bottom:0;}
+    .perf-table-wrap td:before{content:attr(data-label);color:var(--muted);font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:.03em;}
+    .perf-table-wrap td[colspan]:before{display:none;}
+    .perf-table-wrap td[colspan]{display:block;border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px;}
+  }
   @media(max-width:560px){.controlbar{grid-template-columns:1fr;}}
   /* docs nav + tables */
   .docnav{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 26px;}
@@ -129,10 +156,10 @@
   .docnav a:hover{border-color:#c8cfdb;text-decoration:none;}
   .docsec{padding-top:14px;}
   .docsec h3{scroll-margin-top:72px;}
-  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;}
-  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top;}
+  table{border-collapse:collapse;width:100%;table-layout:fixed;margin:14px 0;font-size:14px;}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top;overflow-wrap:anywhere;}
   th{background:#f3f5f9;font-weight:600;}
-  td code,th code{background:#eef1f5;}
+  td code,th code{background:#eef1f5;white-space:normal;overflow-wrap:anywhere;}
   footer{padding:34px 0 60px;color:var(--muted);font-size:14px;text-align:center;}
   footer a{color:var(--muted);text-decoration:underline;}
 </style>
@@ -455,8 +482,19 @@ dotnet run -c Release \
         <select id="perf-complexity" data-cli-filter="complexity" data-cli-all="All scenarios"><option value="all">All scenarios</option></select>
       </label>
     </div>
-    <div class="table-wrap">
-      <table>
+    <div class="table-wrap perf-table-wrap">
+      <table class="perf-table">
+        <colgroup>
+          <col class="perf-col-scenario" />
+          <col class="perf-col-model" />
+          <col class="perf-col-thinking" />
+          <col class="perf-col-context" />
+          <col class="perf-col-tokens" />
+          <col class="perf-col-runs" />
+          <col class="perf-col-time" />
+          <col class="perf-col-time" />
+          <col class="perf-col-frame" />
+        </colgroup>
         <thead>
           <tr><th>Scenario</th><th>CLI / model</th><th>Thinking</th><th>Context tokens</th><th>Tokens used</th><th>Runs</th><th>Median</th><th>P90</th><th>First CLI frame</th></tr>
         </thead>
@@ -1423,7 +1461,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     var value = record.firstCliFrameMs || record.firstOutputMs;
     var width = Math.max(8, Math.round((value / maxFirstOutputMs) * 100));
     var tone = value >= 5000 ? " slow" : "";
-    return "<td class=\"first-output-cell\">" +
+    return "<td class=\"first-output-cell\" data-label=\"First CLI frame\">" +
       "<span class=\"first-output-value\">" + escapeHtml(formatMs(value)) + "</span>" +
       "<div class=\"time-bar" + tone + "\" aria-hidden=\"true\"><span style=\"width:" + width + "%\"></span></div>" +
       "<span class=\"perf-meta\">first stdout JSONL frame</span>" +
@@ -1457,7 +1495,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   }
 
   function contextTokensCell(record) {
-    return "<td><b>" + escapeHtml(formatNumber(record.contextTokens)) + "</b>" +
+    return "<td data-label=\"Context tokens\"><b>" + escapeHtml(formatNumber(record.contextTokens)) + "</b>" +
       "<span class=\"perf-meta\">" + escapeHtml(title(record.contextBucket)) + " bucket</span></td>";
   }
 
@@ -1468,7 +1506,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     if (record.cacheCreationInputTokens) parts.push("cache new " + formatNumber(record.cacheCreationInputTokens));
     if (record.outputTokens !== undefined) parts.push("out " + formatNumber(record.outputTokens));
     if (record.reasoningTokens) parts.push("reasoning " + formatNumber(record.reasoningTokens));
-    return "<td><b>" + escapeHtml(formatNumber(record.totalTokensUsed)) + "</b>" +
+    return "<td data-label=\"Tokens used\"><b>" + escapeHtml(formatNumber(record.totalTokensUsed)) + "</b>" +
       "<span class=\"perf-meta\">" + escapeHtml(parts.join(" / ")) + "</span></td>";
   }
 
@@ -1510,14 +1548,14 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
 
     tbody.innerHTML = filtered.map(function (r) {
       return "<tr>" +
-        "<td><b>" + escapeHtml(r.scenarioLabel) + "</b><span class=\"perf-meta\">" + escapeHtml(r.scenario) + " - " + escapeHtml(r.complexity) + "</span>" + sourceTestsLine(r) + "</td>" +
-        "<td><b>" + escapeHtml(r.cli) + "</b><span class=\"perf-meta\">" + escapeHtml(r.model) + "</span></td>" +
-        "<td>" + escapeHtml(title(r.thinking)) + "</td>" +
+        "<td data-label=\"Scenario\"><b>" + escapeHtml(r.scenarioLabel) + "</b><span class=\"perf-meta\">" + escapeHtml(r.scenario) + " - " + escapeHtml(r.complexity) + "</span>" + sourceTestsLine(r) + "</td>" +
+        "<td data-label=\"CLI / model\"><b>" + escapeHtml(r.cli) + "</b><span class=\"perf-meta\">" + escapeHtml(r.model) + "</span></td>" +
+        "<td data-label=\"Thinking\">" + escapeHtml(title(r.thinking)) + "</td>" +
         contextTokensCell(r) +
         tokenUsageCell(r) +
-        "<td>" + escapeHtml(r.runs) + "</td>" +
-        "<td>" + escapeHtml(formatMs(r.medianMs)) + "</td>" +
-        "<td>" + escapeHtml(formatMs(r.p90Ms)) + "</td>" +
+        "<td data-label=\"Runs\">" + escapeHtml(r.runs) + "</td>" +
+        "<td data-label=\"Median\">" + escapeHtml(formatMs(r.medianMs)) + "</td>" +
+        "<td data-label=\"P90\">" + escapeHtml(formatMs(r.p90Ms)) + "</td>" +
         firstFrameCell(r) +
         "</tr>";
     }).join("");
