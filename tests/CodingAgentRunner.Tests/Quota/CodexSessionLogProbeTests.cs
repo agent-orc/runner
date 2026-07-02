@@ -58,6 +58,19 @@ public class CodexSessionLogProbeTests : IDisposable
         Assert.False(CodexSessionLogProbe.TryParseRolloutLine(line, out _));
     }
 
+    [Fact]
+    public void Legacy_resets_in_seconds_is_anchored_on_the_line_timestamp()
+    {
+        const string legacyLine =
+            """{"timestamp":"2026-07-02T12:00:00.000Z","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"primary":{"used_percent":40.0,"window_minutes":300,"resets_in_seconds":3600},"secondary":null,"plan_type":"plus"}}}""";
+
+        Assert.True(CodexSessionLogProbe.TryParseRolloutLine(legacyLine, out var snap));
+
+        var window = Assert.Single(snap!.Windows);
+        Assert.Equal(40.0, window.UsedPct);
+        Assert.Equal(new DateTime(2026, 7, 2, 13, 0, 0, DateTimeKind.Utc), window.ResetAt);
+    }
+
     [Theory]
     [InlineData(300.0, "5-hour")]
     [InlineData(10080.0, "weekly")]

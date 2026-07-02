@@ -119,9 +119,13 @@ public sealed class CodexSessionLogProbe : IQuotaProbe
     /// <summary>Map a Codex <c>rate_limits</c> object (from a rollout log or a live frame) onto a snapshot.</summary>
     internal static QuotaSnapshot FromRateLimits(JsonElement rateLimits, string? observedAt)
     {
+        // Rollouts written by pre-0.14x codex carry a RELATIVE `resets_in_seconds`
+        // instead of the absolute `resets_at`; anchor it on the line's timestamp.
+        DateTime? observed = DateTimeOffset.TryParse(observedAt, out var dto) ? dto.UtcDateTime : null;
+
         var windows = new List<QuotaWindow>();
-        AddWindow(windows, rateLimits, "primary");
-        AddWindow(windows, rateLimits, "secondary");
+        AddWindow(windows, rateLimits, "primary", observed);
+        AddWindow(windows, rateLimits, "secondary", observed);
 
         var plan = rateLimits.TryGetProperty("plan_type", out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
         return new QuotaSnapshot
@@ -134,19 +138,25 @@ public sealed class CodexSessionLogProbe : IQuotaProbe
         };
     }
 
-    private static void AddWindow(List<QuotaWindow> windows, JsonElement rateLimits, string property)
+    private static void AddWindow(List<QuotaWindow> windows, JsonElement rateLimits, string property, DateTime? observed)
     {
         if (!rateLimits.TryGetProperty(property, out var el) || el.ValueKind != JsonValueKind.Object) return;
 
         double? minutes = el.TryGetProperty("window_minutes", out var wm) && wm.TryGetDouble(out var m) ? m : null;
+
+        DateTime? resetAt = null;
+        if (el.TryGetProperty("resets_at", out var ra) && ra.TryGetInt64(out var reset) && reset > 0)
+            resetAt = DateTimeOffset.FromUnixTimeSeconds(reset).UtcDateTime;
+        else if (observed is { } at
+                 && el.TryGetProperty("resets_in_seconds", out var ris) && ris.TryGetInt64(out var seconds) && seconds > 0)
+            resetAt = at.AddSeconds(seconds);
+
         windows.Add(new QuotaWindow
         {
             Label = WindowLabel(minutes),
             UsedPct = el.TryGetProperty("used_percent", out var up) && up.TryGetDouble(out var pct) ? pct : null,
             Unit = "%",
-            ResetAt = el.TryGetProperty("resets_at", out var ra) && ra.TryGetInt64(out var reset) && reset > 0
-                ? DateTimeOffset.FromUnixTimeSeconds(reset).UtcDateTime
-                : null,
+            ResetAt = resetAt,
         });
     }
 
