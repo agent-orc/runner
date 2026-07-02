@@ -43,13 +43,32 @@ public class CodexRateLimitFrameTests
     }
 
     [Fact]
-    public void Reached_limit_is_reflected_in_the_status()
+    public void Reached_limit_lands_on_the_most_used_window_only()
     {
-        var frame = TokenCountFrame.Replace("\"rate_limit_reached_type\":null", "\"rate_limit_reached_type\":\"primary\"");
+        var frame = TokenCountFrame.Replace("\"rate_limit_reached_type\":null", "\"rate_limit_reached_type\":\"rate_limit_reached\"");
 
-        var evt = (CliRunEvent.RateLimitObserved)CodexEventAdapter.Map(frame, "r1").First();
+        var events = CodexEventAdapter.Map(frame, "r1").Cast<CliRunEvent.RateLimitObserved>().ToList();
 
-        Assert.Equal("reached:primary", evt.Status);
+        // primary (12.5%) is the most-used window; secondary (3.0%) still has headroom.
+        Assert.Equal("reached:rate_limit_reached", events[0].Status);
+        Assert.Equal("allowed", events[1].Status);
+    }
+
+    [Fact]
+    public void Null_valued_window_fields_do_not_throw_and_keep_the_property_name_label()
+    {
+        // Codex serializes absent optionals as explicit JSON null; this frame is the
+        // realistic shape of an unknown window and must not kill the stream reader.
+        const string frame =
+            """{"type":"token_count","info":null,"rate_limits":{"primary":{"used_percent":12.5,"window_minutes":null,"resets_at":null},"secondary":{"used_percent":3.0,"window_minutes":null,"resets_at":null},"plan_type":null,"rate_limit_reached_type":null}}""";
+
+        var events = CodexEventAdapter.Map(frame, "r1").Cast<CliRunEvent.RateLimitObserved>().ToList();
+
+        Assert.Equal(2, events.Count);
+        Assert.Equal("primary", events[0].Window);     // fallback labels stay distinct —
+        Assert.Equal("secondary", events[1].Window);   // Observe must not merge the two windows
+        Assert.Equal(12.5, events[0].UsedPercent);
+        Assert.Equal(0L, events[0].ResetsAt);
     }
 
     [Fact]

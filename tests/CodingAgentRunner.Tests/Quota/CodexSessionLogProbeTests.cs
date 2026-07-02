@@ -75,10 +75,39 @@ public class CodexSessionLogProbeTests : IDisposable
     [InlineData(300.0, "5-hour")]
     [InlineData(10080.0, "weekly")]
     [InlineData(60.0, "60-minute")]
-    [InlineData(null, "window")]
+    [InlineData(null, "primary")]   // no window_minutes → the window keeps its own name; primary/secondary must not collapse
     public void Window_labels_match_the_claude_probe_vocabulary(double? minutes, string expected)
     {
-        Assert.Equal(expected, CodexSessionLogProbe.WindowLabel(minutes));
+        Assert.Equal(expected, CodexSessionLogProbe.WindowLabel(minutes, "primary"));
+    }
+
+    [Fact]
+    public void Null_valued_window_fields_do_not_throw()
+    {
+        // Codex serializes absent optionals as explicit JSON null.
+        const string line =
+            """{"timestamp":"2026-07-02T12:00:00.000Z","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"primary":{"used_percent":12.5,"window_minutes":null,"resets_at":null},"secondary":null,"plan_type":null,"rate_limit_reached_type":null}}}""";
+
+        Assert.True(CodexSessionLogProbe.TryParseRolloutLine(line, out var snap));
+
+        var window = Assert.Single(snap!.Windows);
+        Assert.Equal("primary", window.Label);
+        Assert.Equal(12.5, window.UsedPct);
+        Assert.Null(window.ResetAt);
+    }
+
+    [Fact]
+    public async Task Probes_the_tail_of_a_file_larger_than_the_tail_window()
+    {
+        var filler = """{"type":"event_msg","payload":{"type":"agent_message","message":"PAD"}}"""
+            .Replace("PAD", new string('x', 2048));
+        var lines = Enumerable.Repeat(filler, 1500).Append(RolloutLine).ToArray();   // ~3 MB, entry at the very end
+        WriteRollout(Path.Combine("2026", "07", "02", "rollout-big.jsonl"), lines);
+
+        var snap = await new CodexSessionLogProbe(codexHome: _codexHome).ProbeAsync(CancellationToken.None);
+
+        Assert.Null(snap.Error);
+        Assert.Equal(12.5, snap.MaxUsedPct);
     }
 
     // ── ProbeAsync over the file system ─────────────────────────────────

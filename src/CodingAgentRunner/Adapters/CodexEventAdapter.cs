@@ -25,8 +25,10 @@ namespace CodingAgentRunner.Adapters;
 ///   <item><c>token_count</c> with <c>rate_limits</c> (core-protocol shape) &#8594; one
 ///     <see cref="CliRunEvent.RateLimitObserved"/> per window, with the precise
 ///     <c>used_percent</c>. As of codex 0.142 the <c>exec --json</c> stream does NOT
-///     emit this frame (it lives in the rollout logs and the app-server protocol);
-///     the mapping serves rollout replay and future stream versions.</item>
+///     emit this frame; it lives in the rollout logs (wrapped as
+///     <c>{"type":"event_msg","payload":{"type":"token_count",…}}</c> — pass the
+///     <c>payload</c> object to this adapter when replaying) and in the app-server
+///     protocol. The mapping serves such replay and future stream versions.</item>
 ///   <item>everything else &#8594; <see cref="CliRunEvent.Unknown"/>.</item>
 /// </list>
 /// </summary>
@@ -216,10 +218,15 @@ public static class CodexEventAdapter
     /// Map a core-protocol <c>token_count</c> frame's <c>rate_limits</c> object onto
     /// one <see cref="CliRunEvent.RateLimitObserved"/> per window. Window labels use
     /// the same minutes-based vocabulary as the built-in Codex quota probe
-    /// (300&#160;min &#8594; <c>5-hour</c>, 10&#160;080&#160;min &#8594; <c>weekly</c>) so
-    /// <see cref="Quota.QuotaService.Observe"/> merges events and probe results into
-    /// the same <see cref="Quota.QuotaWindow"/>. A frame with a null / absent
-    /// <c>rate_limits</c> maps to nothing (known codex behaviour in some sessions).
+    /// (300&#160;min &#8594; <c>5-hour</c>, 10&#160;080&#160;min &#8594; <c>weekly</c>;
+    /// a window without <c>window_minutes</c> falls back to its property name, so
+    /// <c>primary</c>/<c>secondary</c> never collapse onto one label) — this keeps
+    /// <see cref="Quota.QuotaService.Observe"/> merging events and probe results into
+    /// the same <see cref="Quota.QuotaWindow"/>. Codex serializes absent optionals as
+    /// explicit JSON null, so every numeric read is gated on the value kind. A frame
+    /// with a null / absent <c>rate_limits</c> maps to nothing (known codex behaviour
+    /// in some sessions). The snapshot-level <c>rate_limit_reached_type</c> is
+    /// attributed to the most-used window only.
     /// </summary>
     private static IEnumerable<CliRunEvent> MapRateLimits(JsonElement root, string runId)
     {
@@ -230,17 +237,32 @@ public static class CodexEventAdapter
             ? rt.GetString()
             : null;
 
+        var windows = new List<(string Label, double? UsedPercent, long ResetsAt)>();
         foreach (var property in new[] { "primary", "secondary" })
         {
             if (!rl.TryGetProperty(property, out var window) || window.ValueKind != JsonValueKind.Object) continue;
 
-            double? minutes = window.TryGetProperty("window_minutes", out var wm) && wm.TryGetDouble(out var m) ? m : null;
-            double? usedPercent = window.TryGetProperty("used_percent", out var up) && up.TryGetDouble(out var pct) ? pct : null;
-            var resetsAt = window.TryGetProperty("resets_at", out var ra) && ra.TryGetInt64(out var reset) ? reset : 0L;
+            double? minutes = window.TryGetProperty("window_minutes", out var wm)
+                && wm.ValueKind == JsonValueKind.Number && wm.TryGetDouble(out var m) ? m : null;
+            double? usedPercent = window.TryGetProperty("used_percent", out var up)
+                && up.ValueKind == JsonValueKind.Number && up.TryGetDouble(out var pct) ? pct : null;
+            var resetsAt = window.TryGetProperty("resets_at", out var ra)
+                && ra.ValueKind == JsonValueKind.Number && ra.TryGetInt64(out var reset) ? reset : 0L;
 
+            windows.Add((Quota.CodexSessionLogProbe.WindowLabel(minutes, property), usedPercent, resetsAt));
+        }
+
+        // The reached flag is snapshot-level; blaming every window would misreport
+        // the one that still has headroom. Attribute it to the most-used window.
+        var reachedLabel = reached is not null && windows.Count > 0
+            ? windows.OrderByDescending(w => w.UsedPercent ?? 0).First().Label
+            : null;
+
+        foreach (var (label, usedPercent, resetsAt) in windows)
+        {
             yield return new CliRunEvent.RateLimitObserved(
-                Window: Quota.CodexSessionLogProbe.WindowLabel(minutes),
-                Status: reached is null ? "allowed" : $"reached:{reached}",
+                Window: label,
+                Status: label == reachedLabel ? $"reached:{reached}" : "allowed",
                 ResetsAt: resetsAt,
                 OverageStatus: null,
                 IsUsingOverage: false,

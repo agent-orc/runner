@@ -206,7 +206,7 @@ the event stream never references the package.
 |-----|---------|--------|---------|------------------|-------|
 | Claude Code | `claude` | supported | clean or shared | Claude adapter | First-class driver. |
 | OpenAI Codex | `codex` | supported | clean or shared | Codex adapter | First-class driver, including reasoning-model liveness metadata. |
-| Google Gemini | `gemini` | deprecated | shared only | Gemini adapter | Legacy Google driver kept for compatibility; no new feature work. |
+| Google Gemini | `gemini` | deprecated (`[Obsolete]`) | shared only | Gemini adapter | Unsupported. Public surface marked `[Obsolete]`; the driver still resolves, removal planned before 1.0. |
 | Google Antigravity (`agentapi`) | `antigravity` | driver shipped | shared only | reuses Gemini adapter | Maintained Google path; kept out of `CliTypes.All` until a consumer migrates. |
 
 The GitHub Copilot driver was supported earlier but has been removed: its headless

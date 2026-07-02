@@ -216,4 +216,87 @@ public class RateLimitPercentHarvestTests
 
         Assert.Equal(100, quota.GetCachedFor(CliTypes.Claude)!.Windows.Single().UsedPct);
     }
+
+    [Fact]
+    public void Live_claude_event_merges_into_the_probe_written_window()
+    {
+        // The probe labels the window "5-hour"; a live rate_limit_event reports
+        // rateLimitType "five_hour". The adapter must normalize so Observe updates
+        // the SAME QuotaWindow instead of appending a duplicate.
+        var quota = new QuotaService(probes: []);
+        quota.Observe(CliTypes.Claude, new CliRunEvent.RateLimitObserved(
+            "5-hour", "allowed", 0, null, false, UsedPercent: 60) { RunId = "seed" });   // as a probe refresh would leave it
+
+        var live = (CliRunEvent.RateLimitObserved)CodingAgentRunner.Adapters.ClaudeEventAdapter.Map(
+            """{"type":"rate_limit_event","rate_limit_info":{"rateLimitType":"five_hour","status":"allowed","resetsAt":1783026600,"overageStatus":"allowed","isUsingOverage":false}}""",
+            "r1").Single();
+        quota.Observe(CliTypes.Claude, live);
+
+        var window = Assert.Single(quota.GetCachedFor(CliTypes.Claude)!.Windows);   // merged, no duplicate
+        Assert.Equal("5-hour", window.Label);
+        Assert.Equal(60, window.UsedPct);                                            // percent kept
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1783026600).UtcDateTime, window.ResetAt);   // reset refreshed
+    }
+
+    [Fact]
+    public async Task Corrupt_credentials_file_yields_error_snapshot_not_exception()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "car-corrupt-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(dir, ".credentials.json"), "{ half-written");
+
+            var snap = await new ClaudeOAuthUsageProbe(configDir: dir).ProbeAsync(CancellationToken.None);
+
+            Assert.Contains("did not parse", snap.Error);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { }
+        }
+    }
+}
+
+public class ProbeErrorPreservationTests
+{
+    [Fact]
+    public async Task A_failing_probe_does_not_erase_event_harvested_usage()
+    {
+        // macOS scenario: the Claude probe fails on every refresh (Keychain), while
+        // events harvested from live runs hold real usage. The error result must
+        // keep that usage — wiping it would silently fail-open the cap gate.
+        var probe = new DelegateQuotaProbe(CliTypes.Claude, _ =>
+            Task.FromResult(new QuotaSnapshot { CliType = CliTypes.Claude, Error = "credentials not found" }));
+        var quota = new QuotaService([probe]);
+
+        quota.Observe(CliTypes.Claude, new CliRunEvent.RateLimitObserved(
+            "5-hour", "allowed", 0, null, false, UsedPercent: 96) { RunId = "r1" });
+        quota.Cap(CliTypes.Claude, stopAtPercent: 95);
+        Assert.False(quota.Gate(CliTypes.Claude).Allowed);
+
+        var snap = await quota.RefreshAsync(CliTypes.Claude);
+
+        Assert.NotNull(snap!.Error);                                    // the failure is visible…
+        Assert.Equal(96, snap.Windows.Single().UsedPct);                // …but the usage survives
+        Assert.False(quota.Gate(CliTypes.Claude).Allowed);              // and the gate stays closed
+    }
+
+    [Fact]
+    public async Task A_successful_probe_replaces_the_snapshot_and_clears_the_error()
+    {
+        var probe = new DelegateQuotaProbe(CliTypes.Claude, _ => Task.FromResult(new QuotaSnapshot
+        {
+            CliType = CliTypes.Claude,
+            Windows = [new QuotaWindow { Label = "5-hour", UsedPct = 12 }],
+        }));
+        var quota = new QuotaService([probe]);
+        quota.Observe(CliTypes.Claude, new CliRunEvent.RateLimitObserved(
+            "5-hour", "allowed", 0, null, false, UsedPercent: 96) { RunId = "r1" });
+
+        var snap = await quota.RefreshAsync(CliTypes.Claude);
+
+        Assert.Null(snap!.Error);
+        Assert.Equal(12, snap.Windows.Single().UsedPct);   // the probe is authoritative on success
+    }
 }

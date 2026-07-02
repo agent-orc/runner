@@ -128,7 +128,12 @@ public static class CliSetup
         AutomationNotes = "Install is scriptable. The ChatGPT login is interactive; for headless machines use `codex login --device-auth`, `codex login --with-api-key`, or copy .codex/auth.json from a signed-in machine (officially documented).",
     };
 
-    /// <summary>Google Gemini CLI (deprecated in this library; superseded by Antigravity).</summary>
+    /// <summary>
+    /// Google Gemini CLI (deprecated in this library; superseded by Antigravity).
+    /// Deliberately NOT <c>[Obsolete]</c>: diagnostics keep reporting the deprecated
+    /// CLI's state until its pre-1.0 removal — reading its setup info is not the act
+    /// the deprecation warns against (selecting it as a driver is).
+    /// </summary>
     public static readonly CliSetupInfo Gemini = new()
     {
 #pragma warning disable CS0618 // setup/diagnostics keep reporting the deprecated CLI until its pre-1.0 removal

@@ -19,7 +19,9 @@ public class ClaudeAdapterGapTests
             "\"status\":\"allowed\",\"resetsAt\":1777393800,\"overageStatus\":\"allowed\",\"isUsingOverage\":false}}",
             "r").Single();
         var rl = Assert.IsType<CliRunEvent.RateLimitObserved>(e);
-        Assert.Equal("five_hour", rl.Window);
+        // rateLimitType is normalized onto the Claude probe's window vocabulary so
+        // QuotaService.Observe merges the live event into the probe's QuotaWindow.
+        Assert.Equal("5-hour", rl.Window);
         Assert.Equal("allowed", rl.Status);
         Assert.Equal(1777393800L, rl.ResetsAt);
         Assert.Equal("allowed", rl.OverageStatus);

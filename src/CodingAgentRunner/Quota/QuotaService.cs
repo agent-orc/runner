@@ -169,19 +169,39 @@ public sealed class QuotaService
         {
             using var cts = new CancellationTokenSource(_options.ProbeTimeout);
             var snap = await probe.ProbeAsync(cts.Token).ConfigureAwait(false);
-            lock (_cacheLock) _cache[cliType] = snap;
-            PersistCache();
-            return snap;
+            return CacheProbeResult(cliType, snap);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Quota probe for {Cli} threw", cliType);
-            var snap = new QuotaSnapshot { CliType = cliType, Error = ex.Message };
-            lock (_cacheLock) _cache[cliType] = snap;
-            PersistCache();
-            return snap;
+            return CacheProbeResult(cliType, new QuotaSnapshot { CliType = cliType, Error = ex.Message });
         }
         finally { _inflight.TryRemove(cliType, out _); }
+    }
+
+    /// <summary>
+    /// Write a probe result into the cache and return the effective snapshot. A
+    /// SUCCESSFUL probe replaces the entry (it is the authoritative source). A
+    /// FAILED probe must not erase usage the cache already holds — on macOS, for
+    /// example, the Claude probe fails on every refresh (Keychain-stored
+    /// credentials), and wiping the event-harvested windows would silently
+    /// fail-open the cap gate — so an error result keeps the prior snapshot's data
+    /// and only carries the error + a fresh <see cref="QuotaSnapshot.FetchedAt"/>
+    /// (which also backs off the re-probe).
+    /// </summary>
+    private QuotaSnapshot CacheProbeResult(string cliType, QuotaSnapshot snap)
+    {
+        lock (_cacheLock)
+        {
+            if (snap.Error is not null && snap.Windows.Count == 0
+                && _cache.TryGetValue(cliType, out var prior) && prior.Windows.Count > 0)
+            {
+                snap = prior with { Error = snap.Error, FetchedAt = snap.FetchedAt };
+            }
+            _cache[cliType] = snap;
+        }
+        PersistCache();
+        return snap;
     }
 
     // ── Cap-enforcement ─────────────────────────────────────────────────
@@ -228,13 +248,16 @@ public sealed class QuotaService
     // ── Event harvest (free cache updates) ──────────────────────────────
 
     /// <summary>
-    /// Feed a run event into the cache. A <see cref="CliRunEvent.RateLimitObserved"/> (e.g.
-    /// from a live Claude run) refreshes the window reset time and marks overage <b>for
-    /// free</b> — no probe spawn — and stamps the snapshot fresh so the next
-    /// <see cref="IsStale"/> check is satisfied for the TTL window. Conservative: it never
-    /// <em>lowers</em> a usage figure a probe already established (the event carries no
-    /// precise percent). Other event types are ignored. Returns true when it harvested.
-    /// Wire it via <c>driver.OnRunEvent += (_, e) =&gt; quota.Observe(driver.CliType, e)</c>.
+    /// Feed a run event into the cache. A <see cref="CliRunEvent.RateLimitObserved"/>
+    /// refreshes the matching window <b>for free</b> — no probe spawn — and stamps the
+    /// snapshot fresh so the next <see cref="IsStale"/> check is satisfied for the TTL
+    /// window. When the event carries a precise
+    /// <see cref="CliRunEvent.RateLimitObserved.UsedPercent"/> (Codex reports one), that
+    /// figure is authoritative and may move the cached usage in either direction; an
+    /// event without one (Claude's) only refreshes the reset time / pins overage at
+    /// 100&#160;% and never <em>lowers</em> a figure a probe established. Other event
+    /// types are ignored. Returns true when it harvested. Wire it via
+    /// <c>driver.OnRunEvent += (_, e) =&gt; quota.Observe(driver.CliType, e)</c>.
     /// </summary>
     public bool Observe(string cliType, CliRunEvent evt)
     {

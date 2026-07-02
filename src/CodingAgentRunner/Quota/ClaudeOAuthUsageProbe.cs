@@ -32,7 +32,11 @@ public sealed class ClaudeOAuthUsageProbe : IQuotaProbe
     // this library appended as a product token.
     private const string UserAgent = "claude-code/2.1.198 CodingAgentRunner";
 
-    private static readonly HttpClient SharedHttp = new() { Timeout = TimeSpan.FromSeconds(30) };
+    // Infinite here so it never silently under-cuts a caller's cancellation policy
+    // (QuotaService applies QuotaCacheOptions.ProbeTimeout); ProbeAsync adds its own
+    // 60 s safety net for direct callers.
+    private static readonly HttpClient SharedHttp = new() { Timeout = Timeout.InfiniteTimeSpan };
+    private static readonly TimeSpan DirectCallSafetyTimeout = TimeSpan.FromSeconds(60);
 
     private readonly HttpClient _http;
     private readonly IUserHomeProvider _home;
@@ -65,7 +69,10 @@ public sealed class ClaudeOAuthUsageProbe : IQuotaProbe
         try { credentialsJson = await File.ReadAllTextAsync(credentialsPath, ct).ConfigureAwait(false); }
         catch (Exception ex) { return Error($"cannot read '{credentialsPath}': {ex.Message}"); }
 
-        var (token, expiresAtMs, plan) = ReadCredentials(credentialsJson);
+        string? token; long? expiresAtMs; string? plan;
+        try { (token, expiresAtMs, plan) = ReadCredentials(credentialsJson); }
+        catch (Exception ex) { return Error($"'{credentialsPath}' did not parse (mid-rewrite by the CLI, or corrupt): {ex.Message}"); }
+
         if (string.IsNullOrWhiteSpace(token))
             return Error($"no OAuth access token in '{credentialsPath}' (API-key sign-ins have no subscription usage)");
         if (expiresAtMs is { } exp && DateTimeOffset.FromUnixTimeMilliseconds(exp) <= DateTimeOffset.UtcNow)
@@ -76,13 +83,22 @@ public sealed class ClaudeOAuthUsageProbe : IQuotaProbe
         request.Headers.TryAddWithoutValidation("anthropic-beta", OAuthBetaHeader);
         request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
 
+        // Safety net for callers that invoke the probe directly without a timeout;
+        // QuotaService's ProbeTimeout arrives via ct and stays authoritative.
+        using var bounded = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        bounded.CancelAfter(DirectCallSafetyTimeout);
+
         HttpResponseMessage response;
-        try { response = await _http.SendAsync(request, ct).ConfigureAwait(false); }
+        try { response = await _http.SendAsync(request, bounded.Token).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return Error($"usage endpoint did not answer within {DirectCallSafetyTimeout.TotalSeconds:0}s");
+        }
         catch (Exception ex) { return Error($"usage endpoint unreachable: {ex.Message}"); }
 
         using (response)
         {
-            var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var body = await response.Content.ReadAsStringAsync(bounded.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
                 return Error($"usage endpoint returned {(int)response.StatusCode} {response.StatusCode}");
             try { return ParseUsage(body, plan); }
@@ -91,11 +107,26 @@ public sealed class ClaudeOAuthUsageProbe : IQuotaProbe
     }
 
     private string ResolveConfigDir()
-        => _configDirOverride
-           ?? Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")
-           ?? Path.Combine(_home.GetUserHome(), ".claude");
+    {
+        if (!string.IsNullOrWhiteSpace(_configDirOverride)) return _configDirOverride!;
+        var env = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+        return string.IsNullOrWhiteSpace(env) ? Path.Combine(_home.GetUserHome(), ".claude") : env!;
+    }
 
     private QuotaSnapshot Error(string message) => new() { CliType = CliTypes.Claude, Error = message };
+
+    /// <summary>
+    /// Normalize a Claude <c>rateLimitType</c> (as its <c>rate_limit_event</c>s
+    /// report it) onto this probe's window vocabulary, so
+    /// <see cref="QuotaService.Observe"/> merges a live event into the same
+    /// <see cref="QuotaWindow"/> a probe refresh wrote. Unknown types pass through.
+    /// </summary>
+    internal static string? WindowLabel(string? rateLimitType) => rateLimitType switch
+    {
+        "five_hour" => "5-hour",
+        "seven_day" => "weekly",
+        _ => rateLimitType,
+    };
 
     /// <summary>Extract (accessToken, expiresAt ms, plan) from <c>.credentials.json</c>. Tolerant of missing fields.</summary>
     internal static (string? Token, long? ExpiresAtMs, string? Plan) ReadCredentials(string credentialsJson)

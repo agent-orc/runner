@@ -72,9 +72,15 @@ public static class ClaudeEventAdapter
             {
                 if (root.TryGetProperty("rate_limit_info", out var info) && info.ValueKind == JsonValueKind.Object)
                 {
-                    var window = info.TryGetProperty("rateLimitType", out var rlt) ? rlt.GetString() : null;
+                    // Normalize the window label onto the built-in Claude probe's
+                    // vocabulary (five_hour → 5-hour, seven_day → weekly):
+                    // QuotaService.Observe merges by label, so a live event must
+                    // land in the SAME QuotaWindow the probe wrote.
+                    var window = Quota.ClaudeOAuthUsageProbe.WindowLabel(
+                        info.TryGetProperty("rateLimitType", out var rlt) ? rlt.GetString() : null);
                     var status = info.TryGetProperty("status", out var s) ? s.GetString() : null;
-                    var resetsAt = info.TryGetProperty("resetsAt", out var ra) && ra.TryGetInt64(out var v) ? v : 0L;
+                    var resetsAt = info.TryGetProperty("resetsAt", out var ra)
+                        && ra.ValueKind == JsonValueKind.Number && ra.TryGetInt64(out var v) ? v : 0L;
                     var overage = info.TryGetProperty("overageStatus", out var os) ? os.GetString() : null;
                     var using_ = info.TryGetProperty("isUsingOverage", out var iuo) && iuo.ValueKind == JsonValueKind.True;
                     yield return new CliRunEvent.RateLimitObserved(window, status, resetsAt, overage, using_) { RunId = runId };

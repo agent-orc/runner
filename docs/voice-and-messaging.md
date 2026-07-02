@@ -71,8 +71,9 @@ the adjectives are not.
   supported CLIs in their specific versions — it is not a generic "wrap any CLI"
   framework, and there is no public extension point. Don't imply otherwise.
 - Be honest about gaps and state (e.g. Gemini is deprecated and Antigravity is the
-  maintained Google integration; quota ships the mechanism, you supply the probe).
-  Stating a limitation plainly is on-voice.
+  maintained Google integration; the built-in quota probes cover Claude and Codex,
+  while Antigravity exposes no quota surface to probe). Stating a limitation
+  plainly is on-voice.
 
 ## Where this applies
 
