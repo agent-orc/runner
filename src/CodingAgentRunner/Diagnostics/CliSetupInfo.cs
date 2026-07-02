@@ -131,7 +131,9 @@ public static class CliSetup
     /// <summary>Google Gemini CLI (deprecated in this library; superseded by Antigravity).</summary>
     public static readonly CliSetupInfo Gemini = new()
     {
+#pragma warning disable CS0618 // setup/diagnostics keep reporting the deprecated CLI until its pre-1.0 removal
         CliType = CliTypes.Gemini,
+#pragma warning restore CS0618
         DisplayName = "Google Gemini CLI",
         Command = "gemini",
         NpmPackage = "@google/gemini-cli",

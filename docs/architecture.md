@@ -149,8 +149,25 @@ A per-CLI `IQuotaProbe` contract plus a `QuotaService` that caches the remaining
 window with an escalation policy (default TTL 10 min; poll harder near the limit,
 e.g. ≥90 % → every 2 min, ≥97 % → every 30 s — all configurable), a cap/gate to skip
 a run before it hits the wall, and a free event-harvest (`Observe`) that keeps the
-cache warm from `RateLimitObserved` events. You supply the probe; the library does
-the caching, escalation, persistence, and cap check around it.
+cache warm from `RateLimitObserved` events (with a precise percent when the CLI
+reports one).
+
+Two **built-in probes** ship with the library:
+
+- `ClaudeOAuthUsageProbe` — reads the OAuth token Claude Code stores after
+  sign-in and calls the CLI's own usage endpoint
+  (`api.anthropic.com/api/oauth/usage`): real server-side percent + reset time
+  for the 5-hour and weekly windows, plus model-scoped windows when present.
+  It is the CLI's endpoint, not a documented public API — a CLI update can move
+  it; the probe then degrades to an error snapshot.
+- `CodexSessionLogProbe` — reads the freshest `token_count.rate_limits` entry
+  from Codex's rollout logs (`~/.codex/sessions/**.jsonl`): `used_percent` and
+  reset per window plus `plan_type`, without spawning a process or spending
+  quota. Data is as old as the last Codex run; pair it with the event harvest
+  for live figures.
+
+Gemini is deprecated (no probe); Antigravity exposes no quota surface to probe
+today. The `IQuotaProbe` seam stays open for consumer-supplied probes.
 
 ### Environment diagnostics
 A small `CodingAgentRunner.Diagnostics` namespace (in the core package) answers

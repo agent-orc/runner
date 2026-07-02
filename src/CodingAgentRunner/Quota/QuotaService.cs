@@ -215,9 +215,11 @@ public sealed class QuotaService
 
         // Read-merge-write under the cache lock so a concurrent probe write is not lost
         // (and we don't lose the probe's windows). MERGE by window label — never discard
-        // the prior snapshot's other windows, and never LOWER a usage a probe established
-        // (the event has no precise percent). Overage means we are at/over the base limit
-        // for THIS window (100%); a non-overage event only refreshes the reset time.
+        // the prior snapshot's other windows. A precise percent on the event (Codex
+        // reports one) is authoritative — it comes from the provider and may go up OR
+        // down. Without one: overage means we are at/over the base limit for THIS
+        // window (100%); a plain event only refreshes the reset time and never LOWERS
+        // a usage a probe established.
         lock (_cacheLock)
         {
             var prior = _cache.TryGetValue(cli, out var s) ? s : null;
@@ -227,7 +229,8 @@ public sealed class QuotaService
             var merged = new QuotaWindow
             {
                 Label = label,
-                UsedPct = rl.IsUsingOverage ? 100d : existing?.UsedPct,   // overage→100; else keep prior, invent nothing
+                UsedPct = rl.UsedPercent
+                          ?? (rl.IsUsingOverage ? 100d : existing?.UsedPct),
                 Used = existing?.Used,
                 Limit = existing?.Limit,
                 Unit = existing?.Unit,

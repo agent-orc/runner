@@ -325,7 +325,7 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
         <tr><th>Agent</th><th>Type id</th><th>Status</th><th>Context</th><th>Adapter / stream</th><th>Notes</th></tr>
         <tr><td><b>Claude Code</b></td><td><code>claude</code></td><td><span class="pill done">supported</span></td><td>clean or shared</td><td>Claude <code>stream-json</code> adapter</td><td>Primary supported CLI with native structured output and clean-context isolation.</td></tr>
         <tr><td><b>OpenAI Codex</b></td><td><code>codex</code></td><td><span class="pill done">supported</span></td><td>clean or shared</td><td>Codex <code>stream-json</code> adapter</td><td>Primary supported CLI; reasoning models may emit heartbeat-style liveness while thinking.</td></tr>
-        <tr><td><b>Google Gemini</b></td><td><code>gemini</code></td><td><span class="pill wip">deprecated</span></td><td>shared only</td><td>Gemini adapter</td><td>Legacy Google driver kept for compatibility; uses the operator's normal Gemini home and receives no new feature work.</td></tr>
+        <tr><td><b>Google Gemini</b></td><td><code>gemini</code></td><td><span class="pill removed">deprecated</span></td><td>shared only</td><td>Gemini adapter</td><td>Unsupported. The public surface is marked <code>[Obsolete]</code>; the driver still resolves for existing consumers, and removal is planned before 1.0.</td></tr>
         <tr><td><b>Google Antigravity</b></td><td><code>antigravity</code></td><td><span class="pill done">driver shipped</span></td><td>shared only</td><td>Reuses Gemini adapter</td><td>Maintained Google path via <code>agentapi</code>; uses shared CLI state and stays out of the default selectable set until a consumer migrates.</td></tr>
         <tr><td><b>GitHub Copilot</b></td><td><code>copilot</code></td><td><span class="pill removed">removed</span></td><td>n/a</td><td>no supported adapter</td><td>Dropped because the headless path was PTY/TUI-dependent instead of fitting the hardened structured stream engine.</td></tr>
       </table>
@@ -341,8 +341,8 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
         <p>Codex is a first-class driver with clean-context support, a Codex-specific stream adapter, and capability metadata for thinking levels and reasoning-model liveness behavior.</p>
       </div>
       <div class="card" id="agent-gemini">
-        <h3><span class="dot"></span>Google Gemini <span class="pill wip">deprecated</span></h3>
-        <p>The Gemini driver still ships for existing consumers, but it is the legacy Google surface. It is shared-context only, meaning it uses the normal signed-in Gemini CLI home; new Google work should move to Antigravity.</p>
+        <h3><span class="dot"></span>Google Gemini <span class="pill removed">deprecated</span></h3>
+        <p>Gemini is unsupported. Its public surface (<code>CliTypes.Gemini</code>, <code>CliRunner.Gemini</code>, <code>CliOptions.GeminiPath</code>) is marked <code>[Obsolete]</code>; the driver still resolves so existing configs keep working, and removal is planned before 1.0. Google work belongs on Antigravity.</p>
       </div>
       <div class="card" id="agent-antigravity">
         <h3><span class="dot"></span>Google Antigravity <span class="pill done">driver shipped</span></h3>
@@ -432,7 +432,7 @@ driver.OnRunEvent += (runId, e) =&gt;
         <li><b>Optional <code>CodingAgentRunner.Rendering</code> — span model, Markdown/HTML</b><span class="pill done">done</span></li>
         <li><b>Optional BenchmarkDotNet micro-benchmarks for parse / metrics / render paths</b><span class="pill done">done</span></li>
         <li><b>CLI performance observations JSON database</b><span class="pill wip">seeded</span></li>
-        <li><b>Built-in PTY quota probes</b><span class="pill wip">planned</span></li>
+        <li><b>Built-in quota probes (Claude usage endpoint, Codex session logs)</b><span class="pill done">done</span></li>
       </ul>
     </div>
     <div>
@@ -798,9 +798,9 @@ watchdog.OnHung += (runId, phase, silence) =&gt;
 };</pre>
 
     <h3 id="quota">Quota (optional add-on)</h3>
-    <p class="lead">The module brings the <em>mechanism</em> — escalation caching, persistence, cap-enforcement — and the <code>IQuotaProbe</code> contract. It does not bring a built-in probe that reads a CLI's actual remaining quota: that is per-CLI and usually PTY/scrape-dependent, so <b>you supply the probe</b> and the library does the caching, escalation, persistence, and cap check around it. Built-in PTY probes are planned.</p>
+    <p class="lead">The module brings the mechanism — escalation caching, persistence, cap-enforcement — plus <b>two built-in probes</b>. <code>ClaudeOAuthUsageProbe</code> calls the usage endpoint the Claude Code CLI itself uses (via the sign-in token it stores) and returns real server-side percent and reset times for the 5-hour, weekly and model-scoped windows. <code>CodexSessionLogProbe</code> reads the freshest <code>rate_limits</code> entry from Codex's session rollout logs — no process spawned, no quota spent; the data is as old as the last Codex run, so pair it with the free event harvest below. Gemini is deprecated (no probe); Antigravity exposes no quota surface to probe today. The <code>IQuotaProbe</code> contract stays open for your own probes.</p>
     <pre><span class="k">var</span> quota = <span class="k">new</span> QuotaService(
-    probes: <span class="k">new</span>[] { claudeProbe, codexProbe },
+    probes: [<span class="k">new</span> ClaudeOAuthUsageProbe(), <span class="k">new</span> CodexSessionLogProbe()],
     options: <span class="k">new</span> QuotaCacheOptions
     {
         DefaultTtl = TimeSpan.FromMinutes(10),

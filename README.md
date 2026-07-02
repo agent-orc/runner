@@ -42,7 +42,7 @@ The library targets known coding-agent CLIs in their specific versions — it is
 |-------|---------|--------|---------|------------------|-------|
 | Claude Code | `claude` | supported | clean or shared | Claude `stream-json` adapter | First-class driver. |
 | OpenAI Codex | `codex` | supported | clean or shared | Codex `stream-json` adapter | First-class driver, including reasoning-model liveness metadata. |
-| Google Gemini | `gemini` | deprecated | shared only | Gemini adapter | Legacy Google driver kept for compatibility; no new feature work. |
+| Google Gemini | `gemini` | deprecated (`[Obsolete]`) | shared only | Gemini adapter | Unsupported. Marked `[Obsolete]` in 0.3.0; removal planned before 1.0. |
 | Google Antigravity (`agentapi`) | `antigravity` | driver shipped | shared only | reuses Gemini adapter | Maintained Google path; kept out of the default selectable set (`CliTypes.All`) until a consumer migrates. |
 | GitHub Copilot | `copilot` | removed | n/a | no supported adapter | Removed because the headless path was PTY/TUI-dependent and did not fit the hardened structured stream engine. |
 
@@ -55,7 +55,7 @@ both modes because they come from the checkout, not from the CLI home.
 
 Internally each CLI is a `CliDescriptor` — data plus a few pure delegates — in a fixed catalog, and one `internal sealed` engine is parameterized by it; covering a CLI is a descriptor in the library, not a subclass and not a consumer plug-in. The adapters fold each CLI's own dialect onto one event vocabulary, so your run logic is written once. See [Architecture](docs/architecture.md) and [Cross-CLI normalization](docs/cross-cli-normalization.md).
 
-> **Google status:** Gemini is deprecated and superseded by Antigravity, Google's `agentapi` CLI. The Gemini driver stays in place for existing consumers; Antigravity is where new Google integration work belongs.
+> **Google status:** Gemini is deprecated, unsupported, and superseded by Antigravity, Google's `agentapi` CLI. Its public surface (`CliTypes.Gemini`, `CliRunner.Gemini`, `CliOptions.GeminiPath`) is marked `[Obsolete]`; the driver still resolves for existing consumers, and removal is planned before 1.0. Antigravity is where Google integration work belongs.
 
 ## Features
 
@@ -69,11 +69,11 @@ Internally each CLI is a `CliDescriptor` — data plus a few pure delegates — 
 - ✅ Durable per-stream output logs (crash-tolerant, fsync per line).
 - ✅ Platform-owns-git guard (brand-neutral, configurable).
 - ✅ Environment diagnostics (`CliRunner.InspectEnvironment()`): which CLIs are installed and signed in, plus the install command and sign-in steps for anything missing — as data (`EnvironmentReport` / `CliSetup`) and as a renderable text report.
-- ✅ Quota cache · escalation · cap/gate · free event-harvest (poll harder near the limit; skip a run before it hits the wall).
+- ✅ Quota cache · escalation · cap/gate · free event-harvest (poll harder near the limit; skip a run before it hits the wall) — with built-in probes for Claude (OAuth usage endpoint, real server-side percent) and Codex (session-log rate limits).
 - ✅ Pluggable process spawner (`CliOptions.Spawner` / `ICliProcessSpawner`) — inject a custom launcher (e.g. a Windows PTY); null uses redirected pipes.
 - ✅ Run metrics from the event stream (`RunMetricsRecorder`) plus an optional `CodingAgentRunner.Rendering` package for Markdown/HTML UI output.
 - ✅ Optional BenchmarkDotNet micro-benchmarks for adapter parsing, usage parsing and rendering hot paths.
-- 🚧 Concrete PTY-based quota probes (the `IQuotaProbe` contract + cache are done; plug your own probe today).
+- ✅ Built-in quota probes: `ClaudeOAuthUsageProbe` (the CLI's own usage endpoint) and `CodexSessionLogProbe` (rollout-log rate limits). The `IQuotaProbe` seam stays open for your own.
 
 ## Quickstart
 
@@ -147,9 +147,11 @@ per-CLI install and sign-in guide, including the non-interactive options.
 ```csharp
 using CodingAgentRunner.Quota;
 
-// Plug your own probe (HTTP call, CLI scrape, …) behind the IQuotaProbe contract.
+// Built-in probes: Claude (the CLI's own OAuth usage endpoint — real server-side
+// percent) and Codex (freshest rate_limits entry from the CLI's session logs).
+// The IQuotaProbe seam stays open for your own probes.
 var quota = new QuotaService(
-    probes: new[] { myClaudeQuotaProbe },
+    probes: [new ClaudeOAuthUsageProbe(), new CodexSessionLogProbe()],
     options: new QuotaCacheOptions
     {
         DefaultTtl = TimeSpan.FromMinutes(10),
@@ -161,6 +163,13 @@ var quota = new QuotaService(
     });
 
 QuotaReport report = quota.GetWithBackgroundRefresh(); // cached now; refreshes stale entries in the background
+
+// Free live updates: harvest rate-limit events from runs you execute anyway.
+driver.OnRunEvent += (_, evt) => quota.Observe(driver.CliType, evt);
+
+// Skip a run before it hits the wall.
+quota.Cap("claude", stopAtPercent: 95);
+if (!quota.Gate("claude").Allowed) { /* defer the run */ }
 ```
 
 ### Run metrics from events

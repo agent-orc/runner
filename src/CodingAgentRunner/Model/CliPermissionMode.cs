@@ -84,7 +84,9 @@ public static class CliPermissionFlags
         {
             CliTypes.Claude => Claude(m),
             CliTypes.Codex => Codex(m),
+#pragma warning disable CS0618 // deprecated Gemini still resolves until its pre-1.0 removal
             CliTypes.Gemini => Gemini(m),
+#pragma warning restore CS0618
             _ => Claude(m),
         };
     }

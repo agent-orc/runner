@@ -13,7 +13,8 @@ public sealed record CliOptions
     /// <summary>Explicit path/command for the Codex CLI (default: <c>codex</c> on PATH).</summary>
     public string? CodexPath { get; init; }
 
-    /// <summary>Explicit path/command for the Gemini CLI.</summary>
+    /// <summary>Explicit path/command for the Gemini CLI. <b>Deprecated</b> — Gemini support is unmaintained and removal is planned before 1.0.</summary>
+    [Obsolete("Gemini CLI support is deprecated and unmaintained; removal is planned before 1.0. Use Antigravity (agentapi) for Google models.")]
     public string? GeminiPath { get; init; }
 
     /// <summary>Explicit path/command for the Antigravity CLI (default: <c>agentapi</c> on PATH).</summary>

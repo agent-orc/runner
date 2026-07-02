@@ -52,10 +52,13 @@ public sealed class CliRunner
     public ICliDriver Codex => Get(CliTypes.Codex);
     /// <summary>
     /// The Google Gemini driver. Sugar for <c>Get(CliTypes.Gemini)</c>.
-    /// <para><b>Deprecated</b> — unused and unmaintained. <b>Antigravity</b> (Google's
-    /// agentic CLI) is the planned Google integration that supersedes it.</para>
+    /// <para><b>Deprecated and unsupported</b> — unmaintained; removal is planned
+    /// before 1.0. <b>Antigravity</b> (Google's agentic CLI) supersedes it.</para>
     /// </summary>
+    [Obsolete("Gemini CLI support is deprecated and unmaintained; removal is planned before 1.0. Use Antigravity (agentapi) for Google models.")]
+#pragma warning disable CS0618
     public ICliDriver Gemini => Get(CliTypes.Gemini);
+#pragma warning restore CS0618
     /// <summary>The Google Antigravity (agentapi) driver. Sugar for <c>Get(CliTypes.Antigravity)</c>.</summary>
     public ICliDriver Antigravity => Get(CliTypes.Antigravity);
 

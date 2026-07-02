@@ -28,7 +28,7 @@ an empty cell means that CLI has no such concept. The right column is the single
 | Turn complete | `result`, `is_error=false` | `turn.completed` | `result`, `status=success` | `TurnCompleted` |
 | Turn error | `result`, `is_error=true` | `turn.failed`, `error.message` | `result`, `status!=success` | `TurnFailed` |
 | Token usage | `usage` `{ input_tokens, output_tokens, cache_read_input_tokens }` | `usage` `{ input_tokens, cached_input_tokens, output_tokens, reasoning_output_tokens }` | `stats` `{ input_tokens, output_tokens, cached }` | usage summary on `TurnCompleted` |
-| Rate limit | `rate_limit_event` | — | — | `RateLimitObserved` |
+| Rate limit | `rate_limit_event` (status + reset, no percent) | `token_count` `rate_limits` (core protocol / rollout logs, NOT the `exec --json` stream as of 0.142) — precise `used_percent` per window | — | `RateLimitObserved` (one per window; `UsedPercent` when the CLI reports one) |
 
 The adapters are public — you can call
 [`ClaudeEventAdapter.Map(line, runId)`](../src/CodingAgentRunner/Adapters/ClaudeEventAdapter.cs)
@@ -44,9 +44,10 @@ case by case:
 1. **Turn granularity.** Claude packs a whole turn into one `content` array; Codex
    scatters the same turn across many `item.*` frames. The event stream makes both
    look the same to a consumer.
-2. **Richness gaps.** Only Claude emits an init frame and `rate_limit_event`s; only
-   Claude and Codex emit thinking; Antigravity has no plan/TODO. A concept a CLI
-   lacks is simply an event that never arrives — an empty cell, not an error.
+2. **Richness gaps.** Only Claude emits an init frame; only Claude and Codex emit
+   thinking and rate-limit data (Claude live in the run stream, Codex only in its
+   rollout logs / app-server protocol); Antigravity has no plan/TODO. A concept a
+   CLI lacks is simply an event that never arrives — an empty cell, not an error.
 3. **Implicit tools.** Codex has no explicit "read file" or "search" tool; those go
    through shell commands. The same intent surfaces as a different frame.
 4. **Token vocabulary.** The cached-token field alone has three names —

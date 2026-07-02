@@ -10,7 +10,8 @@ public static class CliTypes
     public const string Claude  = "claude";
     /// <summary>OpenAI Codex CLI.</summary>
     public const string Codex   = "codex";
-    /// <summary>Google Gemini CLI. <b>Deprecated</b> — superseded by <see cref="Antigravity"/>.</summary>
+    /// <summary>Google Gemini CLI. <b>Deprecated and unsupported</b> — superseded by <see cref="Antigravity"/>; removal is planned before 1.0.</summary>
+    [Obsolete("Gemini CLI support is deprecated and unmaintained; removal is planned before 1.0. Use Antigravity (agentapi) for Google models.")]
     public const string Gemini  = "gemini";
 
     /// <summary>
@@ -28,7 +29,9 @@ public static class CliTypes
     public const string Human   = "human";
 
     /// <summary>All selectable CLI drivers.</summary>
+#pragma warning disable CS0618 // Gemini stays selectable while deprecated so existing configs keep resolving.
     public static readonly string[] All = [Claude, Codex, Gemini];
+#pragma warning restore CS0618
 
     /// <summary>True when <paramref name="type"/> is one of the selectable drivers.</summary>
     public static bool IsValid(string? type) =>

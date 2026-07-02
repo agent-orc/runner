@@ -22,6 +22,11 @@ namespace CodingAgentRunner.Adapters;
 ///   <item><c>turn.completed</c> with <c>usage</c> &#8594; <see cref="CliRunEvent.TurnCompleted"/> — the CLI's real completion signal.</item>
 ///   <item><c>turn.failed</c> &#8594; <see cref="CliRunEvent.TurnFailed"/>.</item>
 ///   <item><c>session_meta</c> (legacy shape) &#8594; <see cref="CliRunEvent.SessionStarted"/>.</item>
+///   <item><c>token_count</c> with <c>rate_limits</c> (core-protocol shape) &#8594; one
+///     <see cref="CliRunEvent.RateLimitObserved"/> per window, with the precise
+///     <c>used_percent</c>. As of codex 0.142 the <c>exec --json</c> stream does NOT
+///     emit this frame (it lives in the rollout logs and the app-server protocol);
+///     the mapping serves rollout replay and future stream versions.</item>
 ///   <item>everything else &#8594; <see cref="CliRunEvent.Unknown"/>.</item>
 /// </list>
 /// </summary>
@@ -74,6 +79,11 @@ public static class CodexEventAdapter
                     ? (m.GetString() ?? "error")
                     : "error";
                 yield return new CliRunEvent.TurnFailed(reason) { RunId = runId };
+                yield break;
+            }
+            case "token_count":
+            {
+                foreach (var evt in MapRateLimits(root, runId)) yield return evt;
                 yield break;
             }
             case "item.started":
@@ -200,6 +210,42 @@ public static class CodexEventAdapter
         if (list.Count == 0) return false;
         items = list;
         return true;
+    }
+
+    /// <summary>
+    /// Map a core-protocol <c>token_count</c> frame's <c>rate_limits</c> object onto
+    /// one <see cref="CliRunEvent.RateLimitObserved"/> per window. Window labels use
+    /// the same minutes-based vocabulary as the built-in Codex quota probe
+    /// (300&#160;min &#8594; <c>5-hour</c>, 10&#160;080&#160;min &#8594; <c>weekly</c>) so
+    /// <see cref="Quota.QuotaService.Observe"/> merges events and probe results into
+    /// the same <see cref="Quota.QuotaWindow"/>. A frame with a null / absent
+    /// <c>rate_limits</c> maps to nothing (known codex behaviour in some sessions).
+    /// </summary>
+    private static IEnumerable<CliRunEvent> MapRateLimits(JsonElement root, string runId)
+    {
+        if (!root.TryGetProperty("rate_limits", out var rl) || rl.ValueKind != JsonValueKind.Object)
+            yield break;
+
+        var reached = rl.TryGetProperty("rate_limit_reached_type", out var rt) && rt.ValueKind == JsonValueKind.String
+            ? rt.GetString()
+            : null;
+
+        foreach (var property in new[] { "primary", "secondary" })
+        {
+            if (!rl.TryGetProperty(property, out var window) || window.ValueKind != JsonValueKind.Object) continue;
+
+            double? minutes = window.TryGetProperty("window_minutes", out var wm) && wm.TryGetDouble(out var m) ? m : null;
+            double? usedPercent = window.TryGetProperty("used_percent", out var up) && up.TryGetDouble(out var pct) ? pct : null;
+            var resetsAt = window.TryGetProperty("resets_at", out var ra) && ra.TryGetInt64(out var reset) ? reset : 0L;
+
+            yield return new CliRunEvent.RateLimitObserved(
+                Window: Quota.CodexSessionLogProbe.WindowLabel(minutes),
+                Status: reached is null ? "allowed" : $"reached:{reached}",
+                ResetsAt: resetsAt,
+                OverageStatus: null,
+                IsUsingOverage: false,
+                UsedPercent: usedPercent) { RunId = runId };
+        }
     }
 
     private static string FormatUsage(JsonElement usage)

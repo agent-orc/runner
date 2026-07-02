@@ -121,7 +121,8 @@ internal static class BuiltInDescriptors
 
     // ── Gemini (deprecated, shared-only) ────────────────────────────────
 
-    /// <summary>Gemini: <c>gemini -o stream-json</c>, always <c>--skip-trust</c>; shared-only, no resume.</summary>
+#pragma warning disable CS0618 // The deprecated Gemini driver stays registered until its pre-1.0 removal.
+    /// <summary>Gemini: <c>gemini -o stream-json</c>, always <c>--skip-trust</c>; shared-only, no resume. <b>Deprecated</b>.</summary>
     public static readonly CliDescriptor Gemini = new()
     {
         CliType = CliTypes.Gemini,
@@ -149,6 +150,7 @@ internal static class BuiltInDescriptors
             NormalizedModel = ctx.ResolvedModel,
         };
     }
+#pragma warning restore CS0618
 
     // ── Antigravity (agentapi) ──────────────────────────────────────────
 

@@ -73,13 +73,21 @@ public abstract record CliRunEvent
     /// <summary>An interactive CLI is asking for tool/edit approval. The runner does not auto-approve at this layer; it forwards to the consumer when running in a non-bypass mode.</summary>
     public sealed record ApprovalRequested(string Description) : CliRunEvent;
 
-    /// <summary>Per-turn rate-limit info from CLIs that surface it (e.g. Claude). Drives a live usage indicator.</summary>
+    /// <summary>
+    /// Per-turn rate-limit info from CLIs that surface it (Claude's
+    /// <c>rate_limit_event</c>, Codex's <c>rate_limits</c> payloads). Drives a live
+    /// usage indicator, and <see cref="Quota.QuotaService.Observe"/> harvests it
+    /// into the quota cache for free. <see cref="UsedPercent"/> is the precise
+    /// utilization when the CLI reports one (Codex does; Claude's event carries
+    /// only status/reset), else null.
+    /// </summary>
     public sealed record RateLimitObserved(
         string? Window,
         string? Status,
         long ResetsAt,
         string? OverageStatus,
-        bool IsUsingOverage) : CliRunEvent;
+        bool IsUsingOverage,
+        double? UsedPercent = null) : CliRunEvent;
 
     /// <summary>
     /// A stop condition the library recognised in the output (an environment blocker,
