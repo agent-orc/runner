@@ -164,6 +164,14 @@ var quota = new QuotaService(
 
 QuotaReport report = quota.GetWithBackgroundRefresh(); // cached now; refreshes stale entries in the background
 
+// Machine-global cache: every process that opts in shares one cache file
+// (~/.coding-agent-runner/quota-cache.json). A snapshot probed by one
+// application is adopted by the others instead of re-probing; concurrent
+// writers merge per CLI (freshest wins).
+var shared = new QuotaService(
+    probes: [new ClaudeOAuthUsageProbe(), new CodexSessionLogProbe()],
+    store: FileQuotaCacheStore.Global());
+
 // Free live updates: harvest rate-limit events from runs you execute anyway.
 driver.OnRunEvent += (_, evt) => quota.Observe(driver.CliType, evt);
 
