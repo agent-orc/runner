@@ -11,7 +11,11 @@ public class CliThinkingLevelsTests
     [InlineData("claude-opus-4-7", "low,medium,high,xhigh,max")]
     [InlineData("claude-opus-4-6", "low,medium,high,max")]
     [InlineData("claude-opus-4-5", "low,medium,high,max")]
+    [InlineData("claude-sonnet-5", "low,medium,high,xhigh,max")]
+    [InlineData("claude-sonnet-5-5", "low,medium,high,xhigh,max")]// point release matches the sonnet-5 substring
+    [InlineData("claude-sonnet-5.5", "low,medium,high,xhigh,max")]// dots normalize to dashes
     [InlineData("claude-sonnet-4-6", "low,medium,high")]
+    [InlineData("claude-sonnet-4-5", "low,medium,high")]          // must NOT hit the sonnet-5 rule
     [InlineData("claude-haiku-4-5", "")]
     [InlineData("claude-opus-9-9", "low,medium,high,max")]      // unknown opus → max ladder (StartsWith fallback)
     [InlineData("claude-sonnet-9-9", "low,medium,high")]

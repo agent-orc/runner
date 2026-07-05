@@ -51,6 +51,10 @@ public static class CliThinkingLevels
             if (n.Contains("opus-4-6", StringComparison.Ordinal)
                 || n.Contains("opus-4-5", StringComparison.Ordinal))
                 return ClaudeMaxLevels;
+            // Sonnet 5 supports the full ladder including xhigh and max (per the
+            // Claude Code 2.1.x model metadata); the substring also covers point
+            // releases like sonnet-5-5. Note "sonnet-4-5" does NOT match this.
+            if (n.Contains("sonnet-5", StringComparison.Ordinal)) return ClaudeXHighMaxLevels;
             if (n.Contains("sonnet-4-6", StringComparison.Ordinal)) return ClaudeBasicLevels;
             if (n.StartsWith("claude-opus-", StringComparison.Ordinal)) return ClaudeMaxLevels;
             if (n.StartsWith("claude-sonnet-", StringComparison.Ordinal)) return ClaudeBasicLevels;
