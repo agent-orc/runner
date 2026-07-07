@@ -216,7 +216,7 @@
       <details class="nav-menu">
         <summary>Runtime</summary>
         <div class="nav-menu-panel">
-          <a href="#windows">Windows hardening</a>
+          <a href="#windows">What it handles</a>
           <a href="#features">Features</a>
           <a href="#status">Status</a>
           <a href="#license">License</a>
@@ -264,7 +264,7 @@
   <div class="wrap">
     <span class="badge">.NET library · Apache-2.0 · Windows + Linux · stable core, pre-1.0</span>
     <h1>Coding<span class="grad">AgentRunner</span></h1>
-    <p class="tag">Give a .NET application an LLM on your local machine — using the coding-agent CLI you already sign in to, with <b>no API keys</b>. Run a single prompt, or a full multi-turn session.</p>
+    <p class="tag">Give your .NET app an LLM on your local machine — through the coding-agent CLI you already sign in to, with <b>no API keys</b>. Run a single prompt, or drive a full multi-turn session.</p>
     <div class="btns">
       <a class="btn primary" href="https://www.nuget.org/packages/CodingAgentRunner">Get it on NuGet</a>
       <a class="btn ghost" href="https://github.com/RobertMischke/coding-agent-runner">View on GitHub</a>
@@ -280,7 +280,7 @@
   <div class="wrap two">
     <div>
       <h2>Your CLI subscription, called from code</h2>
-      <p class="lead">You already sign in to a coding-agent CLI — Claude Code, Codex, Antigravity, or legacy Gemini — on your machine. CodingAgentRunner lets a .NET program start that CLI, send it a prompt, and read its output as a typed event stream. The run uses your existing sign-in, so there is no API key to manage and no separate billing to set up. Any .NET application can get an LLM on the local development machine this way.</p>
+      <p class="lead">You already sign in to a coding-agent CLI — Claude Code, Codex, Antigravity, or legacy Gemini — on your machine. CodingAgentRunner lets your .NET program start that CLI, send it a prompt, and read the output as a typed event stream. The run rides on your existing sign-in: no API key to manage, no separate billing to set up. That's the whole trick — any .NET app gets an LLM on the machine it already runs on.</p>
     </div>
     <div>
       <pre><span class="c">// Wire the library once; resolve a driver per CLI.</span>
@@ -302,7 +302,7 @@
   <div class="wrap two">
     <div>
       <h2>One-shot, or a full session</h2>
-      <p class="lead">Use it as a one-shot call — send a prompt, read the result, done. Or keep a run going and drive a longer, back-and-forth task: react to each tool call, send follow-ups, and stop the run when you decide it is finished. Completion comes from the CLI's own signal, not from scraping the output for a marker.</p>
+      <p class="lead">Use it as a one-shot call — send a prompt, read the result, done. Or keep a run going and drive a longer, back-and-forth task: react to each tool call, send follow-ups, and stop the run when you decide it's done. Completion comes from the CLI's own signal, not from scraping the output for a marker.</p>
     </div>
     <div>
       <pre><span class="c">// React to the typed event stream.</span>
@@ -383,7 +383,7 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
       <h2>One vocabulary across CLIs</h2>
       <p class="lead">All the supported CLIs stream NDJSON on stdout — one JSON object per line — but each uses its own frame vocabulary for the same ideas. A session start is a <code>system</code> frame in Claude, <code>thread.started</code> in Codex, and <code>init</code> in Antigravity; the id it carries is <code>session_id</code> in some and <code>thread_id</code> in others; the cached-token field has three names — <code>cache_read</code>, <code>cached_input</code>, <code>cached</code>.</p>
       <p class="lead">A per-CLI adapter folds all of that onto one closed <code>CliRunEvent</code> sum type. Your run logic is written once against that one vocabulary and never branches on which CLI — or which model — produced a line: you parse by frame type, not by model. The adapters are public, so <code>ClaudeEventAdapter.Map(line, runId)</code> (and the <code>Codex</code> / <code>Gemini</code> equivalents) turn one output line into events without spawning a process.</p>
-      <p class="lead">This model presupposes a structured wire protocol — NDJSON / JSON frames on stdout. A PTY/TUI-only CLI with no machine-readable output is the one shape CodingAgentRunner deliberately does not cover.</p>
+      <p class="lead">All of this assumes a structured wire protocol — NDJSON / JSON frames on stdout. A PTY/TUI-only CLI with no machine-readable output is the one shape CodingAgentRunner deliberately doesn't cover.</p>
       <p class="lead" style="font-size:14px;">The full per-frame mapping is in <a href="https://github.com/RobertMischke/coding-agent-runner/blob/main/docs/cross-cli-normalization.md">docs/cross-cli-normalization.md</a>.</p>
     </div>
     <div>
@@ -410,8 +410,8 @@ driver.OnRunEvent += (runId, e) =&gt;
 
 <section id="windows">
   <div class="wrap">
-    <h2>What it handles on Windows</h2>
-    <p class="lead">CodingAgentRunner runs on Windows and Linux — both are exercised in CI and proven in production use. Windows is where running a CLI as an unattended child process has the most platform-specific failure modes. The library handles each one, and each fix ships with a test that records why it exists.</p>
+    <h2>The gnarly bits, handled</h2>
+    <p class="lead">CodingAgentRunner drives coding-agent CLIs as unattended child processes — in production, on Windows and Linux. The traps that come with that — shim resolution, prompt delivery, kill semantics, quota walls — are the library's job, not yours. Windows happens to have the most of them, and every fix ships with a test that records why it exists.</p>
     <div class="cards">
       <div class="card"><h3><span class="dot"></span> Prompt delivery</h3><p>On Windows <code>claude</code>/<code>codex</code> often resolve to a <code>.cmd</code> shim; spawning it routes through <code>cmd.exe</code>, which truncates a multi-line prompt at the first newline. The runner resolves and launches the real <code>.exe</code>; on Linux the binaries resolve directly, so no shim handling is needed.</p></div>
       <div class="card"><h3><span class="dot"></span> Platform owns git</h3><p>A soft rule in the agent's instructions keeps it from running <code>git commit</code>/<code>push</code>; an optional PATH-front <code>git</code> wrapper adds defense-in-depth. It is a safety net, not a sandbox.</p></div>
@@ -460,7 +460,7 @@ driver.OnRunEvent += (runId, e) =&gt;
     <div id="benchmark-overview" class="two">
       <div>
         <h3>Measured host-side overhead</h3>
-        <p class="lead">The benchmark project measures the work CodingAgentRunner itself does while a run streams: adapter parsing from <code>stream-json</code> to typed events, usage parsing for metrics, and optional Markdown/HTML rendering. These are library micro-benchmarks, not model comparisons, so they are CI-friendly and do not spawn real CLIs or burn tokens.</p>
+        <p class="lead">The benchmark project measures the work CodingAgentRunner itself does while a run streams: adapter parsing from <code>stream-json</code> to typed events, usage parsing for metrics, and optional Markdown/HTML rendering. These are library micro-benchmarks, not model comparisons — CI-friendly, no real CLIs spawned, no tokens burned.</p>
         <div class="cards">
           <div class="card"><h3><span class="dot"></span> Adapter parsing</h3><p>Representative Claude, Codex and Gemini transcripts exercise the real adapter branches: session start, text, tools, plans and terminal completion.</p></div>
           <div class="card"><h3><span class="dot"></span> Metrics &amp; rendering</h3><p><code>UsageSummaryParser</code> and the optional rendering package are measured separately so UI consumers know the cost they opt into.</p></div>
@@ -491,7 +491,7 @@ dotnet run -c Release \
     </div>
 
     <h3 id="cli-results-table">CLI results table concept</h3>
-    <p class="lead">A real data file can contain thousands of individual runs; the page should show aggregated rows first. The frame column is intentionally visual, but it measures the first JSONL protocol frame from stdout, not necessarily the first user-visible assistant text. <button type="button" class="inline-help-button" data-open-cli-frame-modal>What is a CLI frame?</button></p>
+    <p class="lead">A real data file can hold thousands of individual runs, so the table shows aggregated rows first. The frame column is intentionally visual, but it measures the first JSONL protocol frame from stdout, not necessarily the first user-visible assistant text. <button type="button" class="inline-help-button" data-open-cli-frame-modal>What is a CLI frame?</button></p>
     <div class="controlbar" aria-label="CLI performance filters">
       <label for="perf-cli">CLI
         <select id="perf-cli" data-cli-filter="cli" data-cli-all="All CLIs"><option value="all">All CLIs</option></select>
@@ -567,7 +567,7 @@ dotnet run -c Release \
 <section id="docs" class="docsec">
   <div class="wrap">
     <h2>Documentation</h2>
-    <p class="lead">The public API is small: most run-control uses need five types — <code>CliRunner</code>, <code>CliOptions</code>, <code>CliRunRequest</code>, <code>CliRunInfo</code>, and <code>CliRunEvent</code>. Metrics and rendering are opt-in layers on top of the same event stream. Everything below is example-first and accurate to the current API.</p>
+    <p class="lead">The public API is small: five types cover most run-control work — <code>CliRunner</code>, <code>CliOptions</code>, <code>CliRunRequest</code>, <code>CliRunInfo</code>, and <code>CliRunEvent</code>. Metrics and rendering are opt-in layers on top of the same event stream. Everything below is example-first and accurate to the current API.</p>
     <div class="docnav">
       <a href="#quickstart">Quickstart</a>
       <a href="#setup">Setup &amp; diagnostics</a>
@@ -584,7 +584,7 @@ dotnet run -c Release \
     </div>
 
     <h3 id="quickstart">Quickstart</h3>
-    <p class="lead">Wire the runner once, resolve a driver by CLI type, and start a run. <code>RunId</code> is <em>your</em> correlation key — you bring it; the library does not generate one. Every event, log line, and <code>Stop</code> call is addressed by it.</p>
+    <p class="lead">Wire the runner once, resolve a driver by CLI type, and start a run. <code>RunId</code> is <em>your</em> correlation key — you bring it; the library won't generate one for you. Every event, log line, and <code>Stop</code> call is addressed by it.</p>
     <pre><span class="k">using</span> CodingAgentRunner;
 
 <span class="k">var</span> runner = <span class="k">new</span> CliRunner(<span class="k">new</span> CliOptions());   <span class="c">// wire once</span>
@@ -618,7 +618,7 @@ dotnet run -c Release \
 <span class="k">if</span> (runner.TryGet(userChoice, <span class="k">out var</span> chosen)) { <span class="c">/* … */</span> }</pre>
 
     <h3 id="setup">CLI setup &amp; diagnostics</h3>
-    <p class="lead">The library runs CLIs that are already installed and signed in on the machine — it does not install or authenticate them. <code>InspectEnvironment()</code> reports what is missing and which commands fix it: per CLI the install state, the version, whether a credential source exists, and — as data (<code>CliSetupInfo</code>) — the install commands, sign-in steps and docs URL. It also checks Node.js/npm, which the npm-distributed CLIs need.</p>
+    <p class="lead">Installing and signing in stays your job — the library runs CLIs that are already set up on the machine. <code>InspectEnvironment()</code> tells you what's missing and which commands fix it: per CLI the install state, the version, whether a credential source exists, and — as data (<code>CliSetupInfo</code>) — the install commands, sign-in steps and docs URL. It also checks Node.js/npm, which the npm-distributed CLIs need.</p>
     <pre><span class="k">using</span> CodingAgentRunner.Diagnostics;
 
 <span class="k">var</span> report = runner.InspectEnvironment();
@@ -735,7 +735,7 @@ driver.OnFinished += (runId, info) =&gt;
 };</pre>
 
     <h3 id="config">Configuration</h3>
-    <p class="lead">Everything on <code>CliOptions</code> is optional with sane defaults; a CLI name on <code>PATH</code> is used when no explicit path is given.</p>
+    <p class="lead">Everything on <code>CliOptions</code> is optional and defaults sanely; leave a path unset and the runner finds the CLI by name on <code>PATH</code>.</p>
     <pre><span class="k">var</span> options = <span class="k">new</span> CliOptions
 {
     ClaudePath = @<span class="s">"C:\tools\claude\claude.exe"</span>,   <span class="c">// else: 'claude' from PATH</span>
@@ -841,7 +841,7 @@ QuotaGate gate = quota.Gate(<span class="s">"claude"</span>);
 <span class="k">if</span> (!gate.Allowed) Skip(reason: gate.Reason, retryAfter: gate.RetryAfter);</pre>
 
     <h3 id="metrics-rendering">Metrics &amp; optional rendering</h3>
-    <p class="lead">Metrics are reconstructed from the same typed events your UI, watchdog or quota layer already receives. The optional rendering package is separate: core never references it, so non-UI consumers do not pay for Markdown parsing or Markdig.</p>
+    <p class="lead">The recorder rebuilds metrics from the same typed events your UI, watchdog or quota layer already receives — no second data source. The optional rendering package is separate: core never references it, so non-UI consumers don't pay for Markdown parsing or Markdig.</p>
     <pre><span class="k">using</span> CodingAgentRunner.Metrics;
 <span class="k">using</span> CodingAgentRunner.Rendering;
 
@@ -870,7 +870,7 @@ LinkResolver resolve = spec =&gt; spec.Kind <span class="k">switch</span>
 <span class="k">string</span> html = <span class="k">string</span>.Concat(lines.Select(l =&gt; HtmlRenderer.SpansToHtml(l, resolve)));</pre>
 
     <h3 id="benchmarks">Optional benchmarks</h3>
-    <p class="lead">The benchmark project covers the host-side hot paths: adapter parsing, usage parsing, and optional rendering. It is not part of the normal test suite or release gate; run it manually when you want overhead/allocation numbers. It measures the library's overhead and allocation profile, not agent quality or CLI wall-clock time.</p>
+    <p class="lead">The benchmark project covers the host-side hot paths: adapter parsing, usage parsing, and optional rendering. It's not part of the normal test suite or release gate — run it manually when you want overhead and allocation numbers. It measures the library, not agent quality or CLI wall-clock time.</p>
     <pre><span class="c"># optional: all benchmarks (full statistical run)</span>
 dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --filter <span class="s">'*'</span>
 
@@ -979,7 +979,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
 <footer>
   <div class="wrap">
     <p><b>CodingAgentRunner</b> · <a href="https://github.com/RobertMischke/coding-agent-runner">GitHub</a> · <a href="https://github.com/RobertMischke/coding-agent-runner/blob/main/LICENSE">Apache-2.0</a> · <a href="imprint.html">Imprint</a> · © 2026 Robert Mischke</p>
-    <p style="margin:8px 0 0;">Part of the <a href="https://agent-orchestrator.dev/">Agent Orchestrator</a> ecosystem.</p>
+    <p style="margin:8px 0 0;">CodingAgentRunner pairs naturally with Agent Chat and is what runs the agents inside Agent Studio. Find the other Agent Orchestrator projects at <a href="https://agent-orchestrator.dev/">agent-orchestrator.dev</a>.</p>
   </div>
 </footer>
 
