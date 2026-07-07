@@ -9,6 +9,7 @@
     <PackageId>CodingAgentRunner</PackageId>
     <Description>Run coding-agent CLIs — Claude Code, Codex, Gemini, Antigravity — from .NET: hardened spawning, streamed events, lifecycle &amp; quota tracking.</Description>
     <PackageTags>dotnet;cli;ai-agents;coding-agent;claude-code;codex;gemini;process;agent-runner</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IncludeSymbols>true</IncludeSymbols>
