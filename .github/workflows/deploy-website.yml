@@ -1,0 +1,38 @@
+name: deploy-website
+
+# Publishes website/ as a single-commit "deploy" branch on every push to main.
+# The agent-orchestrator.dev web host pulls that branch and serves it under
+# /runner/ (see the private agent-orchestrator-website repo for the hosting side).
+# The site is plain static HTML with relative links — no build step required.
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "website/**"
+      - ".github/workflows/deploy-website.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-website
+  cancel-in-progress: true
+
+jobs:
+  publish-deploy-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish website/ to deploy branch
+        run: |
+          cd website
+          git init -b deploy
+          git config user.name "deploy-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "deploy ${GITHUB_SHA::7}"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
