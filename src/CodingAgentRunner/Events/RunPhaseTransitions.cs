@@ -46,6 +46,8 @@ public static class RunPhaseTransitions
         CliRunEvent.NeedsInput          => RunPhase.NeedsInput,
         CliRunEvent.ApprovalRequested   => RunPhase.NeedsInput,
         CliRunEvent.RateLimitObserved   => current,
+        CliRunEvent.QuotaWaitStarted    => current,
+        CliRunEvent.QuotaWaitEnded      => current,
         CliRunEvent.RunEnded e          => e.Outcome == Model.RunOutcome.Stopped ? RunPhase.Killed : RunPhase.Exited,
         CliRunEvent.Unknown             => current == RunPhase.Spawning ? RunPhase.Unknown : current,
         // An interrupt is a stop *verdict*, not a phase transition: the phase stays
@@ -80,6 +82,8 @@ public static class RunPhaseTransitions
         // A recognised stop condition does not extend the silence budget — the host
         // latches and stops on it rather than reading it as the agent making progress.
         CliRunEvent.Interrupt         => false,
+        CliRunEvent.QuotaWaitStarted  => false,
+        CliRunEvent.QuotaWaitEnded    => true,
         _                              => false
     };
 }

@@ -10,6 +10,7 @@ using CodingAgentRunner.Events;
 using CodingAgentRunner.Execution.Hardening;
 using CodingAgentRunner.Execution.Logging;
 using CodingAgentRunner.Model;
+using CodingAgentRunner.Quota;
 
 namespace CodingAgentRunner.Execution;
 
@@ -36,6 +37,9 @@ internal sealed class CliRunEngine : ICliDriver
     private readonly ConcurrentDictionary<string, ProcInfo> _processes = new();
     // Run ids with an active StreamAsync pull-stream — one per run (push events still multiplex).
     private readonly ConcurrentDictionary<string, byte> _streaming = new();
+    // A restart after a quota wait appends to the existing log instead of erasing
+    // the first attempt's diagnostic output.
+    private readonly ConcurrentDictionary<string, byte> _quotaRestarts = new();
 
     /// <summary>Consumer configuration (paths, git-guard, hardening).</summary>
     private CliOptions Options { get; }
@@ -309,7 +313,7 @@ internal sealed class CliRunEngine : ICliDriver
         };
 
         var logDir = LogPaths.GetRunLogDirectory(request.RunId);
-        var info = new ProcInfo(process, run, request.WorkingDirectory)
+        var info = new ProcInfo(process, run, request)
         {
             OutputLog = new RunLogStore(logDir),
             ChildStdin = child.Stdin,
@@ -317,8 +321,11 @@ internal sealed class CliRunEngine : ICliDriver
             CleanContext = cleanContext,
             LastStreamedAt = run.StartedAt,
         };
-        try { info.OutputLog.Reset(); }
-        catch (Exception ex) { Logger.LogWarning(ex, "Failed to reset output log dir {Path}", logDir); }
+        if (!_quotaRestarts.TryRemove(request.RunId, out _))
+        {
+            try { info.OutputLog.Reset(); }
+            catch (Exception ex) { Logger.LogWarning(ex, "Failed to reset output log dir {Path}", logDir); }
+        }
         _processes[request.RunId] = info;
 
         try { OnStarted?.Invoke(request.RunId, run); }
@@ -380,7 +387,23 @@ internal sealed class CliRunEngine : ICliDriver
                         var interruptEvt = verdict.ToEvent(runId);
                         info.Phase = RunPhaseTransitions.Apply(info.Phase, interruptEvt);
                         RaiseRunEvent(runId, interruptEvt);
+                        if (verdict.Kind == InterruptReason.QuotaExhausted)
+                            TryBeginQuotaWait(runId, info, verdict.Detail);
                     }
+                }
+
+                // Some adapters intentionally reduce a provider error frame to a
+                // short subtype. Inspect the raw frame as well, but only while this
+                // opt-in policy is enabled, so disabled behavior remains unchanged.
+                if (Options.WaitOnQuota.Enabled
+                    && !info.InterruptLatched
+                    && QuotaWaitPolicy.IsQuotaLimitFailure(raw.Text)
+                    && info.TryLatchInterrupt())
+                {
+                    const string detail = "CLI reported that its quota limit was reached";
+                    RaiseRunEvent(runId, new CliRunEvent.Interrupt(
+                        InterruptReason.QuotaExhausted, detail, IsFatal: true) { RunId = runId });
+                    TryBeginQuotaWait(runId, info, detail);
                 }
 
                 IEnumerable<CliRunEvent>? events = null;
@@ -392,6 +415,15 @@ internal sealed class CliRunEngine : ICliDriver
                         if (evt is CliRunEvent.TurnFailed tf) info.LastFailureReason = tf.Reason;
                         info.Phase = RunPhaseTransitions.Apply(info.Phase, evt);
                         RaiseRunEvent(runId, evt);
+                        if (evt is CliRunEvent.TurnFailed failed
+                            && Options.WaitOnQuota.Enabled
+                            && QuotaWaitPolicy.IsQuotaLimitFailure(failed.Reason)
+                            && info.TryLatchInterrupt())
+                        {
+                            RaiseRunEvent(runId, new CliRunEvent.Interrupt(
+                                InterruptReason.QuotaExhausted, failed.Reason, IsFatal: true) { RunId = runId });
+                            TryBeginQuotaWait(runId, info, failed.Reason);
+                        }
                     }
 
                 lock (info.OutputBuffer)
@@ -410,6 +442,40 @@ internal sealed class CliRunEngine : ICliDriver
         }
     }
 
+    private void TryBeginQuotaWait(string runId, ProcInfo info, string detail)
+    {
+        if (!Options.WaitOnQuota.Enabled || Options.WaitOnQuota.QuotaService is null)
+            return;
+        info.TrySetQuotaWaitTask(() => EvaluateQuotaWaitAsync(runId, info, detail));
+    }
+
+    private async Task<DateTime?> EvaluateQuotaWaitAsync(string runId, ProcInfo info, string detail)
+    {
+        QuotaSnapshot? snapshot;
+        try
+        {
+            snapshot = await Options.WaitOnQuota.QuotaService!
+                .RefreshAsync(CliType, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "QuotaWaitProbeFailed for {Cli} {RunId}", CliType, runId);
+            return null;
+        }
+
+        var now = Options.WaitOnQuota.TimeProvider.GetUtcNow().UtcDateTime;
+        var resetAt = QuotaWaitPolicy.SelectReset(snapshot, Options.WaitOnQuota, now);
+        if (resetAt is null) return null;
+
+        info.Execution = info.Execution with { Status = "waiting" };
+        RaiseRunEvent(runId, new CliRunEvent.QuotaWaitStarted(detail, resetAt.Value) { RunId = runId });
+        Logger.LogInformation(
+            "QuotaWaitStarted for {Cli} {RunId}; reset at {ResetAt} (delay {DelaySeconds:F0}s)",
+            CliType, runId, resetAt.Value, (resetAt.Value - now).TotalSeconds);
+        Stop(runId, RunStopReason.QuotaResetWait);
+        return resetAt;
+    }
+
     private async Task MonitorProcessAsync(string runId, Process process, ProcInfo info, CancellationToken ct)
     {
         try
@@ -424,6 +490,53 @@ internal sealed class CliRunEngine : ICliDriver
             }
             catch (TimeoutException) { Logger.LogWarning("Read-stream drain timed out for {RunId}; some output may be missing", runId); }
             catch (Exception ex) { Logger.LogDebug(ex, "Read-stream drain threw for {RunId}", runId); }
+
+            var resetAt = info.QuotaWaitTask is null
+                ? null
+                : await info.QuotaWaitTask.ConfigureAwait(false);
+            if (resetAt is not null)
+            {
+                var delay = resetAt.Value - Options.WaitOnQuota.TimeProvider.GetUtcNow().UtcDateTime;
+                try
+                {
+                    if (delay > TimeSpan.Zero)
+                    {
+                        if (Options.WaitOnQuota.DelayAsync is { } delayAsync)
+                            await delayAsync(delay, ct).ConfigureAwait(false);
+                        else
+                            await Task.Delay(delay, Options.WaitOnQuota.TimeProvider, ct).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    info.Execution = info.Execution with { Status = "stopped" };
+                    RaiseRunEvent(runId, new CliRunEvent.RunEnded(
+                        RunOutcome.Stopped, RunStopReason.Cancelled.ToString(), null, 0) { RunId = runId });
+                    try { OnFinished?.Invoke(runId, info.Execution); } catch { }
+                    try { info.OutputLog?.Dispose(); } catch { }
+                    info.CleanContext?.Dispose();
+                    info.CleanContext = null;
+                    return;
+                }
+
+                try { info.OutputLog?.Dispose(); } catch { }
+                info.CleanContext?.Dispose();
+                info.CleanContext = null;
+                _processes.TryRemove(runId, out _);
+                RaiseRunEvent(runId, new CliRunEvent.QuotaWaitEnded(resetAt.Value) { RunId = runId });
+                Logger.LogInformation("QuotaWaitEnded for {Cli} {RunId}; restarting the request", CliType, runId);
+                _quotaRestarts[runId] = 0;
+                var (_, restartError) = await StartAsync(info.Request, ct).ConfigureAwait(false);
+                if (restartError is null) return;
+
+                _quotaRestarts.TryRemove(runId, out _);
+                Logger.LogError("QuotaWaitRestartFailed for {Cli} {RunId}: {Error}", CliType, runId, restartError);
+                RaiseRunEvent(runId, new CliRunEvent.RunEnded(
+                    RunOutcome.Failed, restartError, null, 0) { RunId = runId });
+                info.Execution = info.Execution with { Status = "failed" };
+                try { OnFinished?.Invoke(runId, info.Execution); } catch { }
+                return;
+            }
 
             var duration = (DateTime.UtcNow - info.Execution.StartedAt).TotalSeconds;
             int? exitCode = null;
@@ -576,16 +689,18 @@ internal sealed class CliRunEngine : ICliDriver
     // Per-run mutable tracking state. Private implementation detail.
     private sealed class ProcInfo
     {
-        public ProcInfo(Process process, CliRunInfo execution, string workingDirectory)
+        public ProcInfo(Process process, CliRunInfo execution, CliRunRequest request)
         {
             Process = process;
             Execution = execution;
-            WorkingDirectory = workingDirectory;
+            Request = request;
+            WorkingDirectory = request.WorkingDirectory;
         }
 
         public Process Process { get; }
         public CliRunInfo Execution { get; set; }
         public string WorkingDirectory { get; }
+        public CliRunRequest Request { get; }
         public List<CliOutputLine> OutputBuffer { get; } = [];
         public RunLogStore OutputLog { get; init; } = null!;
         public Stream? ChildStdin { get; init; }
@@ -596,6 +711,7 @@ internal sealed class CliRunEngine : ICliDriver
         public DateTime LastStreamedAt { get; set; }
         public Task? StdoutReadTask { get; set; }
         public Task? StderrReadTask { get; set; }
+        public Task<DateTime?>? QuotaWaitTask { get; private set; }
 
         // Advisory run phase fed to the interrupt classifier's context. Updated from
         // both reader threads; an enum write is atomic and a lost update only yields a
@@ -607,5 +723,11 @@ internal sealed class CliRunEngine : ICliDriver
         private int _interruptLatched;
         public bool InterruptLatched => Volatile.Read(ref _interruptLatched) == 1;
         public bool TryLatchInterrupt() => Interlocked.CompareExchange(ref _interruptLatched, 1, 0) == 0;
+
+        public void TrySetQuotaWaitTask(Func<Task<DateTime?>> start)
+        {
+            lock (this)
+                QuotaWaitTask ??= start();
+        }
     }
 }

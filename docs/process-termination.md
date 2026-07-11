@@ -32,7 +32,7 @@ reason).
 
 ```
 None, UserStop, FollowupPause, Watchdog, Cancelled,
-QuotaCapExceeded, SentinelDetected, EnvironmentBlocker, SilentCompletion
+QuotaCapExceeded, QuotaResetWait, SentinelDetected, EnvironmentBlocker, SilentCompletion
 ```
 
 The consumer supplies the reason when it calls `Stop`; the runner supplies the rest

@@ -840,6 +840,29 @@ quota.Cap(<span class="s">"claude"</span>, stopAtPercent: 97);
 QuotaGate gate = quota.Gate(<span class="s">"claude"</span>);
 <span class="k">if</span> (!gate.Allowed) Skip(reason: gate.Reason, retryAfter: gate.RetryAfter);</pre>
 
+    <p class="exlabel">Wait for a nearby quota reset <span>â€” optional, off by default</span></p>
+    <p class="lead">A quota-limit failure normally follows the application's existing failure or CLI-fallback route. Set <code>WaitOnQuota.Enabled</code> to add one branch: the runner refreshes quota for that CLI and waits only when the probe returns a plausible future reset within <code>Threshold</code> (30 minutes by default). It stops the exhausted process, emits <code>QuotaWaitStarted</code> with the reason and reset time, waits asynchronously, emits <code>QuotaWaitEnded</code>, and restarts the same request. Unknown quota, a failed probe, or a later reset leaves the existing route unchanged.</p>
+    <pre><span class="k">var</span> quota = <span class="k">new</span> QuotaService(
+    probes: [<span class="k">new</span> ClaudeOAuthUsageProbe(), <span class="k">new</span> CodexSessionLogProbe()]);
+
+<span class="k">var</span> runner = <span class="k">new</span> CliRunner(<span class="k">new</span> CliOptions
+{
+    WaitOnQuota = <span class="k">new</span> WaitOnQuotaOptions
+    {
+        Enabled = <span class="k">true</span>,
+        Threshold = TimeSpan.FromMinutes(30),
+        QuotaService = quota,
+    },
+});
+
+runner.Codex.OnRunEvent += (runId, e) =&gt;
+{
+    <span class="k">if</span> (e <span class="k">is</span> CliRunEvent.QuotaWaitStarted wait)
+        ShowStatus($<span class="s">"Waiting for quota reset at {wait.ResetAt:t}"</span>);
+    <span class="k">else if</span> (e <span class="k">is</span> CliRunEvent.QuotaWaitEnded)
+        ClearStatus();
+};</pre>
+
     <h3 id="metrics-rendering">Metrics &amp; optional rendering</h3>
     <p class="lead">The recorder rebuilds metrics from the same typed events your UI, watchdog or quota layer already receives — no second data source. The optional rendering package is separate: core never references it, so non-UI consumers don't pay for Markdown parsing or Markdig.</p>
     <pre><span class="k">using</span> CodingAgentRunner.Metrics;

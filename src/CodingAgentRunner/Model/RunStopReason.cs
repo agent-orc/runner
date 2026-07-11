@@ -26,6 +26,9 @@ public enum RunStopReason
     /// <summary>A configured quota cap was exceeded.</summary>
     QuotaCapExceeded,
 
+    /// <summary>The runner stopped a quota-limited process before waiting for its reset.</summary>
+    QuotaResetWait,
+
     /// <summary>A consumer-defined completion sentinel was detected (optional).</summary>
     SentinelDetected,
 

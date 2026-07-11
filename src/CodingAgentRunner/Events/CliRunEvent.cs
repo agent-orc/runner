@@ -100,6 +100,16 @@ public abstract record CliRunEvent
     public sealed record Interrupt(InterruptReason Reason, string Detail, bool IsFatal) : CliRunEvent;
 
     /// <summary>
+    /// The runner paused after a quota-limit failure because a confirmed reset is
+    /// within the configured wait threshold. No terminal event is emitted for the
+    /// process stopped as part of this pause.
+    /// </summary>
+    public sealed record QuotaWaitStarted(string Reason, DateTime ResetAt) : CliRunEvent;
+
+    /// <summary>The quota-reset wait ended and the runner is restarting the same request.</summary>
+    public sealed record QuotaWaitEnded(DateTime ResetAt) : CliRunEvent;
+
+    /// <summary>
     /// The run terminated — the <b>single</b> run-terminal event (it replaces the old
     /// separate <c>ProcessExited</c> / <c>Killed</c>). Turn-level events
     /// (<see cref="TurnCompleted"/> / <see cref="TurnFailed"/>) are conversation

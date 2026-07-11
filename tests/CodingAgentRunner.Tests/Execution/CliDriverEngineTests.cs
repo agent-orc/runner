@@ -4,6 +4,7 @@ using CodingAgentRunner.Abstractions;
 using CodingAgentRunner.Events;
 using CodingAgentRunner.Execution;
 using CodingAgentRunner.Model;
+using CodingAgentRunner.Quota;
 using Xunit;
 
 namespace CodingAgentRunner.Tests.Execution;
@@ -254,6 +255,125 @@ public class CliDriverEngineTests
             var stdin = psi.RedirectStandardInput ? p.StandardInput.BaseStream : Stream.Null;
             return new CliSpawn(p, stdin, p.StandardOutput, p.StandardError);
         }
+    }
+
+    private sealed class SequencedSpawner : ICliProcessSpawner
+    {
+        public int Count;
+
+        public CliSpawn Spawn(ProcessStartInfo ignored)
+        {
+            var text = Interlocked.Increment(ref Count) == 1 ? "rate limit exceeded" : "ok";
+            var psi = OperatingSystem.IsWindows()
+                ? new ProcessStartInfo("cmd", $"/c echo {text}")
+                : new ProcessStartInfo("sh", $"-c \"echo '{text}'\"");
+            psi.UseShellExecute = false;
+            psi.RedirectStandardOutput = true;
+            psi.RedirectStandardError = true;
+            psi.RedirectStandardInput = true;
+            var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+            process.Start();
+            return new CliSpawn(process, process.StandardInput.BaseStream, process.StandardOutput, process.StandardError);
+        }
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    [Fact]
+    public async Task WaitOnQuota_NearKnownReset_EmitsWaitEventsAndRestartsWithoutIntermediateTerminal()
+    {
+        using var logs = new TempLogs();
+        var now = new DateTimeOffset(2026, 7, 11, 12, 0, 0, TimeSpan.Zero);
+        var resetAt = now.UtcDateTime.AddMinutes(12);
+        var probe = new DelegateQuotaProbe(CliTypes.Claude, _ => Task.FromResult(new QuotaSnapshot
+        {
+            CliType = CliTypes.Claude,
+            Windows = [new QuotaWindow { Label = "5-hour", UsedPct = 100, ResetAt = resetAt }],
+        }));
+        var spawner = new SequencedSpawner();
+        TimeSpan? requestedDelay = null;
+        var options = new CliOptions
+        {
+            AllowAgentGitMutation = true,
+            Spawner = spawner,
+            WaitOnQuota = new WaitOnQuotaOptions
+            {
+                Enabled = true,
+                Threshold = TimeSpan.FromMinutes(30),
+                QuotaService = new QuotaService([probe]),
+                TimeProvider = new FixedTimeProvider(now),
+                DelayAsync = (delay, _) => { requestedDelay = delay; return Task.CompletedTask; },
+            },
+        };
+        var descriptor = ProbeDescriptor("ignored", []) with
+        {
+            Parse = (line, runId, _) => line == "rate limit exceeded"
+                ? [new CliRunEvent.TurnFailed(line) { RunId = runId }]
+                : [new CliRunEvent.TurnCompleted(null) { RunId = runId }],
+        };
+        var driver = new CliRunEngine(descriptor, options, null, logs);
+        var events = new ConcurrentQueue<CliRunEvent>();
+        driver.OnRunEvent += (_, evt) => events.Enqueue(evt);
+        var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+        driver.OnFinished += (_, run) => finished.TrySetResult(run);
+
+        await driver.StartAsync(new CliRunRequest
+        {
+            RunId = "quota-wait", Prompt = "x", WorkingDirectory = Path.GetTempPath(),
+        });
+        var final = await finished.Task.WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.Equal("completed", final.Status);
+        Assert.Equal(2, spawner.Count);
+        Assert.Equal(TimeSpan.FromMinutes(12), requestedDelay);
+        Assert.Single(events.OfType<CliRunEvent.QuotaWaitStarted>());
+        Assert.Single(events.OfType<CliRunEvent.QuotaWaitEnded>());
+        Assert.Single(events.OfType<CliRunEvent.RunEnded>());
+        Assert.Equal(2, events.OfType<CliRunEvent.RunStarted>().Count());
+    }
+
+    [Fact]
+    public async Task WaitOnQuota_UnknownQuota_UsesExistingTerminalRouteWithoutWaiting()
+    {
+        using var logs = new TempLogs();
+        var probe = new DelegateQuotaProbe(CliTypes.Claude, _ => Task.FromResult(new QuotaSnapshot
+        {
+            CliType = CliTypes.Claude,
+            Error = "quota unavailable",
+        }));
+        var spawner = new SequencedSpawner();
+        var descriptor = ProbeDescriptor("ignored", []) with
+        {
+            Parse = (line, runId, _) =>
+                [new CliRunEvent.TurnFailed(line) { RunId = runId }],
+        };
+        var driver = new CliRunEngine(descriptor, new CliOptions
+        {
+            AllowAgentGitMutation = true,
+            Spawner = spawner,
+            WaitOnQuota = new WaitOnQuotaOptions
+            {
+                Enabled = true,
+                QuotaService = new QuotaService([probe]),
+            },
+        }, null, logs);
+        var events = new ConcurrentQueue<CliRunEvent>();
+        driver.OnRunEvent += (_, evt) => events.Enqueue(evt);
+        var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+        driver.OnFinished += (_, run) => finished.TrySetResult(run);
+
+        await driver.StartAsync(new CliRunRequest
+        {
+            RunId = "quota-unknown", Prompt = "x", WorkingDirectory = Path.GetTempPath(),
+        });
+        await finished.Task.WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.Equal(1, spawner.Count);
+        Assert.Empty(events.OfType<CliRunEvent.QuotaWaitStarted>());
+        Assert.Single(events.OfType<CliRunEvent.RunEnded>());
     }
 
     [Fact]

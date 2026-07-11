@@ -169,6 +169,14 @@ Two **built-in probes** ship with the library:
 Gemini is deprecated (no probe); Antigravity exposes no quota surface to probe
 today. The `IQuotaProbe` seam stays open for consumer-supplied probes.
 
+`CliOptions.WaitOnQuota` adds an optional wait branch after a typed quota-limit
+failure. It is disabled by default. When enabled, the engine force-refreshes the
+selected CLI through the configured `QuotaService`; a known future reset within
+the threshold (30 minutes by default) produces `QuotaWaitStarted`, an asynchronous
+wait, `QuotaWaitEnded`, and a restart of the same request. The stopped attempt is
+not exposed as a terminal run. An unknown/errored snapshot or a reset outside the
+threshold follows the existing failure path.
+
 `FileQuotaCacheStore.Global()` gives every process of the user **one shared
 cache file** in the OS-native app-data location (`%LOCALAPPDATA%` / `~/Library/
 Application Support` / `~/.local/share`; `CODING_AGENT_RUNNER_CACHE_DIR`

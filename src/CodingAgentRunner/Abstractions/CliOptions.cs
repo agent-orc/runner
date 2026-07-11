@@ -1,5 +1,7 @@
 namespace CodingAgentRunner.Abstractions;
 
+using CodingAgentRunner.Quota;
+
 /// <summary>
 /// Consumer-supplied configuration for the runner — replaces the host
 /// application's ambient configuration. Everything is optional with sane
@@ -33,11 +35,44 @@ public sealed record CliOptions
     public CliHardeningOptions Hardening { get; init; } = new();
 
     /// <summary>
+    /// Optional policy for pausing a quota-limited run until a nearby reset. Disabled
+    /// by default; when disabled, quota failures follow the normal host failure or
+    /// fallback route.
+    /// </summary>
+    public WaitOnQuotaOptions WaitOnQuota { get; init; } = new();
+
+    /// <summary>
     /// Optional custom process spawner — inject one (e.g. a Windows pseudo-terminal
     /// spawner) to change how the engine launches a CLI. Null uses plain redirected
     /// pipes. See <see cref="ICliProcessSpawner"/>.
     /// </summary>
     public ICliProcessSpawner? Spawner { get; init; }
+}
+
+/// <summary>Controls the optional wait-and-retry branch for quota-limit failures.</summary>
+public sealed record WaitOnQuotaOptions
+{
+    /// <summary>Enable waiting for a nearby, known quota reset. Default: false.</summary>
+    public bool Enabled { get; init; }
+
+    /// <summary>Longest reset delay the runner will wait for. Default: 30 minutes.</summary>
+    public TimeSpan Threshold { get; init; } = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    /// Quota source used to confirm the reset time. It must contain a probe for the
+    /// selected CLI; null or an unsuccessful probe makes the policy fail open to the
+    /// existing host route.
+    /// </summary>
+    public QuotaService? QuotaService { get; init; }
+
+    /// <summary>Clock used for reset comparisons and the asynchronous wait.</summary>
+    public TimeProvider TimeProvider { get; init; } = TimeProvider.System;
+
+    /// <summary>
+    /// Optional asynchronous delay override for hosts with their own scheduler and
+    /// for deterministic tests. Null uses <see cref="Task.Delay(TimeSpan, TimeProvider, CancellationToken)"/>.
+    /// </summary>
+    public Func<TimeSpan, CancellationToken, Task>? DelayAsync { get; init; }
 }
 
 /// <summary>

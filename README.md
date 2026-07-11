@@ -182,6 +182,24 @@ quota.Cap("claude", stopAtPercent: 95);
 if (!quota.Gate("claude").Allowed) { /* defer the run */ }
 ```
 
+Quota-limit waiting is a separate opt-in policy. When a fresh probe reports a
+future reset within the threshold, the runner emits `QuotaWaitStarted`, stops the
+exhausted process, waits asynchronously, emits `QuotaWaitEnded`, and restarts the
+same request. Unknown quota and resets outside the threshold keep the existing
+failure or fallback route.
+
+```csharp
+var runner = new CliRunner(new CliOptions
+{
+    WaitOnQuota = new WaitOnQuotaOptions
+    {
+        Enabled = true,
+        Threshold = TimeSpan.FromMinutes(30), // default
+        QuotaService = quota,
+    },
+});
+```
+
 ### Run metrics from events
 
 ```csharp
