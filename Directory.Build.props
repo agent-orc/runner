@@ -14,8 +14,8 @@
          this with the git tag (e.g. tag v0.1.0 -> package 0.1.0). -->
     <Version>0.5.0</Version>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/RobertMischke/coding-agent-runner</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/RobertMischke/coding-agent-runner</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/agent-orc/runner</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/agent-orc/runner</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
 

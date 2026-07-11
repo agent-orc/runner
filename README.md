@@ -4,7 +4,7 @@
 
 [![NuGet](https://img.shields.io/nuget/v/CodingAgentRunner.svg?label=NuGet)](https://www.nuget.org/packages/CodingAgentRunner)
 [![NuGet downloads](https://img.shields.io/nuget/dt/CodingAgentRunner.svg?label=downloads)](https://www.nuget.org/packages/CodingAgentRunner)
-[![CI](https://github.com/RobertMischke/coding-agent-runner/actions/workflows/ci.yml/badge.svg)](https://github.com/RobertMischke/coding-agent-runner/actions/workflows/ci.yml)
+[![CI](https://github.com/agent-orc/runner/actions/workflows/ci.yml/badge.svg)](https://github.com/agent-orc/runner/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 ```bash
@@ -12,7 +12,7 @@ dotnet add package CodingAgentRunner            # core: spawning, events, lifecy
 dotnet add package CodingAgentRunner.Rendering  # optional: Markdown/HTML rendering of agent output
 ```
 
-Package pages: [CodingAgentRunner](https://www.nuget.org/packages/CodingAgentRunner) · [CodingAgentRunner.Rendering](https://www.nuget.org/packages/CodingAgentRunner.Rendering) · [GitHub releases](https://github.com/RobertMischke/coding-agent-runner/releases)
+Package pages: [CodingAgentRunner](https://www.nuget.org/packages/CodingAgentRunner) · [CodingAgentRunner.Rendering](https://www.nuget.org/packages/CodingAgentRunner.Rendering) · [GitHub releases](https://github.com/agent-orc/runner/releases)
 
 **CodingAgentRunner** gives a .NET application an LLM on your local machine, using the coding-agent CLI you already sign in to — with no API keys. Run a single prompt, or a full multi-turn session. It launches and supervises terminal-native coding agents (Claude Code, OpenAI Codex, Google Antigravity / `agentapi`, and the legacy Gemini CLI) as child processes — reliably, especially on Windows.
 

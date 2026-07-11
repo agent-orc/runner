@@ -57,6 +57,6 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 Baseline for this changelog.
 
-[0.5.0]: https://github.com/RobertMischke/coding-agent-runner/releases/tag/v0.5.0
-[0.4.0]: https://github.com/RobertMischke/coding-agent-runner/releases/tag/v0.4.0
-[0.3.1]: https://github.com/RobertMischke/coding-agent-runner/releases/tag/v0.3.1
+[0.5.0]: https://github.com/agent-orc/runner/releases/tag/v0.5.0
+[0.4.0]: https://github.com/agent-orc/runner/releases/tag/v0.4.0
+[0.3.1]: https://github.com/agent-orc/runner/releases/tag/v0.3.1

@@ -251,7 +251,7 @@
         </div>
       </details>
       <span class="nav-separator" aria-hidden="true"></span>
-      <a class="external-link" href="https://github.com/RobertMischke/coding-agent-runner" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository, opens an external site">
+      <a class="external-link" href="https://github.com/agent-orc/runner" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository, opens an external site">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.87c.68 0 1.36.09 2 .26 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
         <span>GitHub</span>
         <svg class="external-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h6v6"/><path d="m5 11 7-7"/><path d="M12 12v1H3V4h1"/></svg>
@@ -267,7 +267,7 @@
     <p class="tag">Give your .NET app an LLM on your local machine — through the coding-agent CLI you already sign in to, with <b>no API keys</b>. Run a single prompt, or drive a full multi-turn session.</p>
     <div class="btns">
       <a class="btn primary" href="https://www.nuget.org/packages/CodingAgentRunner">Get it on NuGet</a>
-      <a class="btn ghost" href="https://github.com/RobertMischke/coding-agent-runner">View on GitHub</a>
+      <a class="btn ghost" href="https://github.com/agent-orc/runner">View on GitHub</a>
       <a class="btn ghost" href="#docs">Read the docs ↓</a>
     </div>
     <p style="margin-top:16px;"><code>dotnet add package CodingAgentRunner</code>
@@ -384,7 +384,7 @@ driver.Stop(<span class="s">"task-1"</span>, RunStopReason.UserStop);</pre>
       <p class="lead">All the supported CLIs stream NDJSON on stdout — one JSON object per line — but each uses its own frame vocabulary for the same ideas. A session start is a <code>system</code> frame in Claude, <code>thread.started</code> in Codex, and <code>init</code> in Antigravity; the id it carries is <code>session_id</code> in some and <code>thread_id</code> in others; the cached-token field has three names — <code>cache_read</code>, <code>cached_input</code>, <code>cached</code>.</p>
       <p class="lead">A per-CLI adapter folds all of that onto one closed <code>CliRunEvent</code> sum type. Your run logic is written once against that one vocabulary and never branches on which CLI — or which model — produced a line: you parse by frame type, not by model. The adapters are public, so <code>ClaudeEventAdapter.Map(line, runId)</code> (and the <code>Codex</code> / <code>Gemini</code> equivalents) turn one output line into events without spawning a process.</p>
       <p class="lead">All of this assumes a structured wire protocol — NDJSON / JSON frames on stdout. A PTY/TUI-only CLI with no machine-readable output is the one shape CodingAgentRunner deliberately doesn't cover.</p>
-      <p class="lead" style="font-size:14px;">The full per-frame mapping is in <a href="https://github.com/RobertMischke/coding-agent-runner/blob/main/docs/cross-cli-normalization.md">docs/cross-cli-normalization.md</a>.</p>
+      <p class="lead" style="font-size:14px;">The full per-frame mapping is in <a href="https://github.com/agent-orc/runner/blob/main/docs/cross-cli-normalization.md">docs/cross-cli-normalization.md</a>.</p>
     </div>
     <div>
       <table>
@@ -447,7 +447,7 @@ driver.OnRunEvent += (runId, e) =&gt;
       <h2 id="status">Status</h2>
       <div class="note">Stable core, pre-1.0. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, watchdog, quota module, metrics recorder and optional rendering package are implemented and tested (427 tests, CI on Windows + Linux). BenchmarkDotNet micro-benchmarks are available as an optional manual run. The public API may still shift before 1.0 — pin a version and watch releases.</div>
       <h2 id="license" style="margin-top:22px;">License</h2>
-      <p class="lead">Apache-2.0. Issues and pull requests welcome on <a href="https://github.com/RobertMischke/coding-agent-runner">GitHub</a>.</p>
+      <p class="lead">Apache-2.0. Issues and pull requests welcome on <a href="https://github.com/agent-orc/runner">GitHub</a>.</p>
     </div>
   </div>
 </section>
@@ -648,7 +648,7 @@ npm         installed 11.16.0</pre>
       <tr><td>Google Gemini</td><td><code>npm install -g @google/gemini-cli</code></td><td>run <code>gemini</code>, Google sign-in</td><td><code>GEMINI_API_KEY</code>, or a service account</td></tr>
       <tr><td>Google Antigravity</td><td><code>irm https://antigravity.google/cli/install.ps1 | iex</code> (Windows) · <code>install.sh</code> (macOS/Linux)</td><td>run <code>agy</code> once (prints URL + code on headless)</td><td>no documented token export</td></tr>
     </table>
-    <p class="lead">The full guide — credential file locations, seeding a login onto another machine, and why the library deliberately does not auto-install — is in <a href="https://github.com/RobertMischke/coding-agent-runner/blob/main/docs/cli-setup.md">docs/cli-setup.md</a>.</p>
+    <p class="lead">The full guide — credential file locations, seeding a login onto another machine, and why the library deliberately does not auto-install — is in <a href="https://github.com/agent-orc/runner/blob/main/docs/cli-setup.md">docs/cli-setup.md</a>.</p>
 
     <h3 id="identity">Run identity: RunId, SessionId, continuation</h3>
     <p class="lead">Three ids, three jobs. You assign the <code>RunId</code>; the CLI assigns a <code>SessionId</code> (surfaced in a <code>SessionStarted</code> event); to continue a conversation you start a <em>new</em> run that carries the captured session id back as <code>ResumeSessionId</code>.</p>
@@ -978,7 +978,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
 
 <footer>
   <div class="wrap">
-    <p><b>CodingAgentRunner</b> · <a href="https://github.com/RobertMischke/coding-agent-runner">GitHub</a> · <a href="https://github.com/RobertMischke/coding-agent-runner/blob/main/LICENSE">Apache-2.0</a> · <a href="imprint.html">Imprint</a> · © 2026 Robert Mischke</p>
+    <p><b>CodingAgentRunner</b> · <a href="https://github.com/agent-orc/runner">GitHub</a> · <a href="https://github.com/agent-orc/runner/blob/main/LICENSE">Apache-2.0</a> · <a href="imprint.html">Imprint</a> · © 2026 Robert Mischke</p>
     <p style="margin:8px 0 0;">CodingAgentRunner pairs naturally with Agent Chat and is what runs the agents inside Agent Studio. Find the other Agent Orchestrator projects at <a href="https://agent-orchestrator.dev/">agent-orchestrator.dev</a>.</p>
   </div>
 </footer>
@@ -1518,7 +1518,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   }
 
   function sourceUrl(path) {
-    return "https://github.com/RobertMischke/coding-agent-runner/blob/main/" +
+    return "https://github.com/agent-orc/runner/blob/main/" +
       String(path).split("/").map(encodeURIComponent).join("/");
   }
 

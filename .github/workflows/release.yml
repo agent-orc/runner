@@ -7,7 +7,7 @@ name: release
 # Auth uses nuget.org **Trusted Publishing** (OIDC): there is NO API key to store.
 # GitHub Actions mints a short-lived OIDC token; the NuGet/login action exchanges
 # it for a temporary key, validated against the Trusted Publishing policy on
-# nuget.org (package owner RobertMischke2, repo RobertMischke/coding-agent-runner,
+# nuget.org (package owner RobertMischke2, repo agent-orc/runner,
 # workflow release.yml).
 #
 # To cut a release: `scripts/release.sh 0.1.0` (or push a `v0.1.0` tag manually).
