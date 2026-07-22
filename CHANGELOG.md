@@ -4,6 +4,32 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/) (pre-1.0: the public API may still shift).
 
+## [0.6.0] - 2026-07-22
+
+### Added
+
+- **Wait-on-Quota**, a per-run library option: on a limit-hit, the runner checks
+  the CLI's own quota status and, if the reset falls under a configurable
+  threshold, pauses and resumes on the same CLI instead of switching to a
+  fallback. Configured via `CliOptions`; the decision itself lives in a small,
+  independently testable `QuotaWaitPolicy`.
+- **Typed CLI diagnostics** — a new `CliRunEvent` case for warnings and other
+  structured diagnostics surfaced on stderr or a CLI's own protocol channel,
+  plus richer session and turn metadata (session id propagation, turn usage
+  summaries). Repeated diagnostics are coalesced (`DiagnosticCoalescer`) so a
+  noisy CLI reports one deduplicated event with a count instead of a flood of
+  duplicates. The Codex adapter gained the most surface here, extracting
+  plugin- and warning-level detail its protocol already carries.
+
+### Changed
+
+- Repository references (readme, package/repository URLs, release workflow)
+  now point at the `agent-orc` GitHub org, following the project's transfer
+  and short rename.
+- The runner's page on the project website was relaunched with self-hosted
+  fonts (Inter, Space Grotesk, JetBrains Mono) instead of a CDN font
+  dependency.
+
 ## [0.5.0] - 2026-07-10
 
 ### Added
@@ -57,6 +83,7 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 Baseline for this changelog.
 
+[0.6.0]: https://github.com/agent-orc/runner/releases/tag/v0.6.0
 [0.5.0]: https://github.com/agent-orc/runner/releases/tag/v0.5.0
 [0.4.0]: https://github.com/agent-orc/runner/releases/tag/v0.4.0
 [0.3.1]: https://github.com/agent-orc/runner/releases/tag/v0.3.1
