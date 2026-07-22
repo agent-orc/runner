@@ -6,6 +6,7 @@ using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using CodingAgentRunner.Abstractions;
+using CodingAgentRunner.Attachments;
 using CodingAgentRunner.Events;
 using CodingAgentRunner.Execution.Hardening;
 using CodingAgentRunner.Execution.Logging;
@@ -230,6 +231,14 @@ internal sealed class CliRunEngine : ICliDriver
             _processes.TryRemove(request.RunId, out _);
         }
 
+        var (preparedAttachments, attachmentError) = await AttachmentPreparation
+            .PrepareAsync(request, Options.AttachmentResolver, Logger, ct)
+            .ConfigureAwait(false);
+        if (attachmentError is not null)
+            return (null, attachmentError);
+
+        var launchRequest = preparedAttachments!.Request;
+
         if (_descriptor.EnsureHealthy is { } heal)
         {
             var (healthy, healError) = await heal(new PreSpawnHealthContext(() => TestCliPath(), Logger), ct).ConfigureAwait(false);
@@ -243,7 +252,10 @@ internal sealed class CliRunEngine : ICliDriver
         var model = NormalizeModel(request.Model);
         var thinking = CliThinkingLevels.Normalize(CliType, model, request.ThinkingLevel);
 
-        var launch = _descriptor.BuildLaunch(new CliLaunchContext(request, _descriptor.GetCliPath(Options), model, thinking, Logger));
+        var launch = _descriptor.BuildLaunch(new CliLaunchContext(launchRequest, _descriptor.GetCliPath(Options), model, thinking, Logger)
+        {
+            Attachments = preparedAttachments.Files,
+        });
 
         var psi = new ProcessStartInfo
         {

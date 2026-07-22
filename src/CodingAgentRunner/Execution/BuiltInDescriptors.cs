@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using CodingAgentRunner.Abstractions;
 using CodingAgentRunner.Adapters;
+using CodingAgentRunner.Attachments;
 using CodingAgentRunner.Events;
 using CodingAgentRunner.Execution.Hardening;
 using CodingAgentRunner.Model;
@@ -104,6 +105,11 @@ internal static class BuiltInDescriptors
         foreach (var flag in CliReasoningFlags.For(CliTypes.Codex, ctx.ResolvedModel, ctx.ResolvedThinkingLevel)) argv.Add(flag);
         if (r.Tuning is { Count: > 0 })
             foreach (var kv in r.Tuning) { argv.Add("-c"); argv.Add($"{kv.Key}={kv.Value}"); }
+        foreach (var attachment in ctx.Attachments.Where(IsImage))
+        {
+            argv.Add("--image");
+            argv.Add(attachment.AbsolutePath);
+        }
         if (!string.IsNullOrWhiteSpace(r.ResumeSessionId) && Uuid.IsMatch(r.ResumeSessionId!))
         {
             argv.Add("resume"); argv.Add(r.ResumeSessionId!);
@@ -251,6 +257,14 @@ internal static class BuiltInDescriptors
     {
         try { return BinaryResolver.ResolveExecutable(path); }
         catch { return path; }
+    }
+
+    private static bool IsImage(ResolvedAttachment attachment)
+    {
+        if (attachment.MediaType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        return Path.GetExtension(attachment.AbsolutePath).ToLowerInvariant() is
+            ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp" or ".bmp" or ".tif" or ".tiff";
     }
 
     private static string ResolveClaudeBinary(string nameOrPath, ILogger logger)

@@ -1,5 +1,6 @@
 using CodingAgentRunner.Events;
 using CodingAgentRunner.Model;
+using CodingAgentRunner.Attachments;
 using Microsoft.Extensions.Logging;
 
 namespace CodingAgentRunner.Execution;
@@ -48,7 +49,14 @@ public sealed record CliLaunchContext(
     string CliPath,
     string? ResolvedModel,
     string? ResolvedThinkingLevel,
-    ILogger Logger);
+    ILogger Logger)
+{
+    /// <summary>
+    /// Attachment files resolved and validated before launch. Built-in descriptors
+    /// use this for CLI-native image input where available.
+    /// </summary>
+    public IReadOnlyList<ResolvedAttachment> Attachments { get; init; } = [];
+}
 
 /// <summary>Builds the immutable <see cref="LaunchSpec"/> for a run — the descriptor seam that replaces a driver's <c>BuildStartInfo</c> + <c>GetPromptStdinPayload</c>.</summary>
 public delegate LaunchSpec LaunchSpecBuilder(CliLaunchContext context);

@@ -113,6 +113,50 @@ var (run, error) = await driver.StartAsync(new CliRunRequest
 driver.Stop("task-1");
 ```
 
+### Chat and task attachments
+
+`CliRunRequest.Attachments` accepts the durable references stored with a chat or
+task message. The host supplies an `IAttachmentResolver` because storage ids and
+authenticated download routes belong to the application, not to the runner:
+
+```csharp
+using CodingAgentRunner.Attachments;
+
+var runner = new CliRunner(new CliOptions
+{
+    AttachmentResolver = new ProjectAttachmentResolver(chatAttachmentStore),
+});
+
+var (run, error) = await runner.Codex.StartAsync(new CliRunRequest
+{
+    RunId = "task-with-image",
+    Prompt = "Explain the build error in the pasted screenshot.",
+    WorkingDirectory = @"C:\repo",
+    Attachments =
+    [
+        new AttachmentReference("attachment:01JZ...")
+        {
+            FileName = "build-error.png",
+            MediaType = "image/png",
+            AltText = "Build output",
+        },
+    ],
+});
+```
+
+`ProjectAttachmentResolver` in this example is application code: implement
+`IAttachmentResolver` against the storage used by the chat host.
+
+The resolver returns a `ResolvedAttachment` with an existing absolute path and
+keeps that file readable for the run. The runner validates every reference before
+spawning a process. Codex image attachments use its native `--image` input; every
+CLI also receives the absolute paths in a delimited prompt block so an agent with
+file-reading tools can open them. A missing resolver, unknown reference, relative
+path, or missing file returns an actionable start error and no CLI is launched.
+
+See [docs/chat-attachments.md](docs/chat-attachments.md) for the resolver contract
+and failure behavior.
+
 ### Prerequisites: the CLI must be installed and signed in
 
 The library runs CLIs you already have — it does not install or authenticate
@@ -240,6 +284,7 @@ so HTML output is XSS-safe by default. Event-stream consumers never pay this dep
 ```
 src/CodingAgentRunner/
   CliRunner.cs                  entry point: resolves one ICliDriver per CLI from the catalog
+  Attachments/                  durable-reference resolver contract + launch preparation
   Abstractions/                 consumer options + IUserHome/IRunLogPath providers
   Model/                        value types, the run-outcome classifier, model catalog, CliCapabilities
   Events/                       CliRunEvent contract, phase machine, Interrupt + InterruptReason, watchdog

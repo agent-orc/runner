@@ -61,6 +61,14 @@ machine room is not part of the contract, and there is **no "add your own CLI"
 extension point** today — the descriptors are a fixed, inspectable catalog, not a
 registration hook. The one launch-time seam is `CliOptions.Spawner` (see below).
 
+`CliRunRequest.Attachments` carries durable references from a chat/task message.
+The host-owned `CliOptions.AttachmentResolver` resolves them to existing absolute
+file paths before launch. Codex receives images through its native image option;
+all descriptors receive the validated files through `CliLaunchContext.Attachments`,
+and the prompt includes an absolute-path context block. Resolution is all-or-nothing:
+an unavailable reference returns a start error before a child process is spawned.
+See [Chat attachments](chat-attachments.md).
+
 **Use, don't extend.** You consume the library through interfaces and records; you do
 not subclass it. A CLI is *data* — a `CliDescriptor` is a sealed record of fields plus
 a few pure delegates (`BuildLaunch`, `Parse`, `InterruptClassifier`, `Capabilities`,

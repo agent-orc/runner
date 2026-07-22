@@ -4,6 +4,15 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/) (pre-1.0: the public API may still shift).
 
+## [Unreleased]
+
+### Added
+
+- **Chat/task attachment resolution** through a host-supplied
+  `IAttachmentResolver`. Runs validate durable references before spawn, add
+  absolute file paths to agent context, and pass images through Codex's native
+  image input. Missing or stale references now return an actionable start error.
+
 ## [0.6.0] - 2026-07-22
 
 ### Added

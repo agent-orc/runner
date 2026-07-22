@@ -1,3 +1,5 @@
+using CodingAgentRunner.Attachments;
+
 namespace CodingAgentRunner.Execution;
 
 /// <summary>
@@ -11,6 +13,13 @@ public sealed record CliRunRequest
 
     /// <summary>The prompt to hand the agent.</summary>
     public required string Prompt { get; init; }
+
+    /// <summary>
+    /// Durable attachment references from the chat/task message. The runner resolves
+    /// every reference through <see cref="Abstractions.CliOptions.AttachmentResolver"/>
+    /// before spawning the CLI and fails the start when any reference is unavailable.
+    /// </summary>
+    public IReadOnlyList<AttachmentReference>? Attachments { get; init; }
 
     /// <summary>Working directory the CLI runs in (the checkout / worktree).</summary>
     public required string WorkingDirectory { get; init; }

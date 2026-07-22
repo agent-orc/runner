@@ -1,5 +1,6 @@
 namespace CodingAgentRunner.Abstractions;
 
+using CodingAgentRunner.Attachments;
 using CodingAgentRunner.Quota;
 
 /// <summary>
@@ -47,6 +48,13 @@ public sealed record CliOptions
     /// pipes. See <see cref="ICliProcessSpawner"/>.
     /// </summary>
     public ICliProcessSpawner? Spawner { get; init; }
+
+    /// <summary>
+    /// Resolves durable chat/task attachment references to local files before a CLI
+    /// starts. Required only when <see cref="Execution.CliRunRequest.Attachments"/>
+    /// is non-empty; an unresolved reference fails the run start with a clear error.
+    /// </summary>
+    public IAttachmentResolver? AttachmentResolver { get; init; }
 }
 
 /// <summary>Controls the optional wait-and-retry branch for quota-limit failures.</summary>
