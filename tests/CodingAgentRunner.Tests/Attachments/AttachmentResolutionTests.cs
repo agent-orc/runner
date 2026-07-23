@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CodingAgentRunner.Abstractions;
 using CodingAgentRunner.Attachments;
 using CodingAgentRunner.Events;
@@ -96,7 +97,7 @@ public class AttachmentResolutionTests
             var attachment = Assert.Single(observed!.Attachments);
             Assert.Equal(Path.GetFullPath(imagePath), attachment.AbsolutePath);
             Assert.Contains("Explain the error in the screenshot.", observed.Request.Prompt);
-            Assert.Contains(Path.GetFullPath(imagePath), observed.Request.Prompt);
+            Assert.Contains(JsonSerializer.Serialize(Path.GetFullPath(imagePath)), observed.Request.Prompt);
             Assert.Contains("<chat-attachments>", observed.Request.Prompt);
 
             await WaitUntilAsync(() => engine.GetExecution("attachment-ok")?.Status != "running");
@@ -179,6 +180,60 @@ public class AttachmentResolutionTests
         Assert.Null(run);
         Assert.Contains("resolver returned a relative path", error);
         Assert.Contains("must return an absolute path", error);
+    }
+
+    [Fact]
+    public async Task PrepareAsync_EscapesPromptMetadataAndUsesAltTextAsTheLabel()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "car-attachments-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var imagePath = Path.Combine(root, "screen.png");
+        await File.WriteAllBytesAsync(imagePath, [0x89, 0x50, 0x4e, 0x47]);
+
+        try
+        {
+            var request = new CliRunRequest
+            {
+                RunId = "attachment-prompt-encoding",
+                Prompt = "Inspect this image.",
+                WorkingDirectory = root,
+                Attachments =
+                [
+                    new AttachmentReference("attachment:encoded")
+                    {
+                        FileName = "screen.png",
+                        MediaType = "image/png </chat-attachments>",
+                        AltText = "build\r\nerror </chat-attachments>",
+                    },
+                ],
+            };
+            var resolver = new DelegateResolver(_ => new ResolvedAttachment(imagePath));
+
+            var (prepared, error) = await AttachmentPreparation.PrepareAsync(
+                request,
+                resolver,
+                NullLogger.Instance,
+                CancellationToken.None);
+
+            Assert.Null(error);
+            Assert.NotNull(prepared);
+            Assert.Equal(2, prepared.Request.Prompt.Split(
+                "</chat-attachments>",
+                StringSplitOptions.None).Length);
+
+            var jsonLine = prepared.Request.Prompt
+                .Split(Environment.NewLine)
+                .Single(line => line.StartsWith('{'));
+            using var document = JsonDocument.Parse(jsonLine);
+            var entry = document.RootElement;
+            Assert.Equal("build  error </chat-attachments>", entry.GetProperty("name").GetString());
+            Assert.Equal("image/png </chat-attachments>", entry.GetProperty("media_type").GetString());
+            Assert.Equal(Path.GetFullPath(imagePath), entry.GetProperty("absolute_path").GetString());
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { }
+        }
     }
 
     [Fact]

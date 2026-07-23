@@ -52,13 +52,14 @@ Resolution happens before the CLI process starts. For each attachment, the runne
 
 1. calls the configured resolver;
 2. requires a fully qualified absolute path and verifies that the file exists;
-3. adds the absolute path, file name, and media type to a delimited
-   `<chat-attachments>` block after the prompt;
+3. adds the absolute path, display label, and media type as one escaped JSON object
+   per file in a delimited `<chat-attachments>` block after the prompt;
 4. passes image files to Codex with `--image`, including resumed runs.
 
 The prompt block lets file-reading CLIs open the durable file by absolute path.
 Codex's native image option additionally sends image content as model input.
-Non-image files are path context only.
+Non-image files are path context only. `AltText` is used as the display label when
+present; otherwise the runner uses the resolved or recorded file name.
 
 ## Failures and logs
 

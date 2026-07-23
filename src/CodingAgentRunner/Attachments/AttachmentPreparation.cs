@@ -152,9 +152,14 @@ internal static class AttachmentPreparation
         {
             var file = files[i];
             var reference = references[i];
-            var label = FirstNonBlank(file.FileName, reference.AltText, reference.FileName, "attachment")!;
+            var label = FirstNonBlank(reference.AltText, file.FileName, reference.FileName, "attachment")!;
             var media = string.IsNullOrWhiteSpace(file.MediaType) ? "unknown media type" : file.MediaType!;
-            lines.Add($"- {JsonSerializer.Serialize(OneLine(label))} ({OneLine(media)}): {file.AbsolutePath}");
+            lines.Add(JsonSerializer.Serialize(new
+            {
+                name = OneLine(label),
+                media_type = OneLine(media),
+                absolute_path = file.AbsolutePath,
+            }));
         }
 
         lines.Add("</chat-attachments>");
