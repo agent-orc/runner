@@ -24,8 +24,16 @@ The recipe for a clean home is declared as data on each CLI's descriptor via
   (`CLAUDE_CONFIG_DIR` for Claude, `CODEX_HOME` for Codex).
 - `SourceConfigDirName` — the user-home-relative dir to seed from (`.claude`,
   `.codex`).
-- `SeedFiles` — the files copied in: auth + base config only, never history or
-  memory.
+- `LinkedSeedFiles` — refreshable credentials that use a hardlink, then a
+  symbolic link, with a copy fallback when linking is unavailable.
+- `CopiedSeedFiles` — base config copied into the clean home so run-time changes
+  remain isolated.
+
+The built-in Claude recipe links `.credentials.json` and copies `settings.json`.
+The Codex recipe links `auth.json` and copies `config.toml`. Linking credentials
+allows an in-place OAuth refresh during a clean run to update the operator's
+source credential instead of only the temporary home. History and memory are
+never seeded.
 
 Declaring the recipe as data keeps the descriptor a pure value; the engine turns
 it into the actual per-run home at spawn time

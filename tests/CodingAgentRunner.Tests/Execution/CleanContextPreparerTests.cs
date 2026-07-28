@@ -38,6 +38,21 @@ public class CleanContextPreparerTests
             Assert.True(File.Exists(Path.Combine(prep.TempHome, "settings.json")));
             Assert.False(File.Exists(Path.Combine(prep.TempHome, "CLAUDE.md")));
 
+            // Credential refreshes in the clean home reach the source through the hardlink.
+            var sourceCredentials = Path.Combine(home, ".claude", ".credentials.json");
+            var cleanCredentials = Path.Combine(prep.TempHome, ".credentials.json");
+            Assert.Contains(
+                prep.Sources,
+                s => s.Path == cleanCredentials && s.Detail?.StartsWith("hard-linked from ") == true);
+            File.WriteAllText(cleanCredentials, "{\"token\":\"refreshed\"}");
+            Assert.Equal("{\"token\":\"refreshed\"}", File.ReadAllText(sourceCredentials));
+
+            // Base settings remain an independent copy.
+            var sourceSettings = Path.Combine(home, ".claude", "settings.json");
+            var cleanSettings = Path.Combine(prep.TempHome, "settings.json");
+            File.WriteAllText(cleanSettings, "{\"clean\":true}");
+            Assert.Equal("{}", File.ReadAllText(sourceSettings));
+
             // Sources: the env entry + the two seeded files.
             Assert.Contains(prep.Sources, s => s.Kind == CliContextSourceKinds.Env);
             Assert.Equal(2, prep.Sources.Count(s => s.Kind == CliContextSourceKinds.GlobalConfig));
@@ -77,5 +92,62 @@ public class CleanContextPreparerTests
         Assert.True(Directory.Exists(prep!.TempHome));
         // Only the env source; nothing to seed.
         Assert.DoesNotContain(prep.Sources, s => s.Kind == CliContextSourceKinds.GlobalConfig);
+    }
+
+    [Fact]
+    public void LinkOrCopy_WhenLinksAreUnavailable_FallsBackToIndependentCopy()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "car-link-fallback-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var source = Path.Combine(root, "source.json");
+            var destination = Path.Combine(root, "destination.json");
+            File.WriteAllText(source, "{\"token\":\"source\"}");
+            var attempts = new List<string>();
+
+            var method = CleanContextPreparer.LinkOrCopy(
+                source,
+                destination,
+                createHardLink: (_, _) =>
+                {
+                    attempts.Add("hardlink");
+                    throw new PlatformNotSupportedException();
+                },
+                createSymbolicLink: (_, _) =>
+                {
+                    attempts.Add("symlink");
+                    throw new UnauthorizedAccessException();
+                });
+
+            Assert.Equal(SeedFileMethod.Copy, method);
+            Assert.Equal(["hardlink", "symlink"], attempts);
+            Assert.Equal(File.ReadAllText(source), File.ReadAllText(destination));
+
+            File.WriteAllText(destination, "{\"token\":\"clean-home\"}");
+            Assert.Equal("{\"token\":\"source\"}", File.ReadAllText(source));
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { /* ignore */ }
+        }
+    }
+
+    [Fact]
+    public void BuiltInSpecs_SeparateRefreshableCredentialsFromCopiedConfig()
+    {
+        var defaultSpec = new CleanContextSpec("CLI_HOME", ".cli", ["auth.json"]);
+        Assert.Equal(["auth.json"], defaultSpec.LinkedSeedFiles);
+        Assert.Empty(defaultSpec.CopiedSeedFiles);
+
+        var claude = BuiltInDescriptors.Get(CliTypes.Claude).CleanContext;
+        Assert.NotNull(claude);
+        Assert.Equal([".credentials.json"], claude!.LinkedSeedFiles);
+        Assert.Equal(["settings.json"], claude.CopiedSeedFiles);
+
+        var codex = BuiltInDescriptors.Get(CliTypes.Codex).CleanContext;
+        Assert.NotNull(codex);
+        Assert.Equal(["auth.json"], codex!.LinkedSeedFiles);
+        Assert.Equal(["config.toml"], codex.CopiedSeedFiles);
     }
 }

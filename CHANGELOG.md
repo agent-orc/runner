@@ -13,6 +13,14 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
   absolute file paths to agent context, and pass images through Codex's native
   image input. Missing or stale references now return an actionable start error.
 
+### Fixed
+
+- **Behavior change:** clean-context credential seeds now use a hardlink, then a
+  symbolic link, with a copy only when neither link is available. Claude
+  `.credentials.json` and Codex `auth.json` therefore share in-place OAuth token
+  refreshes with the source home. Claude `settings.json` and Codex `config.toml`
+  remain independent copies.
+
 ## [0.6.0] - 2026-07-22
 
 ### Added

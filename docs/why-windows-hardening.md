@@ -51,8 +51,11 @@ extensionless `git` wrapper that git-bash actually resolves.
 stepping on each other's session/state.
 
 **Fix.** Each run gets an **isolated CLI home** (e.g. via the CLI's config-dir
-environment variable) under a temp path, so sessions, credentials caches, and
-transcripts never collide. The liveness watcher follows the run into that home.
+environment variable) under a temp path, so sessions, caches, and transcripts
+never collide. Refreshable credential files are linked to the source home so an
+in-place OAuth refresh survives disposal of the temporary home; settings and
+base config remain independent copies. The liveness watcher follows the run into
+that home.
 
 ---
 

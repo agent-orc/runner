@@ -36,7 +36,11 @@ internal static class BuiltInDescriptors
     {
         CliType = CliTypes.Claude,
         GetCliPath = o => o.ClaudePath ?? "claude",
-        CleanContext = new CleanContextSpec("CLAUDE_CONFIG_DIR", ".claude", [".credentials.json", "settings.json"]),
+        CleanContext = new CleanContextSpec(
+            "CLAUDE_CONFIG_DIR",
+            ".claude",
+            LinkedSeedFiles: [".credentials.json"],
+            CopiedSeedFiles: ["settings.json"]),
         Capabilities = m => Capabilities(CliTypes.Claude, m, supportsCleanContext: true, supportsResume: true),
         CanResumeSessionId = static _ => true,
         InterruptClassifier = InterruptClassifiers.None,
@@ -86,7 +90,11 @@ internal static class BuiltInDescriptors
     {
         CliType = CliTypes.Codex,
         GetCliPath = o => o.CodexPath ?? "codex",
-        CleanContext = new CleanContextSpec("CODEX_HOME", ".codex", ["auth.json", "config.toml"]),
+        CleanContext = new CleanContextSpec(
+            "CODEX_HOME",
+            ".codex",
+            LinkedSeedFiles: ["auth.json"],
+            CopiedSeedFiles: ["config.toml"]),
         Capabilities = m => Capabilities(CliTypes.Codex, m, supportsCleanContext: true, supportsResume: true),
         CanResumeSessionId = static s => !string.IsNullOrWhiteSpace(s) && Uuid.IsMatch(s),
         InterruptClassifier = InterruptClassifiers.None,

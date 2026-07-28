@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using CodingAgentRunner.Model;
 
@@ -71,27 +73,33 @@ internal sealed class CleanContextPreparation : IDisposable
 
 /// <summary>
 /// Builds a CLI's <see cref="CleanContextPreparation"/>: creates the per-run temp
-/// home, copies only the auth + base-config allowlist into it, and reports the
-/// resulting paths. Side-effect-light (it only touches a brand-new temp dir under
-/// <see cref="Path.GetTempPath"/>) so it is directly unit-testable with an injected
-/// fake home.
+/// home, links refreshable credentials, copies isolated base config, and reports
+/// the resulting paths. Side-effect-light (it only touches a brand-new temp dir
+/// under <see cref="Path.GetTempPath"/>) so it is directly unit-testable with an
+/// injected fake home.
 /// </summary>
 internal static class CleanContextPreparer
 {
     /// <summary>
-    /// Files copied from <c>~/.claude</c> into a clean <c>CLAUDE_CONFIG_DIR</c>: the
-    /// OAuth credentials and the base settings. Deliberately excludes
-    /// <c>projects/</c> (per-cwd session transcripts), <c>history.jsonl</c>, and
-    /// <c>CLAUDE.md</c> (user memory) so a clean run carries no accumulated state.
+    /// Files linked from <c>~/.claude</c> into a clean <c>CLAUDE_CONFIG_DIR</c> so
+    /// OAuth refreshes remain visible to the source home.
     /// </summary>
-    private static readonly string[] ClaudeSeedFiles = [".credentials.json", "settings.json"];
+    private static readonly string[] ClaudeLinkedSeedFiles = [".credentials.json"];
 
     /// <summary>
-    /// Files copied from <c>~/.codex</c> into a clean <c>CODEX_HOME</c>: the auth
-    /// token and the base config. Excludes <c>sessions/</c> and
-    /// <c>history.jsonl</c>.
+    /// Files copied from <c>~/.claude</c> so clean-home settings changes remain
+    /// isolated. The recipe excludes project transcripts, history, and user memory.
     /// </summary>
-    private static readonly string[] CodexSeedFiles = ["auth.json", "config.toml"];
+    private static readonly string[] ClaudeCopiedSeedFiles = ["settings.json"];
+
+    /// <summary>Codex auth files linked so in-place token refreshes reach the source home.</summary>
+    private static readonly string[] CodexLinkedSeedFiles = ["auth.json"];
+
+    /// <summary>
+    /// Codex config files copied into the clean home. The recipe excludes sessions
+    /// and history.
+    /// </summary>
+    private static readonly string[] CodexCopiedSeedFiles = ["config.toml"];
 
     /// <summary>
     /// Build the Claude clean context (<c>CLAUDE_CONFIG_DIR</c> redirect).
@@ -103,7 +111,13 @@ internal static class CleanContextPreparer
     public static CleanContextPreparation? PrepareClaude(string? userHome, ILogger? logger = null)
     {
         var source = string.IsNullOrWhiteSpace(userHome) ? null : Path.Combine(userHome, ".claude");
-        return Prepare(CliTypes.Claude, "CLAUDE_CONFIG_DIR", source, ClaudeSeedFiles, logger);
+        return Prepare(
+            CliTypes.Claude,
+            "CLAUDE_CONFIG_DIR",
+            source,
+            ClaudeLinkedSeedFiles,
+            ClaudeCopiedSeedFiles,
+            logger);
     }
 
     /// <summary>
@@ -113,7 +127,13 @@ internal static class CleanContextPreparer
     public static CleanContextPreparation? PrepareCodex(string? userHome, ILogger? logger = null)
     {
         var source = string.IsNullOrWhiteSpace(userHome) ? null : Path.Combine(userHome, ".codex");
-        return Prepare(CliTypes.Codex, "CODEX_HOME", source, CodexSeedFiles, logger);
+        return Prepare(
+            CliTypes.Codex,
+            "CODEX_HOME",
+            source,
+            CodexLinkedSeedFiles,
+            CodexCopiedSeedFiles,
+            logger);
     }
 
     /// <summary>
@@ -124,14 +144,21 @@ internal static class CleanContextPreparer
     public static CleanContextPreparation? PrepareFromSpec(string cliType, CleanContextSpec spec, string? userHome, ILogger? logger = null)
     {
         var source = string.IsNullOrWhiteSpace(userHome) ? null : Path.Combine(userHome, spec.SourceConfigDirName);
-        return Prepare(cliType, spec.EnvVar, source, spec.SeedFiles, logger);
+        return Prepare(
+            cliType,
+            spec.EnvVar,
+            source,
+            spec.LinkedSeedFiles,
+            spec.CopiedSeedFiles,
+            logger);
     }
 
     private static CleanContextPreparation? Prepare(
         string cliType,
         string envVar,
         string? sourceDir,
-        IReadOnlyList<string> seedFiles,
+        IReadOnlyList<string> linkedSeedFiles,
+        IReadOnlyList<string> copiedSeedFiles,
         ILogger? logger)
     {
         string tempHome;
@@ -161,36 +188,126 @@ internal static class CleanContextPreparer
             },
         };
 
-        foreach (var rel in seedFiles)
-        {
-            if (string.IsNullOrWhiteSpace(sourceDir)) break;
-            var src = Path.Combine(sourceDir, rel);
-            var dst = Path.Combine(tempHome, rel);
-            try
-            {
-                if (!File.Exists(src)) continue;
-                var dstDir = Path.GetDirectoryName(dst);
-                if (!string.IsNullOrEmpty(dstDir)) Directory.CreateDirectory(dstDir);
-                File.Copy(src, dst, overwrite: true);
-                sources.Add(new CliContextSource
-                {
-                    Kind = CliContextSourceKinds.GlobalConfig,
-                    Label = $"Seeded {rel}",
-                    Path = dst,
-                    Exists = true,
-                    Detail = $"copied from {src}",
-                });
-            }
-            catch (Exception ex)
-            {
-                // A failed seed is not fatal: auth may come from an env var
-                // (ANTHROPIC_API_KEY / CODEX auth) instead of the file, so the clean
-                // run can still succeed. Note it for diagnostics only.
-                logger?.LogDebug(ex, "Could not seed {File} into clean {Cli} home", rel, cliType);
-            }
-        }
+        SeedFiles(linkedSeedFiles, linked: true);
+        SeedFiles(copiedSeedFiles, linked: false);
 
         var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [envVar] = tempHome };
         return new CleanContextPreparation(cliType, tempHome, env, sources, logger);
+
+        void SeedFiles(IReadOnlyList<string> seedFiles, bool linked)
+        {
+            foreach (var rel in seedFiles)
+            {
+                if (string.IsNullOrWhiteSpace(sourceDir)) break;
+                var src = Path.Combine(sourceDir, rel);
+                var dst = Path.Combine(tempHome, rel);
+                try
+                {
+                    if (!File.Exists(src)) continue;
+                    var dstDir = Path.GetDirectoryName(dst);
+                    if (!string.IsNullOrEmpty(dstDir)) Directory.CreateDirectory(dstDir);
+                    var method = linked
+                        ? LinkOrCopy(src, dst, logger)
+                        : SeedFileMethod.Copy;
+                    if (!linked) File.Copy(src, dst, overwrite: true);
+                    sources.Add(new CliContextSource
+                    {
+                        Kind = CliContextSourceKinds.GlobalConfig,
+                        Label = $"Seeded {rel}",
+                        Path = dst,
+                        Exists = true,
+                        Detail = $"{Describe(method)} from {src}",
+                    });
+                }
+                catch (Exception ex)
+                {
+                    // A failed seed is not fatal: auth may come from an env var
+                    // (ANTHROPIC_API_KEY / Codex auth) instead of the file, so the
+                    // clean run can still succeed. Note it for diagnostics only.
+                    logger?.LogDebug(ex, "Could not seed {File} into clean {Cli} home", rel, cliType);
+                }
+            }
+        }
     }
+
+    internal static SeedFileMethod LinkOrCopy(
+        string source,
+        string destination,
+        ILogger? logger = null,
+        Action<string, string>? createHardLink = null,
+        Action<string, string>? createSymbolicLink = null)
+    {
+        try
+        {
+            (createHardLink ?? CreateHardLink)(source, destination);
+            return SeedFileMethod.HardLink;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogDebug(
+                ex,
+                "Clean-context hardlink unavailable for {Source}; trying a symbolic link",
+                source);
+        }
+
+        try
+        {
+            (createSymbolicLink ?? CreateSymbolicLink)(source, destination);
+            return SeedFileMethod.SymbolicLink;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogDebug(
+                ex,
+                "Clean-context symbolic link unavailable for {Source}; copying the file",
+                source);
+        }
+
+        File.Copy(source, destination, overwrite: true);
+        return SeedFileMethod.Copy;
+    }
+
+    private static string Describe(SeedFileMethod method) => method switch
+    {
+        SeedFileMethod.HardLink => "hard-linked",
+        SeedFileMethod.SymbolicLink => "symbolically linked",
+        _ => "copied",
+    };
+
+    private static void CreateHardLink(string source, string destination)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            if (!CreateHardLinkWindows(destination, source, IntPtr.Zero))
+                throw new IOException(
+                    $"Could not create hardlink '{destination}' to '{source}'.",
+                    new Win32Exception(Marshal.GetLastWin32Error()));
+            return;
+        }
+
+        if (CreateHardLinkUnix(source, destination) != 0)
+            throw new IOException(
+                $"Could not create hardlink '{destination}' to '{source}'.",
+                new Win32Exception(Marshal.GetLastWin32Error()));
+    }
+
+    private static void CreateSymbolicLink(string source, string destination) =>
+        File.CreateSymbolicLink(destination, source);
+
+    [DllImport("kernel32.dll", EntryPoint = "CreateHardLinkW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CreateHardLinkWindows(
+        string fileName,
+        string existingFileName,
+        IntPtr securityAttributes);
+
+    [DllImport("libc", EntryPoint = "link", SetLastError = true)]
+    private static extern int CreateHardLinkUnix(string existingFileName, string fileName);
+}
+
+internal enum SeedFileMethod
+{
+    HardLink,
+    SymbolicLink,
+    Copy,
 }
