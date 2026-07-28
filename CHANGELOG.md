@@ -13,6 +13,23 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
   option avoids the Windows CreateProcess 32,767-character command-line limit,
   Linux's 128 KiB single-argument limit, and exposing the full prompt through
   `ps` or `/proc/<pid>/cmdline` on shared hosts.
+- **Cheap-subagent delegation as run configuration.** Before a Claude or Codex run
+  the runner materializes a curated agent set into the CLI's own convention
+  (`.claude/agents/*.md`, `.codex/agents/*.toml`): `mechanical` on Claude `haiku` for
+  mechanical sweeps and `checker` on Claude `sonnet` for verifying finished work. The
+  run prompt gets a `<delegation-economy>` block naming the rule and the available
+  agents. There is no new API — the CLI does the spawning. A repository's own
+  definition of the same name always wins, an empty `.claude/agents/.no-runner-agents`
+  file opts a project out, and every file the runner writes is removed when the run
+  ends. `CliOptions.Delegation` (`DelegationOptions`) configures or disables it, and
+  `CliRunInfo.Subagents` reports what a run had available. Codex runs get the
+  definitions but not the prompt rule: probed against codex-cli 0.145.0, `codex exec`
+  accepts the collab tooling but starts no child thread and the model then reports an
+  invented result — see `docs/delegation.md`.
+- Claude `Task` tool calls now report which subagent ran (`ToolStarted("Task",
+  "<subagent>")`, read from the frame's `subagent_type`), and Codex `collab_tool_call`
+  / `agent_spawn` items report the collab tool or agent name instead of a bare item
+  type.
 - **Chat/task attachment resolution** through a host-supplied
   `IAttachmentResolver`. Runs validate durable references before spawn, add
   absolute file paths to agent context, and pass images through Codex's native

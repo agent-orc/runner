@@ -65,6 +65,14 @@ public sealed record CliDescriptor
     /// <summary>The clean-context recipe (config-home redirect + seed files), or null when this CLI cannot isolate per-run state.</summary>
     public CleanContextSpec? CleanContext { get; init; }
 
+    /// <summary>
+    /// The CLI's agent-definition convention (where project-scoped subagent files
+    /// live and how one is rendered), or null when the CLI has no subagent surface
+    /// the runner can configure. Delegation itself is the CLI's own behaviour — this
+    /// only supplies the definitions.
+    /// </summary>
+    public Delegation.SubagentSpec? Subagents { get; init; }
+
     /// <summary>Optional custom availability probe (e.g. Antigravity has no <c>--version</c>); null uses the engine's default <c>--version</c> probe.</summary>
     public Func<CliOptions, string?, (bool Available, string? Version, string Path)>? ProbeCliPath { get; init; }
 

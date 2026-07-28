@@ -10,6 +10,7 @@ code** so the institutional memory isn't lost during the extraction.
 - **[Pricing](pricing.md)** — the one library of per-model API prices with history, and the pure cost API (`ModelPriceCatalog`) that computes a run's cost with the price valid at run time — unknown/unpriced models are explicit, never a silent zero.
 - **[Cross-CLI normalization](cross-cli-normalization.md)** — the same concept in three CLI dialects, the per-CLI frame table, the structural asymmetries the model absorbs, and the one `CliRunEvent` vocabulary the adapters fold them into.
 - **[Chat attachments](chat-attachments.md)** — resolving durable chat attachment references to local files, CLI delivery, and actionable start failures.
+- **[Cheap-subagent delegation](delegation.md)** — the agent definitions a run gets, the prompt block that advertises them, how a project overrides or opts out, and what `codex exec` does with subagents today.
 - **[Why Windows hardening](why-windows-hardening.md)** — the war stories behind each hardening behaviour, and why each ships with a test.
 - **[Process termination & abort handling](process-termination.md)** — the outcome model (`stopped` vs `completed` vs `failed`), the abort scenarios, process-tree reaping, and the watchdog.
 - **[Voice & messaging](voice-and-messaging.md)** — how to write about the project: plain statements, no marketing language. Read before editing the README, the website, or any user-facing text.

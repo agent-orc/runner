@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using CodingAgentRunner.Abstractions;
+using CodingAgentRunner.Delegation;
 using CodingAgentRunner.Events;
 using CodingAgentRunner.Execution;
 using CodingAgentRunner.Model;
@@ -440,6 +441,9 @@ public class CliDriverEngineTests
             AllowAgentGitMutation = true,
             ClaudePromptTransport = ClaudePromptTransport.Stdin,
             Spawner = spawner,
+            // This test is about the transport, not about what the prompt says: with
+            // delegation on, the payload would also carry the injected agent block.
+            Delegation = new DelegationOptions { Enabled = false },
         }, null, logs);
         var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
         driver.OnFinished += (_, run) => finished.TrySetResult(run);
@@ -459,6 +463,63 @@ public class CliDriverEngineTests
         Assert.DoesNotContain(prompt, spawner.RequestedStartInfo.ArgumentList);
         Assert.Equal(prompt, Encoding.UTF8.GetString(spawner.Stdin.ToArray()));
         Assert.True(spawner.Stdin.WasClosed);
+    }
+
+    [Fact]
+    public async Task ClaudeRun_MaterializesSubagents_AdvertisesThem_AndLeavesTheWorkspaceAsItFoundIt()
+    {
+        using var logs = new TempLogs();
+        var spawner = new RecordingStdinSpawner();
+        var workspace = Path.Combine(Path.GetTempPath(), "car-delegation-run-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workspace);
+        try
+        {
+            var descriptor = BuiltInDescriptors.Claude with
+            {
+                GetCliPath = _ => "ignored-by-recording-spawner",
+                EnsureHealthy = null,
+            };
+            var driver = new CliRunEngine(descriptor, new CliOptions
+            {
+                AllowAgentGitMutation = true,
+                ClaudePromptTransport = ClaudePromptTransport.Stdin,
+                Spawner = spawner,
+            }, null, logs);
+            var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+            driver.OnFinished += (_, run) => finished.TrySetResult(run);
+
+            var (started, error) = await driver.StartAsync(new CliRunRequest
+            {
+                RunId = "claude-delegation",
+                Prompt = "Rename the parser",
+                WorkingDirectory = workspace,
+            });
+
+            Assert.Null(error);
+            Assert.Equal(["mechanical", "checker"], started!.Subagents);
+
+            // The prompt the CLI actually received names the cheap workers.
+            var payload = Encoding.UTF8.GetString(spawner.Stdin.ToArray());
+            Assert.StartsWith("Rename the parser", payload);
+            Assert.Contains(DelegationContextBlock.OpenTag, payload);
+            Assert.Contains("\"name\":\"mechanical\"", payload);
+            Assert.Contains("\"model\":\"haiku\"", payload);
+
+            await finished.Task.WaitAsync(TimeSpan.FromSeconds(30));
+
+            // Every file the runner wrote is gone once the run ends, so the host's
+            // commit never picks up a generated agent definition. Cleanup runs just
+            // after OnFinished (the consumer still sees the paths in its handler), so
+            // the assertion gives it a moment.
+            var agentsRoot = Path.Combine(workspace, ".claude");
+            for (var i = 0; i < 50 && Directory.Exists(agentsRoot); i++)
+                await Task.Delay(100);
+            Assert.False(Directory.Exists(agentsRoot));
+        }
+        finally
+        {
+            try { Directory.Delete(workspace, recursive: true); } catch { }
+        }
     }
 
     [Fact]

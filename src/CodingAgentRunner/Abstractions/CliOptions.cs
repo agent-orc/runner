@@ -1,6 +1,7 @@
 namespace CodingAgentRunner.Abstractions;
 
 using CodingAgentRunner.Attachments;
+using CodingAgentRunner.Delegation;
 using CodingAgentRunner.Quota;
 
 /// <summary>
@@ -62,6 +63,14 @@ public sealed record CliOptions
     /// is non-empty; an unresolved reference fails the run start with a clear error.
     /// </summary>
     public IAttachmentResolver? AttachmentResolver { get; init; }
+
+    /// <summary>
+    /// Cheap-subagent delegation: the agent definitions the runner materializes into
+    /// a run's workspace and the rule it appends to the prompt. Enabled by default;
+    /// see <see cref="DelegationOptions"/> for how a project overrides or opts out.
+    /// Applies to the CLIs that have an agent-definition convention (Claude, Codex).
+    /// </summary>
+    public DelegationOptions Delegation { get; init; } = new();
 }
 
 /// <summary>

@@ -6,6 +6,25 @@ top. This is a seed, not a complete history.
 
 ---
 
+### Cheap-subagent delegation is run configuration, and Codex gets the files but not the rule
+Delegation already exists inside Claude Code and Codex, so the library adds no
+spawn API: it writes agent definitions into each CLI's own convention
+(`.claude/agents/*.md`, `.codex/agents/*.toml`) before a run and appends the rule
+plus the agent inventory to the prompt. A repository's own definition of the same
+name always wins, and every file the runner writes is removed when the run ends,
+so a host's post-run commit never picks one up.
+
+Codex runs get the definitions but no prompt rule. Probed against codex-cli
+0.145.0 (three runs, including `--enable multi_agent_v2` and
+`-c agents.max_concurrent_threads_per_session=2`), `codex exec` exposes the collab
+tool family and accepts the `agents.*` config keys, but a spawn produces a
+`collab_tool_call` with empty `receiver_thread_ids` and empty `agents_states` — no
+child thread is created, and the model then reports a result it invented. Telling
+the primary agent to delegate under exec would buy fabricated results, so the
+definitions ship dormant until exec supports them.
+_Source: `Delegation/`, `docs/delegation.md`; probe transcripts in the CAR-11 job
+folder._
+
 ### The platform owns git; the guard is defence-in-depth, not a sandbox
 The reliable layer is a soft rule in the agent's instruction files
 (`AGENTS.md` / `CLAUDE.md`): don't run git — the host owns commit and push. On

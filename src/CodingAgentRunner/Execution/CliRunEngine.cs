@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using CodingAgentRunner.Abstractions;
 using CodingAgentRunner.Attachments;
+using CodingAgentRunner.Delegation;
 using CodingAgentRunner.Events;
 using CodingAgentRunner.Execution.Hardening;
 using CodingAgentRunner.Execution.Logging;
@@ -184,7 +185,12 @@ internal sealed class CliRunEngine : ICliDriver
 
     // ── Test hook ───────────────────────────────────────────────────────
 
-    /// <summary>Test hook: build the launch spec exactly as <see cref="StartAsync"/> would (model + thinking normalized).</summary>
+    /// <summary>
+    /// Test hook: build the launch spec from the request as <see cref="StartAsync"/>
+    /// would (model + thinking normalized). The prompt is taken verbatim — the
+    /// augmentations <see cref="StartAsync"/> applies first (attachment paths, the
+    /// delegation block) touch the filesystem, so they stay out of this hook.
+    /// </summary>
     internal LaunchSpec BuildLaunchForTest(CliRunRequest request)
     {
         var model = NormalizeModel(request.Model);
@@ -242,12 +248,40 @@ internal sealed class CliRunEngine : ICliDriver
 
         var launchRequest = preparedAttachments!.Request;
 
+        // Cheap-subagent delegation is run configuration, not an API: the runner puts
+        // the agent definitions where the CLI looks for them and tells the prompt they
+        // exist. The CLI does the spawning. Materialization is per run and reversed at
+        // run end, so a workspace is left as it was found.
+        SubagentMaterialization? subagents = null;
+        if (_descriptor.Subagents is { } subagentSpec)
+        {
+            try
+            {
+                subagents = SubagentMaterializer.Prepare(
+                    CliType, subagentSpec, request.WorkingDirectory, Options.Delegation, Logger);
+            }
+            catch (Exception ex)
+            {
+                // Delegation is an economy measure; a run must never fail over it.
+                Logger.LogWarning(ex, "Subagent materialization threw for {Cli} {RunId}; running without delegation", CliType, request.RunId);
+            }
+
+            if (subagents is not null
+                && subagentSpec.AdvertiseInPrompt
+                && DelegationContextBlock.Compose(
+                    launchRequest.Prompt, subagents, request.WorkingDirectory, Options.Delegation, Logger) is { } augmented)
+            {
+                launchRequest = launchRequest with { Prompt = augmented };
+            }
+        }
+
         if (_descriptor.EnsureHealthy is { } heal)
         {
             var (healthy, healError) = await heal(new PreSpawnHealthContext(() => TestCliPath(), Logger), ct).ConfigureAwait(false);
             if (!healthy)
             {
                 Logger.LogError("Pre-spawn health check failed for {Cli} ({RunId}): {Error}", CliType, request.RunId, healError);
+                subagents?.Dispose();
                 return (null, $"{CliType} CLI not available: {healError}");
             }
         }
@@ -313,6 +347,7 @@ internal sealed class CliRunEngine : ICliDriver
         {
             Logger.LogError(ex, "Failed to start {Cli} CLI for {RunId}", CliType, request.RunId);
             cleanContext?.Dispose();
+            subagents?.Dispose();
             return (null, $"Failed to start {CliType} CLI: {ex.Message}");
         }
 
@@ -326,6 +361,7 @@ internal sealed class CliRunEngine : ICliDriver
             Model = model,
             ThinkingLevel = thinking,
             CleanContextHome = cleanContext?.TempHome,
+            Subagents = subagents?.Available.Select(a => a.Name).ToList() ?? [],
         };
 
         var logDir = LogPaths.GetRunLogDirectory(request.RunId);
@@ -335,6 +371,7 @@ internal sealed class CliRunEngine : ICliDriver
             ChildStdin = child.Stdin,
             KillOverride = child.KillOverride,
             CleanContext = cleanContext,
+            Subagents = subagents,
             LastStreamedAt = run.StartedAt,
         };
         if (!_quotaRestarts.TryRemove(request.RunId, out _))
@@ -530,14 +567,12 @@ internal sealed class CliRunEngine : ICliDriver
                         RunOutcome.Stopped, RunStopReason.Cancelled.ToString(), null, 0) { RunId = runId });
                     try { OnFinished?.Invoke(runId, info.Execution); } catch { }
                     try { info.OutputLog?.Dispose(); } catch { }
-                    info.CleanContext?.Dispose();
-                    info.CleanContext = null;
+                    ReleasePerRunWorkspaceState(info);
                     return;
                 }
 
                 try { info.OutputLog?.Dispose(); } catch { }
-                info.CleanContext?.Dispose();
-                info.CleanContext = null;
+                ReleasePerRunWorkspaceState(info);
                 _processes.TryRemove(runId, out _);
                 RaiseRunEvent(runId, new CliRunEvent.QuotaWaitEnded(resetAt.Value) { RunId = runId });
                 Logger.LogInformation("QuotaWaitEnded for {Cli} {RunId}; restarting the request", CliType, runId);
@@ -579,13 +614,25 @@ internal sealed class CliRunEngine : ICliDriver
             catch (Exception ex) { Logger.LogWarning(ex, "OnFinished subscriber threw for {RunId}", runId); }
 
             try { info.OutputLog?.Dispose(); } catch { }
-            info.CleanContext?.Dispose();
-            info.CleanContext = null;
+            ReleasePerRunWorkspaceState(info);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "MonitorProcess threw for {Cli} {RunId}", CliType, runId);
         }
+    }
+
+    /// <summary>
+    /// Release the per-run state that lives outside the process: the isolated config
+    /// home and the subagent definitions materialized into the workspace. Both are
+    /// idempotent, so calling this on every terminal path is safe.
+    /// </summary>
+    private static void ReleasePerRunWorkspaceState(ProcInfo info)
+    {
+        info.CleanContext?.Dispose();
+        info.CleanContext = null;
+        info.Subagents?.Dispose();
+        info.Subagents = null;
     }
 
     private static string StatusString(RunOutcome status) => status switch
@@ -658,6 +705,7 @@ internal sealed class CliRunEngine : ICliDriver
     {
         if (!_processes.TryRemove(runId, out var info)) return false;
         try { info.OutputLog?.Dispose(); } catch { }
+        ReleasePerRunWorkspaceState(info);
         return true;
     }
 
@@ -722,6 +770,7 @@ internal sealed class CliRunEngine : ICliDriver
         public Stream? ChildStdin { get; init; }
         public Action<RunStopReason>? KillOverride { get; init; }
         public CleanContextPreparation? CleanContext { get; set; }
+        public SubagentMaterialization? Subagents { get; set; }
         public RunStopReason StopReason { get; set; } = RunStopReason.None;
         public string? LastFailureReason { get; set; }
         public DateTime LastStreamedAt { get; set; }

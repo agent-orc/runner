@@ -198,8 +198,11 @@ public static class ClaudeEventAdapter
     private static string? ExtractToolArgument(JsonElement toolPart)
     {
         if (!toolPart.TryGetProperty("input", out var input) || input.ValueKind != JsonValueKind.Object) return null;
-        // Common tool argument keys we care about for the typed event:
-        foreach (var key in new[] { "file_path", "path", "command", "pattern", "url", "query" })
+        // Common tool argument keys we care about for the typed event. `subagent_type`
+        // and `description` come last and serve the delegation tool (`Agent` in Claude
+        // Code 2.1.220, `Task` in earlier versions): a delegated subtask otherwise
+        // reports no argument at all, which hides which cheap agent ran.
+        foreach (var key in new[] { "file_path", "path", "command", "pattern", "url", "query", "subagent_type", "description" })
         {
             if (input.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String)
             {

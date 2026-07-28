@@ -33,4 +33,12 @@ public record CliRunInfo
     /// clean run and a watchdog would false-kill a live run.
     /// </summary>
     public string? CleanContextHome { get; init; }
+
+    /// <summary>
+    /// Names of the subagents this run can delegate to — the definitions the runner
+    /// materialized plus any the repository provides. Empty when the CLI has no
+    /// subagent convention or delegation is off. Surfaced so a token ledger can tell
+    /// which cheap workers a run had available when it attributes its costs.
+    /// </summary>
+    public IReadOnlyList<string> Subagents { get; init; } = [];
 }

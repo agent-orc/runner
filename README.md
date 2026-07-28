@@ -157,6 +157,38 @@ path, or missing file returns an actionable start error and no CLI is launched.
 See [docs/chat-attachments.md](docs/chat-attachments.md) for the resolver contract
 and failure behavior.
 
+### Cheap-subagent delegation
+
+Both Claude Code and Codex can hand a subtask to a subagent running on a smaller
+model. Before a run, the runner writes two agent definitions into the CLI's own
+convention — `mechanical` (Claude `haiku`) for sweeps, greps and inventories, and
+`checker` (Claude `sonnet`) for verifying finished work — and appends the rule plus
+the agent list to the prompt, so the primary agent knows they are there. There is no
+new API: the CLI does the spawning.
+
+```csharp
+var (run, error) = await runner.Claude.StartAsync(new CliRunRequest
+{
+    RunId = "task-42",
+    Prompt = "Rename IFoo to IBar across the solution.",
+    WorkingDirectory = @"C:\repo",
+});
+
+// run.Subagents -> ["mechanical", "checker"]
+```
+
+A repository's own `.claude/agents/<name>.md` always wins — the runner never
+overwrites or deletes a file it did not write — and an empty
+`.claude/agents/.no-runner-agents` file turns the default set off for that project.
+Everything the runner writes is removed again when the run ends, so a post-run commit
+never picks up a generated definition. `Delegation = new DelegationOptions { Enabled
+= false }` on `CliOptions` disables it for every run.
+
+Codex runs get the definitions but not the prompt rule: `codex exec` accepts the
+collab tooling without ever starting a child thread, so a delegated subtask comes back
+invented rather than cheaper. See
+[docs/delegation.md](docs/delegation.md) for the probe and the details.
+
 ### Prerequisites: the CLI must be installed and signed in
 
 The library runs CLIs you already have — it does not install or authenticate

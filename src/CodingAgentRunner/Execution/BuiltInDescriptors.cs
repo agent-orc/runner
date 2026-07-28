@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using CodingAgentRunner.Abstractions;
 using CodingAgentRunner.Adapters;
 using CodingAgentRunner.Attachments;
+using CodingAgentRunner.Delegation;
 using CodingAgentRunner.Events;
 using CodingAgentRunner.Execution.Hardening;
 using CodingAgentRunner.Model;
@@ -41,6 +42,7 @@ internal static class BuiltInDescriptors
             ".claude",
             LinkedSeedFiles: [".credentials.json"],
             CopiedSeedFiles: ["settings.json"]),
+        Subagents = SubagentRenderers.Claude,
         Capabilities = m => Capabilities(CliTypes.Claude, m, supportsCleanContext: true, supportsResume: true),
         CanResumeSessionId = static _ => true,
         InterruptClassifier = InterruptClassifiers.None,
@@ -100,6 +102,7 @@ internal static class BuiltInDescriptors
             ".codex",
             LinkedSeedFiles: ["auth.json"],
             CopiedSeedFiles: ["config.toml"]),
+        Subagents = SubagentRenderers.Codex,
         Capabilities = m => Capabilities(CliTypes.Codex, m, supportsCleanContext: true, supportsResume: true),
         CanResumeSessionId = static s => !string.IsNullOrWhiteSpace(s) && Uuid.IsMatch(s),
         InterruptClassifier = InterruptClassifiers.None,

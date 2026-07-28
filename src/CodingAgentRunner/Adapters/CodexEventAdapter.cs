@@ -287,7 +287,10 @@ public static class CodexEventAdapter
         if (!string.IsNullOrEmpty(itemType))
         {
             string? arg = null;
-            foreach (var key in new[] { "command", "file_path", "path", "query", "url" })
+            // `tool` and `agent_name` come last and serve the multi-agent items
+            // (collab_tool_call, agent_spawn): without them a delegated subtask
+            // reports no argument, which hides which agent ran.
+            foreach (var key in new[] { "command", "file_path", "path", "query", "url", "tool", "agent_name" })
             {
                 if (item.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String)
                 {
