@@ -18,7 +18,7 @@ Package pages: [CodingAgentRunner](https://www.nuget.org/packages/CodingAgentRun
 
 It is the process-and-protocol layer for those CLIs: it spawns the agent CLI with the right binary, environment, and isolation; normalizes its `stream-json` output — a different frame dialect per CLI — into one structured event vocabulary; classifies the run's outcome; enforces a *platform-owns-git* boundary; tracks remaining quota with a cache that polls more often as usage approaches the limit; records run metrics; and can render agent Markdown through an optional package. Unlike a general process wrapper such as [CliWrap](https://github.com/Tyrrrz/CliWrap), it is specialized to coding-agent CLIs — it parses their `stream-json` output and classifies the run's outcome.
 
-> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, quota module, metrics recorder and optional rendering package are implemented and tested (427 tests, CI on Windows + Linux). BenchmarkDotNet micro-benchmarks are available as an optional manual run. The public API may still shift before 1.0 — pin a version and watch releases.
+> **Status: core complete, pre-1.0.** Extracted and generalized from **Agent Studio**, a production multi-agent orchestrator that has processed hundreds of millions of tokens through these CLIs. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, quota module, metrics recorder and optional rendering package are implemented and tested (502 tests, CI on Windows + Linux). BenchmarkDotNet micro-benchmarks are available as an optional manual run. The public API may still shift before 1.0 — pin a version and watch releases.
 
 ## Why
 
@@ -357,6 +357,13 @@ workflow. While the API is pre-1.0, publish `0.x` versions.
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Issues and PRs welcome.
+
+## Agent Orchestrator ecosystem
+
+CodingAgentRunner is the runner layer used by Agent Studio and pairs with Agent
+Chat. See the other projects on the
+[Agent Orchestrator website](https://agent-orchestrator.dev/) and in the
+[agent-orc GitHub organization](https://github.com/agent-orc).
 
 ## License
 
