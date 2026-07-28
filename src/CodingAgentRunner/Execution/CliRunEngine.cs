@@ -189,7 +189,10 @@ internal sealed class CliRunEngine : ICliDriver
     {
         var model = NormalizeModel(request.Model);
         var thinking = CliThinkingLevels.Normalize(_descriptor.CliType, model, request.ThinkingLevel);
-        return _descriptor.BuildLaunch(new CliLaunchContext(request, _descriptor.GetCliPath(Options), model, thinking, Logger));
+        return _descriptor.BuildLaunch(new CliLaunchContext(request, _descriptor.GetCliPath(Options), model, thinking, Logger)
+        {
+            ClaudePromptTransport = Options.ClaudePromptTransport,
+        });
     }
 
     private Task<ChildHandle> SpawnChildAsync(ProcessStartInfo psi)
@@ -255,6 +258,7 @@ internal sealed class CliRunEngine : ICliDriver
         var launch = _descriptor.BuildLaunch(new CliLaunchContext(launchRequest, _descriptor.GetCliPath(Options), model, thinking, Logger)
         {
             Attachments = preparedAttachments.Files,
+            ClaudePromptTransport = Options.ClaudePromptTransport,
         });
 
         var psi = new ProcessStartInfo

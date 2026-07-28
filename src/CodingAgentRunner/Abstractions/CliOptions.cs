@@ -13,6 +13,13 @@ public sealed record CliOptions
     /// <summary>Explicit path/command for the Claude Code CLI (default: <c>claude</c> on PATH).</summary>
     public string? ClaudePath { get; init; }
 
+    /// <summary>
+    /// How Claude Code receives the prompt. <see cref="Abstractions.ClaudePromptTransport.Argv"/>
+    /// preserves the existing behavior and is the default.
+    /// </summary>
+    public ClaudePromptTransport ClaudePromptTransport { get; init; } =
+        global::CodingAgentRunner.Abstractions.ClaudePromptTransport.Argv;
+
     /// <summary>Explicit path/command for the Codex CLI (default: <c>codex</c> on PATH).</summary>
     public string? CodexPath { get; init; }
 
@@ -55,6 +62,21 @@ public sealed record CliOptions
     /// is non-empty; an unresolved reference fails the run start with a clear error.
     /// </summary>
     public IAttachmentResolver? AttachmentResolver { get; init; }
+}
+
+/// <summary>
+/// Selects how Claude Code receives a run prompt. <see cref="Stdin"/> avoids the
+/// Windows CreateProcess 32,767-character command-line limit and Linux's 128 KiB
+/// MAX_ARG_STRLEN limit for one argument. It also keeps the full prompt out of
+/// process listings such as <c>ps</c> and <c>/proc/&lt;pid&gt;/cmdline</c>.
+/// </summary>
+public enum ClaudePromptTransport
+{
+    /// <summary>Pass the prompt as Claude's final positional argument.</summary>
+    Argv,
+
+    /// <summary>Write the prompt to Claude's standard input, then close the stream.</summary>
+    Stdin,
 }
 
 /// <summary>Controls the optional wait-and-retry branch for quota-limit failures.</summary>

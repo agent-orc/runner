@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text;
 using CodingAgentRunner.Abstractions;
 using CodingAgentRunner.Events;
 using CodingAgentRunner.Execution;
@@ -257,6 +258,37 @@ public class CliDriverEngineTests
         }
     }
 
+    private sealed class RecordingStdinSpawner : ICliProcessSpawner
+    {
+        public ProcessStartInfo? RequestedStartInfo { get; private set; }
+        public RecordingWriteStream Stdin { get; } = new();
+
+        public CliSpawn Spawn(ProcessStartInfo startInfo)
+        {
+            RequestedStartInfo = startInfo;
+            var probe = new ProcessStartInfo("dotnet", "--version")
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            var process = new Process { StartInfo = probe, EnableRaisingEvents = true };
+            process.Start();
+            return new CliSpawn(process, Stdin, process.StandardOutput, process.StandardError);
+        }
+    }
+
+    private sealed class RecordingWriteStream : MemoryStream
+    {
+        public bool WasClosed { get; private set; }
+
+        protected override void Dispose(bool disposing)
+        {
+            WasClosed = true;
+            base.Dispose(disposing);
+        }
+    }
+
     private sealed class SequencedSpawner : ICliProcessSpawner
     {
         public int Count;
@@ -391,6 +423,42 @@ public class CliDriverEngineTests
 
         Assert.Equal(1, spawner.Count);            // the engine launched via the injected spawner
         Assert.Equal("completed", final.Status);   // and the run completed normally through it
+    }
+
+    [Fact]
+    public async Task ClaudeStdinTransport_EngineWritesUtf8PayloadAndClosesStdin()
+    {
+        using var logs = new TempLogs();
+        var spawner = new RecordingStdinSpawner();
+        var descriptor = BuiltInDescriptors.Claude with
+        {
+            GetCliPath = _ => "ignored-by-recording-spawner",
+            EnsureHealthy = null,
+        };
+        var driver = new CliRunEngine(descriptor, new CliOptions
+        {
+            AllowAgentGitMutation = true,
+            ClaudePromptTransport = ClaudePromptTransport.Stdin,
+            Spawner = spawner,
+        }, null, logs);
+        var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+        driver.OnFinished += (_, run) => finished.TrySetResult(run);
+        const string prompt = "private prompt \u2014 line one\nline two";
+
+        var (_, error) = await driver.StartAsync(new CliRunRequest
+        {
+            RunId = "claude-stdin",
+            Prompt = prompt,
+            WorkingDirectory = Path.GetTempPath(),
+        });
+        await finished.Task.WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.Null(error);
+        Assert.NotNull(spawner.RequestedStartInfo);
+        Assert.True(spawner.RequestedStartInfo!.RedirectStandardInput);
+        Assert.DoesNotContain(prompt, spawner.RequestedStartInfo.ArgumentList);
+        Assert.Equal(prompt, Encoding.UTF8.GetString(spawner.Stdin.ToArray()));
+        Assert.True(spawner.Stdin.WasClosed);
     }
 
     [Fact]

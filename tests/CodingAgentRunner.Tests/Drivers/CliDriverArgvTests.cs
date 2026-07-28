@@ -1,3 +1,4 @@
+using CodingAgentRunner.Abstractions;
 using CodingAgentRunner.Execution;
 using Xunit;
 
@@ -19,8 +20,35 @@ public class CliDriverArgvTests
 
     // Build the launch spec exactly as a real run would (model + thinking normalized),
     // straight from the built-in descriptor through the engine's test hook.
-    private static LaunchSpec Launch(CliDescriptor descriptor, CliRunRequest req)
-        => new CliRunEngine(descriptor).BuildLaunchForTest(req);
+    private static LaunchSpec Launch(CliDescriptor descriptor, CliRunRequest req, CliOptions? options = null)
+        => new CliRunEngine(descriptor, options).BuildLaunchForTest(req);
+
+    [Fact]
+    public void Claude_DefaultArgvTransport_PreservesExistingLaunchExactly()
+    {
+        var launch = Launch(BuiltInDescriptors.Claude, Req());
+
+        Assert.Equal(ClaudePromptTransport.Argv, new CliOptions().ClaudePromptTransport);
+        Assert.Equal(
+            ["-p", "--output-format", "stream-json", "--verbose", "--dangerously-skip-permissions", "line one\nline two"],
+            launch.Argv);
+        Assert.Null(launch.StdinPayload);
+    }
+
+    [Fact]
+    public void Claude_StdinTransport_RemovesPromptArgumentAndSetsPayload()
+    {
+        var launch = Launch(
+            BuiltInDescriptors.Claude,
+            Req(),
+            new CliOptions { ClaudePromptTransport = ClaudePromptTransport.Stdin });
+
+        Assert.Equal(
+            ["-p", "--output-format", "stream-json", "--verbose", "--dangerously-skip-permissions"],
+            launch.Argv);
+        Assert.DoesNotContain("line one\nline two", launch.Argv);
+        Assert.Equal("line one\nline two", launch.StdinPayload);
+    }
 
     [Fact]
     public void Claude_PutsPromptLast_UsesStreamJson_AndYoloByDefault()

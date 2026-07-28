@@ -59,12 +59,17 @@ internal static class BuiltInDescriptors
         foreach (var flag in CliReasoningFlags.For(CliTypes.Claude, ctx.ResolvedModel, ctx.ResolvedThinkingLevel)) argv.Add(flag);
         argv.Add("--output-format"); argv.Add("stream-json"); argv.Add("--verbose");
         foreach (var flag in CliPermissionFlags.For(CliTypes.Claude, r.PermissionMode)) argv.Add(flag);
-        if (!string.IsNullOrEmpty(r.Prompt)) argv.Add(r.Prompt);   // prompt is the LAST positional argv
+        var stdinPayload = ctx.ClaudePromptTransport == ClaudePromptTransport.Stdin && !string.IsNullOrEmpty(r.Prompt)
+            ? r.Prompt
+            : null;
+        if (!string.IsNullOrEmpty(r.Prompt) && stdinPayload is null)
+            argv.Add(r.Prompt);   // Argv is the default: preserve the prompt as the LAST positional argument.
         return new LaunchSpec
         {
             Executable = ResolveClaudeBinary(ctx.CliPath, ctx.Logger),
             Argv = argv,
             WorkingDirectory = r.WorkingDirectory,
+            StdinPayload = stdinPayload,
             NormalizedModel = ctx.ResolvedModel,
         };
     }

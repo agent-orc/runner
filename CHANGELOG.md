@@ -8,6 +8,11 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 ### Added
 
+- `CliOptions.ClaudePromptTransport` can send Claude prompts through standard
+  input instead of the final argument. The default remains `Argv`. The `Stdin`
+  option avoids the Windows CreateProcess 32,767-character command-line limit,
+  Linux's 128 KiB single-argument limit, and exposing the full prompt through
+  `ps` or `/proc/<pid>/cmdline` on shared hosts.
 - **Chat/task attachment resolution** through a host-supplied
   `IAttachmentResolver`. Runs validate durable references before spawn, add
   absolute file paths to agent context, and pass images through Codex's native

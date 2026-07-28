@@ -1,6 +1,7 @@
 using CodingAgentRunner.Events;
 using CodingAgentRunner.Model;
 using CodingAgentRunner.Attachments;
+using CodingAgentRunner.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace CodingAgentRunner.Execution;
@@ -51,6 +52,9 @@ public sealed record CliLaunchContext(
     string? ResolvedThinkingLevel,
     ILogger Logger)
 {
+    /// <summary>Configured prompt transport for the built-in Claude descriptor.</summary>
+    public ClaudePromptTransport ClaudePromptTransport { get; init; } = ClaudePromptTransport.Argv;
+
     /// <summary>
     /// Attachment files resolved and validated before launch. Built-in descriptors
     /// use this for CLI-native image input where available.
