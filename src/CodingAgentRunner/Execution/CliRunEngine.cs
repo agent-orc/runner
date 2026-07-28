@@ -565,6 +565,7 @@ internal sealed class CliRunEngine : ICliDriver
                     info.Execution = info.Execution with { Status = "stopped" };
                     RaiseRunEvent(runId, new CliRunEvent.RunEnded(
                         RunOutcome.Stopped, RunStopReason.Cancelled.ToString(), null, 0) { RunId = runId });
+                    ReleaseWorkspaceDefinitions(info);
                     try { OnFinished?.Invoke(runId, info.Execution); } catch { }
                     try { info.OutputLog?.Dispose(); } catch { }
                     ReleasePerRunWorkspaceState(info);
@@ -585,6 +586,7 @@ internal sealed class CliRunEngine : ICliDriver
                 RaiseRunEvent(runId, new CliRunEvent.RunEnded(
                     RunOutcome.Failed, restartError, null, 0) { RunId = runId });
                 info.Execution = info.Execution with { Status = "failed" };
+                ReleaseWorkspaceDefinitions(info);
                 try { OnFinished?.Invoke(runId, info.Execution); } catch { }
                 return;
             }
@@ -610,6 +612,7 @@ internal sealed class CliRunEngine : ICliDriver
             };
             RaiseRunEvent(runId, new CliRunEvent.RunEnded(status, reason, exitCode, duration) { RunId = runId });
 
+            ReleaseWorkspaceDefinitions(info);
             try { OnFinished?.Invoke(runId, info.Execution); }
             catch (Exception ex) { Logger.LogWarning(ex, "OnFinished subscriber threw for {RunId}", runId); }
 
@@ -620,19 +623,40 @@ internal sealed class CliRunEngine : ICliDriver
         {
             Logger.LogError(ex, "MonitorProcess threw for {Cli} {RunId}", CliType, runId);
         }
+        finally
+        {
+            // A terminal path that threw — or one added later that forgets — must still
+            // not leave generated definitions in the checkout. Both releases are
+            // idempotent, so this is a backstop, not a second cleanup.
+            ReleasePerRunWorkspaceState(info);
+        }
+    }
+
+    /// <summary>
+    /// Remove the subagent definitions the runner wrote into the run's working
+    /// directory. This runs <em>before</em> any terminal callback: a host that commits
+    /// the workspace from its <c>OnFinished</c> handler must not be able to see a
+    /// generated file. Idempotent.
+    /// </summary>
+    private static void ReleaseWorkspaceDefinitions(ProcInfo info)
+    {
+        info.Subagents?.Dispose();
+        info.Subagents = null;
     }
 
     /// <summary>
     /// Release the per-run state that lives outside the process: the isolated config
     /// home and the subagent definitions materialized into the workspace. Both are
-    /// idempotent, so calling this on every terminal path is safe.
+    /// idempotent, so calling this on every terminal path is safe. The definitions are
+    /// normally already gone by here — <see cref="ReleaseWorkspaceDefinitions"/> takes
+    /// them out ahead of the terminal callbacks; the clean-context home lives outside
+    /// the workspace and has no such ordering constraint.
     /// </summary>
     private static void ReleasePerRunWorkspaceState(ProcInfo info)
     {
         info.CleanContext?.Dispose();
         info.CleanContext = null;
-        info.Subagents?.Dispose();
-        info.Subagents = null;
+        ReleaseWorkspaceDefinitions(info);
     }
 
     private static string StatusString(RunOutcome status) => status switch

@@ -485,8 +485,20 @@ public class CliDriverEngineTests
                 ClaudePromptTransport = ClaudePromptTransport.Stdin,
                 Spawner = spawner,
             }, null, logs);
+            var agentsRoot = Path.Combine(workspace, ".claude");
+            var generated = Path.Combine(agentsRoot, "agents", "mechanical.md");
+
+            // What a host application sees at the moment it is called back. It commits
+            // the workspace from here, so a generated definition must already be gone.
             var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
-            driver.OnFinished += (_, run) => finished.TrySetResult(run);
+            bool? generatedFileVisibleInOnFinished = null;
+            bool? agentsDirVisibleInOnFinished = null;
+            driver.OnFinished += (_, run) =>
+            {
+                generatedFileVisibleInOnFinished = File.Exists(generated);
+                agentsDirVisibleInOnFinished = Directory.Exists(agentsRoot);
+                finished.TrySetResult(run);
+            };
 
             var (started, error) = await driver.StartAsync(new CliRunRequest
             {
@@ -507,13 +519,10 @@ public class CliDriverEngineTests
 
             await finished.Task.WaitAsync(TimeSpan.FromSeconds(30));
 
-            // Every file the runner wrote is gone once the run ends, so the host's
-            // commit never picks up a generated agent definition. Cleanup runs just
-            // after OnFinished (the consumer still sees the paths in its handler), so
-            // the assertion gives it a moment.
-            var agentsRoot = Path.Combine(workspace, ".claude");
-            for (var i = 0; i < 50 && Directory.Exists(agentsRoot); i++)
-                await Task.Delay(100);
+            // Cleanup happens *before* the terminal callback, not after it: no polling,
+            // and no window in which a host's post-run commit could pick one up.
+            Assert.False(generatedFileVisibleInOnFinished);
+            Assert.False(agentsDirVisibleInOnFinished);
             Assert.False(Directory.Exists(agentsRoot));
         }
         finally

@@ -177,12 +177,12 @@ var (run, error) = await runner.Claude.StartAsync(new CliRunRequest
 // run.Subagents -> ["mechanical", "checker"]
 ```
 
-A repository's own `.claude/agents/<name>.md` always wins — the runner never
-overwrites or deletes a file it did not write — and an empty
-`.claude/agents/.no-runner-agents` file turns the default set off for that project.
-Everything the runner writes is removed again when the run ends, so a post-run commit
-never picks up a generated definition. `Delegation = new DelegationOptions { Enabled
-= false }` on `CliOptions` disables it for every run.
+A repository's own `.claude/agents/<name>.md` always wins — ownership comes from
+creating a file, so the runner never overwrites or deletes one it did not create — and
+an empty `.claude/agents/.no-runner-agents` file turns the default set off for that
+project. Everything the runner created is removed again before the run's `OnFinished`
+callback, so a post-run commit never picks up a generated definition. `Delegation =
+new DelegationOptions { Enabled = false }` on `CliOptions` disables it for every run.
 
 Codex runs get the definitions but not the prompt rule: `codex exec` accepts the
 collab tooling without ever starting a child thread, so a delegated subtask comes back

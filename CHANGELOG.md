@@ -18,10 +18,13 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
   (`.claude/agents/*.md`, `.codex/agents/*.toml`): `mechanical` on Claude `haiku` for
   mechanical sweeps and `checker` on Claude `sonnet` for verifying finished work. The
   run prompt gets a `<delegation-economy>` block naming the rule and the available
-  agents. There is no new API — the CLI does the spawning. A repository's own
-  definition of the same name always wins, an empty `.claude/agents/.no-runner-agents`
-  file opts a project out, and every file the runner writes is removed when the run
-  ends. `CliOptions.Delegation` (`DelegationOptions`) configures or disables it, and
+  agents. There is no new API — the CLI does the spawning. Ownership is established by
+  creating a file (`FileMode.CreateNew`), never by reading one, so a definition already
+  in the workspace always wins and is never overwritten or deleted whatever it
+  contains; an empty `.claude/agents/.no-runner-agents` file opts a project out; and
+  every file a run created is removed *before* the run's terminal callbacks, so a host
+  that commits from `OnFinished` cannot pick one up.
+  `CliOptions.Delegation` (`DelegationOptions`) configures or disables it, and
   `CliRunInfo.Subagents` reports what a run had available. Codex runs get the
   definitions but not the prompt rule: probed against codex-cli 0.145.0, `codex exec`
   accepts the collab tooling but starts no child thread and the model then reports an

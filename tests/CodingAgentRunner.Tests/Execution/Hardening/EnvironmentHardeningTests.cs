@@ -45,6 +45,11 @@ public class EnvironmentHardeningTests
     public void Apply_WithoutUtf8_LeavesEncodingUnset()
     {
         var psi = new ProcessStartInfo();
+        // ProcessStartInfo.Environment starts as a copy of *this* process's
+        // environment, so on a host that already exports PYTHONIOENCODING the key is
+        // present before Apply is called. Clear it first: the assertion is about what
+        // Apply sets, not about what the test host happens to inherit.
+        psi.Environment.Remove("PYTHONIOENCODING");
 
         EnvironmentHardening.Apply(psi, new CliHardeningOptions { EnforceUtf8 = false });
 

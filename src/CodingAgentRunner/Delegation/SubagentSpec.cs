@@ -28,9 +28,9 @@ public sealed record SubagentSpec(
 /// The per-CLI renderers behind <see cref="SubagentSpec"/>. Claude Code reads
 /// markdown with YAML frontmatter; Codex reads TOML. Both formats accept comments,
 /// so every generated file carries
-/// <see cref="SubagentMaterializer.GeneratedMarker"/> — that marker is what makes
-/// "did the runner write this file?" decidable, and it is why a repo's own agent
-/// definition is never overwritten or deleted.
+/// <see cref="SubagentMaterializer.GeneratedMarker"/>, which makes a generated
+/// definition recognisable in a checkout. What keeps a repo's own definition safe is
+/// not the marker but the write mode: see <see cref="SubagentMaterializer"/>.
 /// </summary>
 public static class SubagentRenderers
 {

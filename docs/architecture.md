@@ -278,8 +278,11 @@ the CLI's own convention (`.claude/agents/*.md`, `.codex/agents/*.toml`) before 
 and appends a rule plus the agent inventory to the prompt. The CLI does the spawning.
 
 The per-CLI convention is a `SubagentSpec` on the `CliDescriptor`, so a CLI without one
-materializes nothing. A repository's own definition of the same name always wins, and
-every file the runner writes is removed when the run ends. See
+materializes nothing. Ownership is established by *creating* a file (`FileMode.CreateNew`),
+never by reading one, so anything already at that path — a repository's own definition,
+or one an earlier run left behind — is adopted rather than overwritten and is never
+deleted. Every file a run created is removed before its terminal callbacks fire, so a
+host that commits from `OnFinished` cannot see a generated definition. See
 [delegation.md](delegation.md) — including the probe showing that `codex exec` accepts
 the collab tooling but starts no child thread.
 

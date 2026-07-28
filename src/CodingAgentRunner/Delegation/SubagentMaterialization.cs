@@ -7,10 +7,14 @@ namespace CodingAgentRunner.Delegation;
 /// <summary>Where one agent available to a run came from.</summary>
 public static class SubagentSources
 {
-    /// <summary>The runner wrote this definition for the run and removes it when the run ends.</summary>
+    /// <summary>The runner created this definition file for the run and removes it when the run ends.</summary>
     public const string Runner = "runner";
 
-    /// <summary>The definition is committed in the repository. The runner never writes, overwrites, or deletes it.</summary>
+    /// <summary>
+    /// The definition was already in the workspace when the run started — committed by
+    /// the project, or left behind by an earlier run. The runner never writes,
+    /// overwrites, or deletes it.
+    /// </summary>
     public const string Repo = "repo";
 }
 
@@ -28,13 +32,15 @@ public sealed record SubagentAvailability(
     string Path);
 
 /// <summary>
-/// One run's materialized agent set: the definition files the runner wrote into the
-/// workspace plus the repo-provided ones it found. Owned by the run — disposing it
-/// deletes <em>only</em> the files the runner itself created, so a project's own
-/// agent definitions survive untouched.
+/// One run's materialized agent set: the definition files the runner created in the
+/// workspace plus the ones it found already there. Owned by the run — disposing it
+/// deletes <em>only</em> the files this run itself created, so a project's own agent
+/// definitions survive untouched.
 /// </summary>
 public sealed class SubagentMaterialization : IDisposable
 {
+    private static readonly EventId ReplacedBeforeCleanup = new(2204, "SubagentDefinitionReplacedBeforeCleanup");
+
     private readonly IReadOnlyList<string> _writtenFiles;
     private readonly IReadOnlyList<string> _createdDirectories;
     private readonly ILogger? _logger;
@@ -65,7 +71,7 @@ public sealed class SubagentMaterialization : IDisposable
     /// <summary>Every agent the run can delegate to, runner-written and repo-provided alike.</summary>
     public IReadOnlyList<SubagentAvailability> Available { get; }
 
-    /// <summary>Files the runner created for this run; the only files <see cref="Dispose"/> removes.</summary>
+    /// <summary>Files this run created; the only files <see cref="Dispose"/> removes.</summary>
     public IReadOnlyList<string> WrittenFiles => _writtenFiles;
 
     /// <summary>Context sources describing the materialized set (read-only observability).</summary>
@@ -83,10 +89,14 @@ public sealed class SubagentMaterialization : IDisposable
         .ToList();
 
     /// <summary>
-    /// Remove the definition files the runner wrote, and any directory it had to
+    /// Remove the definition files this run created, and any directory it had to
     /// create for them if it is now empty. Idempotent; failures are logged, never
-    /// thrown — a leftover definition file is a hygiene issue, not a run failure, and
-    /// the next run rewrites it in place.
+    /// thrown — a leftover definition file is a hygiene issue, not a run failure.
+    /// <para>
+    /// A file whose content is no longer the definition the runner wrote is left in
+    /// place: something replaced it during the run, and deleting somebody else's file
+    /// is the one outcome worth a read to rule out.
+    /// </para>
     /// </summary>
     public void Dispose()
     {
@@ -95,7 +105,16 @@ public sealed class SubagentMaterialization : IDisposable
         {
             try
             {
-                if (File.Exists(file)) File.Delete(file);
+                if (!File.Exists(file)) continue;
+                if (!File.ReadAllText(file).Contains(SubagentMaterializer.GeneratedMarker, StringComparison.Ordinal))
+                {
+                    _logger?.LogWarning(
+                        ReplacedBeforeCleanup,
+                        "Leaving subagent definition {Path} in place: its content is no longer the definition this run wrote",
+                        file);
+                    continue;
+                }
+                File.Delete(file);
             }
             catch (Exception ex)
             {
@@ -103,19 +122,7 @@ public sealed class SubagentMaterialization : IDisposable
             }
         }
 
-        // Reverse order: the deepest directory the runner created is emptied first.
-        foreach (var dir in _createdDirectories.Reverse())
-        {
-            try
-            {
-                if (System.IO.Directory.Exists(dir) && !System.IO.Directory.EnumerateFileSystemEntries(dir).Any())
-                    System.IO.Directory.Delete(dir);
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogDebug(ex, "Failed to remove empty subagent directory {Path}", dir);
-            }
-        }
+        SubagentMaterializer.RemoveCreatedDirectories(_createdDirectories, _logger);
     }
 }
 
@@ -123,16 +130,25 @@ public sealed class SubagentMaterialization : IDisposable
 /// Writes a run's agent definitions into the CLI's project-scoped convention and
 /// reports what the run can delegate to.
 /// <para>
-/// Two rules make this safe to run against somebody's checkout. A generated file
-/// carries <see cref="GeneratedMarker"/>, and only a file carrying that marker is
-/// ever overwritten or deleted — a repo's own definition of the same name wins and
-/// is left alone. A project opts out of the runner's set entirely by committing an
+/// One rule makes this safe to run against somebody's checkout: <b>ownership is
+/// established by creating a file, never by reading one.</b> A definition is written
+/// with <see cref="FileMode.CreateNew"/>, so anything already at that path — a
+/// committed definition, or one an earlier run left behind — makes the create fail
+/// and the runner leaves the file alone, records it in the inventory, and never
+/// deletes it. Content is never consulted to decide ownership, so a project may
+/// commit a definition that contains <see cref="GeneratedMarker"/> without risking
+/// it. A project opts out of the runner's set entirely by committing an
 /// <see cref="OptOutFileName"/> file in its agents directory.
 /// </para>
 /// </summary>
 public static class SubagentMaterializer
 {
-    /// <summary>Marker written into every generated definition file; its presence is what makes the file the runner's to overwrite and delete.</summary>
+    /// <summary>
+    /// Marker written into every generated definition file. It makes a generated file
+    /// recognisable in a checkout and lets cleanup notice that a file it created was
+    /// replaced meanwhile. It is <em>not</em> what grants the runner permission to
+    /// touch a file — only having created the file in this run does that.
+    /// </summary>
     public const string GeneratedMarker = "generated by coding-agent-runner for this run";
 
     /// <summary>A file with this name in a project's agents directory turns the runner's default set off for that project.</summary>
@@ -141,6 +157,7 @@ public static class SubagentMaterializer
     private static readonly EventId Materialized = new(2200, "SubagentsMaterialized");
     private static readonly EventId OptedOut = new(2201, "SubagentMaterializationOptedOut");
     private static readonly EventId WriteFailed = new(2202, "SubagentDefinitionWriteFailed");
+    private static readonly EventId LeftoverAdopted = new(2203, "SubagentDefinitionLeftoverAdopted");
 
     /// <summary>
     /// Materialize <paramref name="options"/>' agent set into
@@ -178,12 +195,18 @@ public static class SubagentMaterializer
         var createdDirectories = new List<string>();
         var claimed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // Repo-provided definitions first: they claim their names, so the runner's
-        // default of the same name is skipped rather than overwritten.
+        // Whatever is already in the agents directory claims its name — the project's
+        // own definitions, and equally a file some earlier run left behind. The runner
+        // adds only names nothing has claimed, so it can never overwrite a file it did
+        // not create.
         foreach (var (name, path, text) in ExistingDefinitions(directory, spec))
         {
-            if (text.Contains(GeneratedMarker, StringComparison.Ordinal)) continue;   // a runner file, not the repo's
-            claimed.Add(name);
+            if (!claimed.Add(name)) continue;
+            if (text.Contains(GeneratedMarker, StringComparison.Ordinal))
+                logger?.LogWarning(
+                    LeftoverAdopted,
+                    "{Cli} subagent definition {Path} carries the runner's generated marker but was not created by this run — using it as it is, and leaving it in place. A run killed before its cleanup leaves these behind; remove it by hand if it does not belong in the checkout.",
+                    cliType, path);
             available.Add(new SubagentAvailability(name, spec.ReadDescription(text), null, SubagentSources.Repo, path));
         }
 
@@ -197,13 +220,29 @@ public static class SubagentMaterializer
                     agent?.Name, cliType);
                 continue;
             }
-            if (claimed.Contains(agent.Name)) continue;   // the repository defines this one
+            if (claimed.Contains(agent.Name)) continue;   // something already holds this name
 
             var file = Path.Combine(directory, agent.Name + spec.FileExtension);
             try
             {
                 EnsureDirectory(directory, workingDirectory, createdDirectories);
-                File.WriteAllText(file, spec.Render(agent));
+                // CreateNew, not WriteAllText: creating the file is what makes it this
+                // run's to delete later. A file that appeared since the scan above wins
+                // the race and is adopted, not overwritten.
+                using var stream = new FileStream(file, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                using var writer = new StreamWriter(stream);
+                writer.Write(spec.Render(agent));
+            }
+            catch (Exception ex) when (ex is IOException && File.Exists(file))
+            {
+                logger?.LogInformation(
+                    LeftoverAdopted,
+                    "{Cli} subagent definition {Path} already existed — leaving it as it is",
+                    cliType, file);
+                claimed.Add(agent.Name);
+                var existing = TryReadDescription(file, spec);
+                available.Add(new SubagentAvailability(agent.Name, existing, null, SubagentSources.Repo, file));
+                continue;
             }
             catch (Exception ex)
             {
@@ -221,7 +260,13 @@ public static class SubagentMaterializer
         }
 
         timer.Stop();
-        if (available.Count == 0) return null;
+        if (available.Count == 0)
+        {
+            // Nothing landed, so nothing will be disposed — take back any directory
+            // that was created for a write that then failed.
+            RemoveCreatedDirectories(createdDirectories, logger);
+            return null;
+        }
 
         logger?.LogInformation(
             Materialized,
@@ -255,6 +300,34 @@ public static class SubagentMaterializer
             try { text = File.ReadAllText(path); }
             catch { continue; }
             yield return (Path.GetFileNameWithoutExtension(path), path, text);
+        }
+    }
+
+    /// <summary>Best-effort description of a definition already on disk, for the inventory.</summary>
+    private static string? TryReadDescription(string path, SubagentSpec spec)
+    {
+        try { return spec.ReadDescription(File.ReadAllText(path)); }
+        catch { return null; }
+    }
+
+    /// <summary>
+    /// Remove directories the runner created, deepest first, and only while they are
+    /// still empty. Shared by <see cref="SubagentMaterialization.Dispose"/> and the
+    /// nothing-landed path in <see cref="Prepare"/>.
+    /// </summary>
+    internal static void RemoveCreatedDirectories(IReadOnlyList<string> createdDirectories, ILogger? logger)
+    {
+        foreach (var dir in createdDirectories.Reverse())
+        {
+            try
+            {
+                if (Directory.Exists(dir) && !Directory.EnumerateFileSystemEntries(dir).Any())
+                    Directory.Delete(dir);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogDebug(ex, "Failed to remove empty subagent directory {Path}", dir);
+            }
         }
     }
 

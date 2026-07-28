@@ -90,24 +90,70 @@ public class SubagentMaterializationTests
         finally { Cleanup(workspace); }
     }
 
+    /// <summary>
+    /// Ownership is established by creating a file, never by reading one. A project is
+    /// free to commit a definition that quotes the generated marker — a checked-out
+    /// copy of one the runner produced, say — and the runner must still not touch it.
+    /// </summary>
     [Fact]
-    public void Prepare_RefreshesAStaleRunnerFileFromACrashedRun()
+    public void Prepare_NeverOverwritesOrDeletesAPreExistingFile_EvenWhenItCarriesTheGeneratedMarker()
     {
         var workspace = NewWorkspace();
         try
         {
             var agentsDir = Path.Combine(workspace, ".claude", "agents");
             Directory.CreateDirectory(agentsDir);
-            var stale = Path.Combine(agentsDir, "mechanical.md");
-            File.WriteAllText(stale, $"---\nname: mechanical\n---\n\n<!-- {SubagentMaterializer.GeneratedMarker} -->\n\nold body\n");
+            var preExisting = Path.Combine(agentsDir, "mechanical.md");
+            var text = $"---\nname: mechanical\ndescription: the project's copy\n---\n\n<!-- {SubagentMaterializer.GeneratedMarker} -->\n\nproject body\n";
+            File.WriteAllText(preExisting, text);
 
-            using var prep = SubagentMaterializer.Prepare(
+            var prep = SubagentMaterializer.Prepare(
                 CliTypes.Claude, SubagentRenderers.Claude, workspace, new DelegationOptions());
 
             Assert.NotNull(prep);
-            Assert.Contains(prep!.WrittenFiles, f => f == stale);
-            Assert.DoesNotContain("old body", File.ReadAllText(stale));
-            Assert.Equal(SubagentSources.Runner, Assert.Single(prep.Available, a => a.Name == "mechanical").Source);
+            Assert.DoesNotContain(prep!.WrittenFiles, f => f == preExisting);        // not ours to write
+            Assert.Equal(text, File.ReadAllText(preExisting));                       // byte-for-byte untouched
+            var mechanical = Assert.Single(prep.Available, a => a.Name == "mechanical");
+            Assert.Equal(SubagentSources.Repo, mechanical.Source);
+            Assert.Equal("the project's copy", mechanical.Description);
+
+            prep.Dispose();
+            Assert.True(File.Exists(preExisting));                                   // and not ours to delete
+            Assert.Equal(text, File.ReadAllText(preExisting));
+            Assert.True(Directory.Exists(agentsDir));
+        }
+        finally { Cleanup(workspace); }
+    }
+
+    /// <summary>
+    /// The complement: a file the runner did create is removed — unless something
+    /// replaced it while the run was going, in which case it is left alone too.
+    /// </summary>
+    [Fact]
+    public void Dispose_LeavesAGeneratedFileThatWasReplacedDuringTheRun()
+    {
+        var workspace = NewWorkspace();
+        try
+        {
+            var prep = SubagentMaterializer.Prepare(
+                CliTypes.Claude, SubagentRenderers.Claude, workspace, new DelegationOptions());
+            Assert.NotNull(prep);
+
+            var agentsDir = Path.Combine(workspace, ".claude", "agents");
+            var mechanical = Path.Combine(agentsDir, "mechanical.md");
+            var checker = Path.Combine(agentsDir, "checker.md");
+            Assert.Contains(prep!.WrittenFiles, f => f == mechanical);
+
+            // Somebody swapped the runner's file for one of their own mid-run.
+            const string replacement = "---\nname: mechanical\n---\n\nsomebody else's file\n";
+            File.WriteAllText(mechanical, replacement);
+
+            prep.Dispose();
+
+            Assert.True(File.Exists(mechanical));
+            Assert.Equal(replacement, File.ReadAllText(mechanical));
+            Assert.False(File.Exists(checker));                    // the untouched one still goes
+            Assert.True(Directory.Exists(agentsDir));              // kept, because it is not empty
         }
         finally { Cleanup(workspace); }
     }
