@@ -11,7 +11,10 @@ namespace CodingAgentRunner.Delegation;
 /// </summary>
 public static class DelegationContextBlock
 {
-    private static readonly EventId Injected = new(2203, "DelegationContextInjected");
+    // 2200-2204 belong to SubagentMaterializer / SubagentMaterialization; this is the
+    // next free id in the delegation block. Two event names sharing one id would make
+    // the pair indistinguishable to a consumer filtering by EventId.
+    private static readonly EventId Injected = new(2205, "DelegationContextInjected");
 
     /// <summary>Opening tag of the injected block; also how a consumer can find it in a logged prompt.</summary>
     public const string OpenTag = "<delegation-economy>";

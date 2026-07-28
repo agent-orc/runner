@@ -40,6 +40,13 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 ### Fixed
 
+- Claude `system` frames with a `task_*` subtype — a delegated subtask reporting in —
+  now map to `Heartbeat` instead of `SessionInitializing`. Read as session frames they
+  pulled the run's phase back out of `ToolExecuting` while the delegation tool was
+  still running, which swapped the watchdog's tool silence budget for the tighter
+  session-initializing one, and `task_progress` did not count as activity. A delegated
+  subtask that ran long while streaming only progress frames could therefore be
+  reported hung, and stopped under `autoStop`, while it was working normally.
 - **Behavior change:** clean-context credential seeds now use a hardlink, then a
   symbolic link, with a copy only when neither link is available. Claude
   `.credentials.json` and Codex `auth.json` therefore share in-place OAuth token

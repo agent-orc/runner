@@ -118,7 +118,24 @@ it:
 - Frames produced *inside* a delegated subtask carry `parent_tool_use_id`. They are
   otherwise ordinary `assistant` / `user` frames and map to the usual
   `OutputDelta` / `ToolCompleted` events.
+- While the subagent works, Claude also streams `system` frames with `task_started` /
+  `task_progress` / `task_updated` / `task_notification` subtypes. These map to
+  `Heartbeat`.
 - `CliRunInfo.Subagents` lists the agents a run had available, whoever provided them.
+
+That last mapping is not cosmetic, and it is the one thing delegation broke in the
+existing stream parsing. The adapter used to read every non-`init` `system` subtype as
+`SessionInitializing`, which is right for a session frame and wrong for a subtask
+reporting in, in two compounding ways. The phase fell back out of `ToolExecuting`
+while the delegation tool was still running — swapping the watchdog's tool budget
+(300 s / 1200 s) for the tighter session-initializing one (120 s / 600 s) at exactly
+the point a run is doing its longest-running thing. And `SessionInitializing` is not
+an activity signal, so `task_progress` — literally the subtask reporting progress —
+did not reset the silence clock. A delegated sweep long enough to matter would have
+been classified hung, and stopped under `autoStop`, while it was visibly working.
+`Heartbeat` is the existing vocabulary for both halves: it holds the phase and counts
+as liveness. The split is by prefix, so a `task_*` subtype added later lands on the
+right side of it, and it is pinned by a test.
 
 A demo run against a small repository (primary model `claude-opus-5`, prompt: list
 every FIXME under `src/` and `tests/`, then judge which matters most) delegated the

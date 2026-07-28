@@ -15,6 +15,7 @@ namespace CodingAgentRunner.Adapters;
 /// </para>
 /// <list type="bullet">
 ///   <item><c>system</c> with <c>subtype=init</c> &#8594; <see cref="CliRunEvent.SessionStarted"/> (carries the id).</item>
+///   <item><c>system</c> with a <c>task_*</c> subtype (a delegated subtask reporting in) &#8594; <see cref="CliRunEvent.Heartbeat"/>.</item>
 ///   <item><c>system</c> with any other subtype &#8594; <see cref="CliRunEvent.SessionInitializing"/>.</item>
 ///   <item><c>rate_limit_event</c> &#8594; <see cref="CliRunEvent.RateLimitObserved"/>.</item>
 ///   <item><c>assistant</c> with <c>tool_use</c> part &#8594; <see cref="CliRunEvent.ToolStarted"/>.</item>
@@ -61,6 +62,10 @@ public static class ClaudeEventAdapter
                 if (string.Equals(subtype, "init", StringComparison.Ordinal))
                 {
                     yield return new CliRunEvent.SessionStarted(sessionId) { RunId = runId };
+                }
+                else if (IsDelegationLifecycle(subtype))
+                {
+                    yield return new CliRunEvent.Heartbeat { RunId = runId };
                 }
                 else
                 {
@@ -194,6 +199,27 @@ public static class ClaudeEventAdapter
         items = list;
         return true;
     }
+
+    /// <summary>
+    /// Whether a <c>system</c> subtype is a delegated subtask reporting in, rather than
+    /// a session handshake. Claude Code streams <c>task_started</c> /
+    /// <c>task_progress</c> / <c>task_updated</c> / <c>task_notification</c> while a
+    /// subagent works, and the family is namespaced, so the prefix keeps a subtype
+    /// added later on the right side of the split.
+    /// <para>
+    /// These map to <see cref="CliRunEvent.Heartbeat"/>, not to
+    /// <see cref="CliRunEvent.SessionInitializing"/>, and both halves of that matter.
+    /// The phase must not fall back out of <c>ToolExecuting</c> while the delegation
+    /// tool is still running — that would swap the watchdog's tool budget for the
+    /// tighter session-initializing one at exactly the point a run is doing its
+    /// longest-running thing. And <c>task_progress</c> is literally the subtask
+    /// reporting progress, so it has to reset the silence clock; read as a phase-only
+    /// event it counts as silence, and a long delegated sweep that streams nothing else
+    /// gets classified hung while it is visibly working.
+    /// </para>
+    /// </summary>
+    private static bool IsDelegationLifecycle(string? subtype)
+        => subtype is not null && subtype.StartsWith("task_", StringComparison.Ordinal);
 
     private static string? ExtractToolArgument(JsonElement toolPart)
     {

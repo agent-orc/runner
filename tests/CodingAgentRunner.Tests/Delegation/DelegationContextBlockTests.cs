@@ -1,5 +1,6 @@
 using CodingAgentRunner.Delegation;
 using CodingAgentRunner.Model;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace CodingAgentRunner.Tests.Delegation;
@@ -85,6 +86,33 @@ public class DelegationContextBlockTests
         finally { Cleanup(workspace); }
     }
 
+    /// <summary>
+    /// A run emits both of these, and a consumer filtering its log by EventId has to be
+    /// able to tell them apart. They shared id 2203 until this test existed: the names
+    /// differed, so nothing looked wrong in a rendered log, and only a filter on the
+    /// numeric id would have shown the two events merged.
+    /// </summary>
+    [Fact]
+    public void MaterializationAndInjection_LogUnderDistinctEventIds()
+    {
+        var workspace = NewWorkspace();
+        try
+        {
+            var logger = new RecordingLogger();
+            using var prep = SubagentMaterializer.Prepare(
+                CliTypes.Claude, SubagentRenderers.Claude, workspace, new DelegationOptions(), logger)!;
+            DelegationContextBlock.Compose("Task", prep, workspace, new DelegationOptions(), logger);
+
+            var materialized = Assert.Single(logger.Events, e => e.Name == "SubagentsMaterialized");
+            var injected = Assert.Single(logger.Events, e => e.Name == "DelegationContextInjected");
+            Assert.NotEqual(materialized.Id, injected.Id);
+
+            // Every id the delegation block hands out is its own.
+            Assert.Equal(logger.Events.Select(e => e.Id).Distinct().Count(), logger.Events.Select(e => e.Name).Distinct().Count());
+        }
+        finally { Cleanup(workspace); }
+    }
+
     [Fact]
     public void CodexIsNotAdvertisedInThePrompt()
     {
@@ -93,5 +121,19 @@ public class DelegationContextBlockTests
         // not. See docs/delegation.md.
         Assert.False(SubagentRenderers.Codex.AdvertiseInPrompt);
         Assert.True(SubagentRenderers.Claude.AdvertiseInPrompt);
+    }
+
+    /// <summary>Collects the <see cref="EventId"/> of every record written, and nothing else.</summary>
+    private sealed class RecordingLogger : ILogger
+    {
+        public List<EventId> Events { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+            => Events.Add(eventId);
     }
 }

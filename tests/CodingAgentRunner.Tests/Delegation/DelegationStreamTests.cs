@@ -52,6 +52,53 @@ public class DelegationStreamTests
         Assert.Equal("src/a.cs", completed.FirstLine);
     }
 
+    /// <summary>
+    /// While a subagent works, Claude Code streams <c>system</c> frames with
+    /// <c>task_*</c> subtypes. Read as session frames (the adapter's catch-all before
+    /// these ran against a live delegation) they do two harmful things at once, and
+    /// both are pinned here.
+    /// </summary>
+    [Theory]
+    [InlineData("task_started")]
+    [InlineData("task_progress")]
+    [InlineData("task_updated")]
+    [InlineData("task_notification")]
+    public void Claude_DelegationLifecycleFrames_AreHeartbeats_NotSessionFrames(string subtype)
+    {
+        var frame = $$"""
+            {"type":"system","subtype":"{{subtype}}","session_id":"baa5bc03-0f9f-4003-b029-e45ffc3146f6"}
+            """;
+
+        var evt = Assert.Single(ClaudeEventAdapter.Map(frame, "run-1"));
+        Assert.IsType<CliRunEvent.Heartbeat>(evt);
+
+        // 1. The phase stays put. A run whose delegation tool is still running must not
+        //    fall back to SessionInitializing, whose watchdog budget is *tighter* than
+        //    ToolExecuting's — the run would be judged hardest exactly while waiting on
+        //    the subagent it was told to spawn.
+        Assert.Equal(RunPhase.ToolExecuting, RunPhaseTransitions.Apply(RunPhase.ToolExecuting, evt));
+
+        // 2. It counts as the agent being alive. task_progress *is* the subtask
+        //    reporting progress; counted as silence, a long delegated sweep that streams
+        //    nothing else is classified hung while it is visibly working.
+        Assert.True(RunPhaseTransitions.IsActivitySignal(evt));
+    }
+
+    /// <summary>The split is narrow: a genuine session frame still reports the session phase.</summary>
+    [Fact]
+    public void Claude_NonTaskSystemFrames_StillReportTheSessionPhase()
+    {
+        const string init = """
+            {"type":"system","subtype":"init","session_id":"abc"}
+            """;
+        const string other = """
+            {"type":"system","subtype":"compact_boundary"}
+            """;
+
+        Assert.Equal("abc", Assert.IsType<CliRunEvent.SessionStarted>(Assert.Single(ClaudeEventAdapter.Map(init, "r"))).SessionId);
+        Assert.IsType<CliRunEvent.SessionInitializing>(Assert.Single(ClaudeEventAdapter.Map(other, "r")));
+    }
+
     [Fact]
     public void Claude_SubagentToolResult_IsATypedToolCompletion()
     {
