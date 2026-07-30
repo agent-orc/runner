@@ -1,0 +1,10 @@
+{
+  "relatedTasks": [
+    {
+      "key": "CAR-5",
+      "title": "Wait-on-Quota als Library-Option: bei Limit-Hit Quota pruefen, Reset\u003CSchwelle -\u003E pausieren statt wechseln (\u002B Website-Doku)",
+      "linkedAt": "2026-07-11T16:41:43.1877801Z",
+      "source": "auto"
+    }
+  ]
+}
