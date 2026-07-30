@@ -8,6 +8,10 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 ### Added
 
+- Opt-in stream-parsing fixture replays for Claude, Codex, Gemini, and
+  Antigravity cover source, diff, HTML, Markdown, image, JSON, ANSI/UTF-8 log,
+  and long-line payloads. Embedded terminal-looking strings remain content;
+  only each CLI's native completion frame produces `TurnCompleted`.
 - `CliOptions.ClaudePromptTransport` can send Claude prompts through standard
   input instead of the final argument. The default remains `Argv`. The `Stdin`
   option avoids the Windows CreateProcess 32,767-character command-line limit,

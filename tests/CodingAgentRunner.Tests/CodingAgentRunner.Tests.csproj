@@ -28,4 +28,8 @@
     <ProjectReference Include="..\..\src\CodingAgentRunner.Rendering\CodingAgentRunner.Rendering.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="testdata\cli-fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
