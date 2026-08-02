@@ -1,0 +1,42 @@
+{
+  "$schema": "https://agent-taskboard.local/schemas/wiki-document-companion.schema.json",
+  "schemaVersion": "wiki-document-companion/v1",
+  "title": "Voice \u0026 messaging rules",
+  "source": {
+    "path": "docs/voice-and-messaging.md",
+    "type": "markdown",
+    "fingerprint": {
+      "algorithm": "sha256",
+      "hash": "17e72b5c4fc5f8709a150e2e49687cbbe26e7e88ddc0955340e099a123293c8c",
+      "sizeBytes": 4227,
+      "lineCount": 81,
+      "capturedAt": "2026-07-28T15:39:06.2200000Z"
+    }
+  },
+  "agentReads": {
+    "total": 5,
+    "lastReadAt": "2026-07-28T15:39:06.2200000Z",
+    "recent": [
+      {
+        "at": "2026-07-28T15:39:06.2200000Z",
+        "taskKey": "CAR-11"
+      },
+      {
+        "at": "2026-07-28T14:46:43.7290000Z",
+        "taskKey": "CAR-11"
+      },
+      {
+        "at": "2026-07-14T23:21:59.4510000Z",
+        "taskKey": "CAR-3"
+      },
+      {
+        "at": "2026-07-10T23:03:15.8070000Z",
+        "taskKey": "CAR-1"
+      },
+      {
+        "at": "2026-07-09T23:13:25.5360000Z",
+        "taskKey": "CAR-2"
+      }
+    ]
+  }
+}

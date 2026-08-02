@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-taskboard.local/schemas/wiki-document-companion.schema.json",
+  "schemaVersion": "wiki-document-companion/v1",
+  "title": "CodingAgentRunner \u2014 Developer Wiki",
+  "source": {
+    "path": "docs/README.md",
+    "type": "markdown",
+    "fingerprint": {
+      "algorithm": "sha256",
+      "hash": "28f7f6c7ae8740080b5db7053ad30527de2123b1565f4fde2162d6615bfdbed2",
+      "sizeBytes": 2707,
+      "lineCount": 26,
+      "capturedAt": "2026-07-14T23:21:58.6560000Z"
+    }
+  },
+  "agentReads": {
+    "total": 2,
+    "lastReadAt": "2026-07-14T23:21:58.6560000Z",
+    "recent": [
+      {
+        "at": "2026-07-14T23:21:58.6560000Z",
+        "taskKey": "CAR-3"
+      },
+      {
+        "at": "2026-07-10T23:03:15.3730000Z",
+        "taskKey": "CAR-1"
+      }
+    ]
+  }
+}

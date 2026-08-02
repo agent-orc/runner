@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-taskboard.local/schemas/wiki-document-companion.schema.json",
+  "schemaVersion": "wiki-document-companion/v1",
+  "title": "Cheap-subagent delegation",
+  "source": {
+    "path": "docs/delegation.md",
+    "type": "markdown",
+    "fingerprint": {
+      "algorithm": "sha256",
+      "hash": "d0917d681033806a13581953dff79af198c27ec8ee1d2273b2057c9010b5114b",
+      "sizeBytes": 10243,
+      "lineCount": 197,
+      "capturedAt": "2026-07-28T15:27:44.8000000Z"
+    }
+  },
+  "agentReads": {
+    "total": 2,
+    "lastReadAt": "2026-07-28T15:27:44.8000000Z",
+    "recent": [
+      {
+        "at": "2026-07-28T15:27:44.8000000Z",
+        "taskKey": "CAR-11"
+      },
+      {
+        "at": "2026-07-28T15:15:23.9280000Z",
+        "taskKey": "CAR-11"
+      }
+    ]
+  }
+}
