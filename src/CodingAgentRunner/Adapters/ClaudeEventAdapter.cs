@@ -61,7 +61,19 @@ public static class ClaudeEventAdapter
                 var sessionId = root.TryGetProperty("session_id", out var sid) ? sid.GetString() : null;
                 if (string.Equals(subtype, "init", StringComparison.Ordinal))
                 {
-                    yield return new CliRunEvent.SessionStarted(sessionId) { RunId = runId };
+                    // The init frame is Claude's session handshake AND its context
+                    // report: it names the model it actually loaded, the effective
+                    // permission mode, and the working directory. Carry those along
+                    // instead of discarding them — a consumer rendering "what did
+                    // the agent actually see" reads them from here.
+                    yield return new CliRunEvent.SessionStarted(sessionId)
+                    {
+                        RunId = runId,
+                        Model = TolerantString(root, "model"),
+                        PermissionMode = TolerantString(root, "permissionMode", "permission_mode"),
+                        Cwd = TolerantString(root, "cwd"),
+                        ApiKeySource = TolerantString(root, "apiKeySource", "api_key_source"),
+                    };
                 }
                 else if (IsDelegationLifecycle(subtype))
                 {
@@ -75,19 +87,25 @@ public static class ClaudeEventAdapter
             }
             case "rate_limit_event":
             {
-                if (root.TryGetProperty("rate_limit_info", out var info) && info.ValueKind == JsonValueKind.Object)
+                // Tolerant on purpose: Claude has shipped camelCase fields, other
+                // stream surfaces commonly use snake_case, resets timestamps have
+                // appeared both as unix seconds and as ISO-8601 strings, and
+                // booleans as real booleans and as "true"/"false" strings. A frame
+                // this parser cannot read must degrade to nulls/zero, never fail
+                // the read loop or drop the event.
+                var info = TolerantObject(root, "rate_limit_info", "rateLimitInfo");
+                if (info.ValueKind == JsonValueKind.Object)
                 {
                     // Normalize the window label onto the built-in Claude probe's
                     // vocabulary (five_hour → 5-hour, seven_day → weekly):
                     // QuotaService.Observe merges by label, so a live event must
                     // land in the SAME QuotaWindow the probe wrote.
                     var window = Quota.ClaudeOAuthUsageProbe.WindowLabel(
-                        info.TryGetProperty("rateLimitType", out var rlt) ? rlt.GetString() : null);
-                    var status = info.TryGetProperty("status", out var s) ? s.GetString() : null;
-                    var resetsAt = info.TryGetProperty("resetsAt", out var ra)
-                        && ra.ValueKind == JsonValueKind.Number && ra.TryGetInt64(out var v) ? v : 0L;
-                    var overage = info.TryGetProperty("overageStatus", out var os) ? os.GetString() : null;
-                    var using_ = info.TryGetProperty("isUsingOverage", out var iuo) && iuo.ValueKind == JsonValueKind.True;
+                        TolerantString(info, "rateLimitType", "rate_limit_type", "window"));
+                    var status = TolerantString(info, "status");
+                    var resetsAt = TolerantUnixSeconds(info, "resetsAt", "resets_at");
+                    var overage = TolerantString(info, "overageStatus", "overage_status");
+                    var using_ = TolerantBoolean(info, "isUsingOverage", "is_using_overage");
                     yield return new CliRunEvent.RateLimitObserved(window, status, resetsAt, overage, using_) { RunId = runId };
                 }
                 yield break;
@@ -271,4 +289,64 @@ public static class ClaudeEventAdapter
 
     private static string Truncate(string s, int max)
         => s.Length <= max ? s : s[..max];
+
+    // ── tolerant field readers (rate_limit_event / init-frame context) ──
+    // Field-name casing and value types have drifted across Claude Code
+    // releases; these readers accept every observed form and degrade to
+    // null/zero/false instead of dropping the frame.
+
+    private static JsonElement TolerantObject(JsonElement parent, params string[] names)
+    {
+        if (parent.ValueKind != JsonValueKind.Object) return default;
+        foreach (var name in names)
+            if (parent.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Object)
+                return value;
+        return default;
+    }
+
+    private static string? TolerantString(JsonElement parent, params string[] names)
+    {
+        if (parent.ValueKind != JsonValueKind.Object) return null;
+        foreach (var name in names)
+            if (parent.TryGetProperty(name, out var value)
+                && value.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(value.GetString()))
+                return value.GetString();
+        return null;
+    }
+
+    private static bool TolerantBoolean(JsonElement parent, params string[] names)
+    {
+        if (parent.ValueKind != JsonValueKind.Object) return false;
+        foreach (var name in names)
+        {
+            if (!parent.TryGetProperty(name, out var value)) continue;
+            if (value.ValueKind == JsonValueKind.True) return true;
+            if (value.ValueKind == JsonValueKind.False) return false;
+            if (value.ValueKind == JsonValueKind.String
+                && bool.TryParse(value.GetString(), out var parsed))
+                return parsed;
+        }
+        return false;
+    }
+
+    private static long TolerantUnixSeconds(JsonElement parent, params string[] names)
+    {
+        if (parent.ValueKind != JsonValueKind.Object) return 0;
+        foreach (var name in names)
+        {
+            if (!parent.TryGetProperty(name, out var value)) continue;
+            if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var number))
+                return number;
+            if (value.ValueKind != JsonValueKind.String) continue;
+            var raw = value.GetString();
+            if (long.TryParse(raw, System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture, out number))
+                return number;
+            if (DateTimeOffset.TryParse(raw, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal, out var timestamp))
+                return timestamp.ToUnixTimeSeconds();
+        }
+        return 0;
+    }
 }

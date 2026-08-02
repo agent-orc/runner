@@ -8,6 +8,17 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 ### Added
 
+- **Claude adapter tolerance** for frames whose casing and value types have
+  drifted across CLI releases: `rate_limit_event` is read in camelCase *and*
+  snake_case (including a camelCased `rateLimitInfo` object), reset timestamps
+  as unix seconds, numeric strings, or ISO-8601, and booleans as booleans or
+  `"true"`/`"false"` strings. Unreadable fields degrade to null/zero instead of
+  dropping the event. The `system/init` handshake frame's execution context —
+  the model the CLI actually loaded, the effective permission mode, the working
+  directory, and the API-key source — now travels on
+  `CliRunEvent.SessionStarted` as optional properties instead of being
+  discarded.
+
 - Opt-in stream-parsing fixture replays for Claude, Codex, Gemini, and
   Antigravity cover source, diff, HTML, Markdown, image, JSON, ANSI/UTF-8 log,
   and long-line payloads. Embedded terminal-looking strings remain content;

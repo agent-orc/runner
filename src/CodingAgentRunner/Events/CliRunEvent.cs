@@ -35,8 +35,29 @@ public abstract record CliRunEvent
     /// <summary>Adapter saw the CLI's first protocol frame; the session is being initialized.</summary>
     public sealed record SessionInitializing : CliRunEvent;
 
-    /// <summary>Session is open. <see cref="SessionId"/> is the CLI-assigned id when available; null when the CLI has not surfaced one yet.</summary>
-    public sealed record SessionStarted(string? SessionId) : CliRunEvent;
+    /// <summary>
+    /// Session is open. <see cref="SessionId"/> is the CLI-assigned id when
+    /// available; null when the CLI has not surfaced one yet. The remaining
+    /// properties carry the execution context some CLIs report in the same
+    /// handshake frame (Claude's <c>system/init</c> names the model it loaded,
+    /// the effective permission mode, the working directory, and where the API
+    /// key came from). All optional: an adapter that only knows the id leaves
+    /// them null, and no consumer may require them.
+    /// </summary>
+    public sealed record SessionStarted(string? SessionId) : CliRunEvent
+    {
+        /// <summary>Model the CLI reports it actually loaded for this session, when stated.</summary>
+        public string? Model { get; init; }
+
+        /// <summary>The CLI's own permission-mode term (Claude: <c>bypassPermissions</c> / <c>acceptEdits</c> / <c>plan</c> / <c>default</c>), when stated.</summary>
+        public string? PermissionMode { get; init; }
+
+        /// <summary>Working directory the CLI reports for the session, when stated.</summary>
+        public string? Cwd { get; init; }
+
+        /// <summary>Credential source the CLI reports (e.g. <c>none</c>, <c>ANTHROPIC_API_KEY</c>), when stated.</summary>
+        public string? ApiKeySource { get; init; }
+    }
 
     /// <summary>The prompt the runner sent has been acknowledged by the CLI; a turn is starting.</summary>
     public sealed record TurnStarted : CliRunEvent;
