@@ -6,6 +6,8 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-02
+
 ### Added
 
 - **Claude adapter tolerance** for frames whose casing and value types have
@@ -147,6 +149,7 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 Baseline for this changelog.
 
+[0.7.0]: https://github.com/agent-orc/runner/releases/tag/v0.7.0
 [0.6.0]: https://github.com/agent-orc/runner/releases/tag/v0.6.0
 [0.5.0]: https://github.com/agent-orc/runner/releases/tag/v0.5.0
 [0.4.0]: https://github.com/agent-orc/runner/releases/tag/v0.4.0
