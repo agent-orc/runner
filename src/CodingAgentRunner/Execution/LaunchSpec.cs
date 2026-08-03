@@ -60,6 +60,12 @@ public sealed record CliLaunchContext(
     /// use this for CLI-native image input where available.
     /// </summary>
     public IReadOnlyList<ResolvedAttachment> Attachments { get; init; } = [];
+
+    /// <summary>
+    /// Validated host-requested launch additions. Built-in descriptors choose their
+    /// fixed position in argv; callers cannot supply raw flags or reorder argv.
+    /// </summary>
+    public IReadOnlyList<CliLaunchExtension> LaunchExtensions { get; init; } = [];
 }
 
 /// <summary>Builds the immutable <see cref="LaunchSpec"/> for a run — the descriptor seam that replaces a driver's <c>BuildStartInfo</c> + <c>GetPromptStdinPayload</c>.</summary>

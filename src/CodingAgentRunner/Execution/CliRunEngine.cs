@@ -198,6 +198,7 @@ internal sealed class CliRunEngine : ICliDriver
         return _descriptor.BuildLaunch(new CliLaunchContext(request, _descriptor.GetCliPath(Options), model, thinking, Logger)
         {
             ClaudePromptTransport = Options.ClaudePromptTransport,
+            LaunchExtensions = request.LaunchExtensions ?? [],
         });
     }
 
@@ -232,6 +233,8 @@ internal sealed class CliRunEngine : ICliDriver
             foreach (var kv in request.Tuning)
                 if (string.IsNullOrWhiteSpace(kv.Key))
                     return (null, "Tuning keys cannot be empty.");
+        if (CliLaunchExtensions.Validate(CliType, request.LaunchExtensions) is { } launchExtensionError)
+            return (null, launchExtensionError);
 
         if (_processes.TryGetValue(request.RunId, out var existing))
         {
@@ -293,6 +296,7 @@ internal sealed class CliRunEngine : ICliDriver
         {
             Attachments = preparedAttachments.Files,
             ClaudePromptTransport = Options.ClaudePromptTransport,
+            LaunchExtensions = request.LaunchExtensions ?? [],
         });
 
         var psi = new ProcessStartInfo

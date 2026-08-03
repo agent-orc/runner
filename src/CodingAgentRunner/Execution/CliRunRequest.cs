@@ -65,4 +65,12 @@ public sealed record CliRunRequest
     /// tuning key; it has its own first-class field, <see cref="ThinkingLevel"/>.
     /// </summary>
     public IReadOnlyDictionary<string, string>? Tuning { get; init; }
+
+    /// <summary>
+    /// Explicit, validated additions to a built-in CLI launch. This is deliberately
+    /// not a raw argv escape hatch: the runner accepts only documented extension
+    /// kinds, validates their values before spawning, and retains ownership of
+    /// required protocol, permission, reasoning, and prompt arguments.
+    /// </summary>
+    public IReadOnlyList<CliLaunchExtension>? LaunchExtensions { get; init; }
 }

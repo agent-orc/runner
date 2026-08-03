@@ -79,6 +79,33 @@ public class CliDriverArgvTests
     }
 
     [Fact]
+    public void Claude_AppendSystemPromptFile_IsPlacedBeforeThePrompt_ForFreshAndResumedRuns()
+    {
+        var file = Path.GetTempFileName();
+        try
+        {
+            const string prompt = "Say \"hello\"\nand keep this quote: 'ok'.";
+            var extension = CliLaunchExtension.AppendClaudeSystemPromptFile(file);
+            var fresh = Launch(BuiltInDescriptors.Claude, Req() with { Prompt = prompt, LaunchExtensions = [extension] }).Argv;
+            var resumed = Launch(BuiltInDescriptors.Claude,
+                Req(session: "abc-123", resume: true) with { Prompt = prompt, LaunchExtensions = [extension] }).Argv;
+
+            foreach (var args in new[] { fresh, resumed })
+            {
+                var flag = args.ToList().IndexOf("--append-system-prompt-file");
+                Assert.True(flag >= 0);
+                Assert.Equal(file, args[flag + 1]);
+                Assert.True(flag < args.Count - 1);
+                Assert.Equal(prompt, args[^1]);
+                Assert.Equal(1, args.Count(a => a == "--output-format"));
+                Assert.Equal("stream-json", args[args.ToList().IndexOf("--output-format") + 1]);
+            }
+            Assert.Contains("-r", resumed);
+        }
+        finally { File.Delete(file); }
+    }
+
+    [Fact]
     public void Codex_UsesExecExperimentalJson_StdinDash_AndSandbox()
     {
         var launch = Launch(BuiltInDescriptors.Codex, Req(model: "gpt-5.5", thinking: "high"));
@@ -120,6 +147,14 @@ public class CliDriverArgvTests
         }).Argv;
         Assert.Contains("-c", args);
         Assert.Contains("model_reasoning_summary=concise", args);
+    }
+
+    [Fact]
+    public void Codex_DefaultLaunch_RemainsUnchanged()
+    {
+        var args = Launch(BuiltInDescriptors.Codex, Req()).Argv;
+        Assert.DoesNotContain("--append-system-prompt-file", args);
+        Assert.Equal("-", args[^1]);
     }
 
     [Fact]
