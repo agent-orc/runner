@@ -5,7 +5,7 @@ code** so the institutional memory isn't lost during the extraction.
 
 ## Pages
 
-- **[Architecture](architecture.md)** — the modules, the public API (the `CliDescriptor` catalog, the event contract, the optional Rendering package, the Metrics namespace), and the abstractions the library leans on (logging, options, a home/path provider).
+- **[Architecture](architecture.md)** — the modules, public API (including host-owned clean-context leases for [Agent Studio AGT-2371](https://linear.app/agent-studio/issue/AGT-2371)), and the abstractions the library leans on (logging, options, a home/path provider).
 - **[CLI setup](cli-setup.md)** — installing and signing in to the four CLIs, the `InspectEnvironment()` diagnostics report, and the headless/CI automation options.
 - **[Pricing](pricing.md)** — the one library of per-model API prices with history, and the pure cost API (`ModelPriceCatalog`) that computes a run's cost with the price valid at run time — unknown/unpriced models are explicit, never a silent zero.
 - **[Cross-CLI normalization](cross-cli-normalization.md)** — the same concept in three CLI dialects, the per-CLI frame table, the structural asymmetries the model absorbs, and the one `CliRunEvent` vocabulary the adapters fold them into.

@@ -49,6 +49,15 @@ public sealed record CliRunRequest
     public string ContextMode { get; init; } = CodingAgentRunner.Model.CliContextModes.Clean;
 
     /// <summary>
+    /// A CAR-prepared clean-context lease to use for this attempt. Obtain it from
+    /// <see cref="ICliDriver.AcquireCleanContext"/> and dispose it at the host's task
+    /// boundary. A supplied lease overrides the per-run <see cref="ContextMode"/>
+    /// preparation, remains available after every terminal event (including a failed
+    /// start), and must belong to this CLI.
+    /// </summary>
+    public CliCleanContextLease? CleanContextLease { get; init; }
+
+    /// <summary>
     /// Extra environment variables for this run, applied <b>after</b> the standard
     /// hardening — so they <em>win</em> over it. This is a deliberate escape hatch; use
     /// it to add run-specific vars, not to undo hardening (overriding e.g. the UTF-8 /

@@ -6,9 +6,9 @@ using CodingAgentRunner.Model;
 namespace CodingAgentRunner.Execution;
 
 /// <summary>
-/// One run's <b>clean context</b>: a freshly created, per-run config home for a
-/// CLI plus the env override that points the CLI at it. Owned by the run;
-/// disposing it tears the temp home down.
+/// A host-owned <b>clean-context lease</b>: a freshly created config home for a
+/// CLI plus the env override that points the CLI at it. Disposing it tears the
+/// temp home down. A host can supply the same lease to multiple attempts.
 /// <para>
 /// "clean" is not a CLI flag — it is the absence of the operator's accumulated
 /// state. Each adapter implements it by relocating the CLI's whole config home
@@ -20,13 +20,13 @@ namespace CodingAgentRunner.Execution;
 /// active regardless of mode.
 /// </para>
 /// </summary>
-internal sealed class CleanContextPreparation : IDisposable
+public sealed class CliCleanContextLease : IDisposable
 {
     private readonly ILogger? _logger;
     private int _disposed;
 
     /// <summary>Create a clean-context handle around an already-prepared temp home.</summary>
-    public CleanContextPreparation(
+    internal CliCleanContextLease(
         string cliType,
         string tempHome,
         IReadOnlyDictionary<string, string> envOverrides,
@@ -52,6 +52,9 @@ internal sealed class CleanContextPreparation : IDisposable
     /// <summary>Context sources describing the temp home + seeded files (read-only observability).</summary>
     public IReadOnlyList<CliContextSource> Sources { get; }
 
+    /// <summary>Whether this lease has been explicitly released.</summary>
+    public bool IsDisposed => System.Threading.Volatile.Read(ref _disposed) != 0;
+
     /// <summary>Delete the per-run temp home. Idempotent; failures are logged, never thrown.</summary>
     public void Dispose()
     {
@@ -72,7 +75,7 @@ internal sealed class CleanContextPreparation : IDisposable
 }
 
 /// <summary>
-/// Builds a CLI's <see cref="CleanContextPreparation"/>: creates the per-run temp
+/// Builds a CLI's <see cref="CliCleanContextLease"/>: creates the per-run temp
 /// home, links refreshable credentials, copies isolated base config, and reports
 /// the resulting paths. Side-effect-light (it only touches a brand-new temp dir
 /// under <see cref="Path.GetTempPath"/>) so it is directly unit-testable with an
@@ -108,7 +111,7 @@ internal static class CleanContextPreparer
     /// temp home cannot be created (clean is then impossible and the caller falls
     /// back to shared).
     /// </summary>
-    public static CleanContextPreparation? PrepareClaude(string? userHome, ILogger? logger = null)
+    public static CliCleanContextLease? PrepareClaude(string? userHome, ILogger? logger = null)
     {
         var source = string.IsNullOrWhiteSpace(userHome) ? null : Path.Combine(userHome, ".claude");
         return Prepare(
@@ -124,7 +127,7 @@ internal static class CleanContextPreparer
     /// Build the Codex clean context (<c>CODEX_HOME</c> redirect). The source config
     /// dir is <c>{userHome}/.codex</c>.
     /// </summary>
-    public static CleanContextPreparation? PrepareCodex(string? userHome, ILogger? logger = null)
+    public static CliCleanContextLease? PrepareCodex(string? userHome, ILogger? logger = null)
     {
         var source = string.IsNullOrWhiteSpace(userHome) ? null : Path.Combine(userHome, ".codex");
         return Prepare(
@@ -141,7 +144,7 @@ internal static class CleanContextPreparer
     /// data-driven path the engine uses (the per-CLI recipe lives on the descriptor, the
     /// mechanics here). The source dir is <c>{userHome}/{spec.SourceConfigDirName}</c>.
     /// </summary>
-    public static CleanContextPreparation? PrepareFromSpec(string cliType, CleanContextSpec spec, string? userHome, ILogger? logger = null)
+    public static CliCleanContextLease? PrepareFromSpec(string cliType, CleanContextSpec spec, string? userHome, ILogger? logger = null)
     {
         var source = string.IsNullOrWhiteSpace(userHome) ? null : Path.Combine(userHome, spec.SourceConfigDirName);
         return Prepare(
@@ -153,7 +156,7 @@ internal static class CleanContextPreparer
             logger);
     }
 
-    private static CleanContextPreparation? Prepare(
+    private static CliCleanContextLease? Prepare(
         string cliType,
         string envVar,
         string? sourceDir,
@@ -192,7 +195,7 @@ internal static class CleanContextPreparer
         SeedFiles(copiedSeedFiles, linked: false);
 
         var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [envVar] = tempHome };
-        return new CleanContextPreparation(cliType, tempHome, env, sources, logger);
+        return new CliCleanContextLease(cliType, tempHome, env, sources, logger);
 
         void SeedFiles(IReadOnlyList<string> seedFiles, bool linked)
         {

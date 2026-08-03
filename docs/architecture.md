@@ -271,6 +271,41 @@ are shared-only. In both modes the working directory remains the same: versioned
 files and repo-local instructions such as `AGENTS.md` / `CLAUDE.md` still load from the
 checkout.
 
+### Host-owned clean-context leases
+
+`ContextMode=clean` creates and releases a home for one attempt. A host that needs to
+continue the same task across attempts can instead acquire a `CliCleanContextLease`.
+The lease is prepared by the runner, including its linked credential files and copied
+base config; the host must not reproduce that seeding. Pass it in each
+`CliRunRequest.CleanContextLease`, including a request with `ResumeSessionId`.
+
+```csharp
+using var context = runner.Codex.AcquireCleanContext();
+
+var first = await runner.Codex.StartAsync(new CliRunRequest
+{
+    RunId = "task-1-attempt-1",
+    Prompt = "Investigate the failing test.",
+    WorkingDirectory = repo,
+    CleanContextLease = context,
+});
+
+var continuation = await runner.Codex.StartAsync(new CliRunRequest
+{
+    RunId = "task-1-attempt-2",
+    Prompt = "Continue and implement the fix.",
+    WorkingDirectory = repo,
+    ResumeSessionId = sessionId,
+    CleanContextLease = context,
+});
+```
+
+The runner never disposes a supplied lease at an attempt's terminal event or after a
+failed start. The host disposes it once at its task-run boundary; disposal removes the
+isolated home and is idempotent. `TempHome`, `EnvOverrides`, and `Sources` are exposed
+for diagnostics. A lease belongs to one CLI and cannot be supplied to another. This
+contract was added for [Agent Studio AGT-2371](https://linear.app/agent-studio/issue/AGT-2371).
+
 ## Cheap-subagent delegation
 
 Delegation is run configuration, not an API: the runner writes agent definitions into
