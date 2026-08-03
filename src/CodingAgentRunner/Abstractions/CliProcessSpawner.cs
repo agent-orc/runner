@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Runtime.Versioning;
 using CodingAgentRunner.Model;
+using CodingAgentRunner.Execution.Win;
 
 namespace CodingAgentRunner.Abstractions;
 
@@ -26,7 +28,7 @@ public sealed record CliSpawn(
 /// how the engine launches a CLI — the canonical use is a <b>Windows pseudo-terminal</b>
 /// spawner so a Node CLI flushes <c>stdout</c> per newline (block-buffered pipes otherwise
 /// hide live output and trip the silence watchdog). When no spawner is set the engine uses
-/// plain redirected pipes.
+/// <see cref="CliProcessSpawner.Default"/>.
 /// <para>The engine has already built the <see cref="ProcessStartInfo"/> (binary, argv,
 /// environment hardening, working directory, redirect flags) — the spawner only chooses
 /// the launch mechanism.</para>
@@ -35,4 +37,95 @@ public interface ICliProcessSpawner
 {
     /// <summary>Launch the prepared <paramref name="startInfo"/> and return the child + pipes.</summary>
     CliSpawn Spawn(ProcessStartInfo startInfo);
+}
+
+/// <summary>
+/// Built-in <see cref="ICliProcessSpawner"/> implementations and composition helpers.
+/// </summary>
+public static class CliProcessSpawner
+{
+    /// <summary>
+    /// The runner's normal launch path. On Windows it starts the child with the
+    /// curated handle list used by the runner; on other platforms it uses
+    /// <see cref="Process.Start()"/> with the prepared redirected pipes.
+    /// </summary>
+    public static ICliProcessSpawner Default { get; } = new DefaultCliProcessSpawner();
+
+    /// <summary>
+    /// Creates a spawner that calls <paramref name="prepare"/> with the fully prepared
+    /// launch, then delegates spawning to <paramref name="inner"/> or the runner default.
+    /// Use this to add host settings or reject a launch without replacing the runner's
+    /// Windows handle scrubbing, pipe setup, or termination behaviour.
+    /// </summary>
+    public static ICliProcessSpawner Decorate(
+        Action<ProcessStartInfo> prepare,
+        ICliProcessSpawner? inner = null)
+        => new DelegatingCliProcessSpawner(prepare, inner ?? Default);
+}
+
+/// <summary>
+/// Calls a host preparation callback and delegates the actual spawn to another
+/// <see cref="ICliProcessSpawner"/>. The default inner spawner is
+/// <see cref="CliProcessSpawner.Default"/>.
+/// </summary>
+public sealed class DelegatingCliProcessSpawner : ICliProcessSpawner
+{
+    private readonly Action<ProcessStartInfo> _prepare;
+    private readonly ICliProcessSpawner _inner;
+
+    /// <summary>Create a decorating spawner.</summary>
+    public DelegatingCliProcessSpawner(Action<ProcessStartInfo> prepare, ICliProcessSpawner? inner = null)
+    {
+        _prepare = prepare ?? throw new ArgumentNullException(nameof(prepare));
+        _inner = inner ?? CliProcessSpawner.Default;
+    }
+
+    /// <inheritdoc />
+    public CliSpawn Spawn(ProcessStartInfo startInfo)
+    {
+        ArgumentNullException.ThrowIfNull(startInfo);
+        _prepare(startInfo);
+        return _inner.Spawn(startInfo);
+    }
+}
+
+/// <summary>
+/// The runner's default pipe-based process spawn. This is public so a host can
+/// compose with, rather than replace, the supported launch path.
+/// </summary>
+public sealed class DefaultCliProcessSpawner : ICliProcessSpawner
+{
+    /// <inheritdoc />
+    public CliSpawn Spawn(ProcessStartInfo startInfo)
+    {
+        ArgumentNullException.ThrowIfNull(startInfo);
+
+        if (OperatingSystem.IsWindows())
+            return SpawnWindows(startInfo);
+
+        var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+        process.Start();
+        return new CliSpawn(
+            process,
+            startInfo.RedirectStandardInput ? process.StandardInput.BaseStream : Stream.Null,
+            process.StandardOutput,
+            process.StandardError);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static CliSpawn SpawnWindows(ProcessStartInfo startInfo)
+    {
+        var result = WindowsHandleScrubSpawner.Spawn(
+            startInfo.FileName,
+            startInfo.ArgumentList.ToArray(),
+            startInfo.WorkingDirectory,
+            startInfo.Environment.ToDictionary(pair => pair.Key, pair => (string?)pair.Value),
+            startInfo.RedirectStandardInput);
+        return new CliSpawn(
+            result.Process,
+            result.Stdin ?? Stream.Null,
+            new StreamReader(result.Stdout),
+            new StreamReader(result.Stderr),
+            _ => result.KillTree());
+    }
 }

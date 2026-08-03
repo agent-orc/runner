@@ -84,9 +84,10 @@ changes.
 Windows-safe launch: `BinaryResolver` resolves a `.cmd` shim to the real `.exe`
 (the prompt-truncation fix); environment hardening; stdin default-deny; a
 handle-scrubbing Win32 spawner that hands the child only its three std pipes. The
-spawner is pluggable through `CliOptions.Spawner` (`ICliProcessSpawner`) — inject a
-custom launcher, e.g. a Windows pseudo-terminal, or leave it null for redirected
-pipes. The *platform-owns-git* guard injects a PATH-front `git` wrapper that blocks
+spawner is pluggable through `CliOptions.Spawner` (`ICliProcessSpawner`):
+`CliProcessSpawner.Decorate` composes a host callback around the supported default,
+while a custom launcher can still provide a Windows pseudo-terminal. See
+[Process-spawner composition](process-spawner-composition.md). The *platform-owns-git* guard injects a PATH-front `git` wrapper that blocks
 mutating commands; it is defence-in-depth, not a sandbox.
 
 ### Protocol & completion

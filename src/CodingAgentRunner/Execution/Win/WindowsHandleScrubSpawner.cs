@@ -200,19 +200,29 @@ internal static class WindowsHandleScrubSpawner
                 stdinWrite = IntPtr.Zero;
             }
 
-            // Wrap the process by PID for HasExited / WaitForExitAsync; the raw
-            // handle stays with our PROCESS_INFORMATION until Kill closes it.
+            // Wrap the process by PID for HasExited / WaitForExitAsync. Keep the
+            // raw handle only until the child exits or Kill runs; otherwise every
+            // clean default spawn would leak a process handle in the parent.
             var managed = Process.GetProcessById((int)pi.dwProcessId);
             var rawHandle = pi.hProcess;
             var rawPid = (int)pi.dwProcessId;
+            var rawHandleClosed = 0;
+            void CloseRawHandle()
+            {
+                if (Interlocked.Exchange(ref rawHandleClosed, 1) == 0)
+                    CloseHandle(rawHandle);
+            }
             Action killTree = () =>
             {
                 try { TerminateProcessTree(rawPid, logger); }
                 catch (Exception ex) { logger?.LogDebug(ex, "WindowsHandleScrubSpawner: best-effort kill failed"); }
-                finally { CloseHandle(rawHandle); }
+                finally { CloseRawHandle(); }
             };
+            managed.EnableRaisingEvents = true;
+            managed.Exited += (_, _) => CloseRawHandle();
+            if (managed.HasExited) CloseRawHandle();
 
-            success = true; // the process handle is now owned by killTree
+            success = true; // the process or killTree now owns the raw process handle
             return new Result(managed, stdinStream, stdoutStream, stderrStream, killTree);
         }
         finally
