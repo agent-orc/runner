@@ -34,6 +34,12 @@ through an `ICliCatalog`. Adding a CLI means registering another descriptor in t
 catalog, not writing a new class. `runner.Get("claude")` (or the `runner.Claude`
 sugar) returns that descriptor-backed engine as an `ICliDriver`.
 
+Before a host starts a run, it can call `driver.EnsureHealthyAsync(ct)`. This runs
+the same descriptor health policy used immediately before spawn, returning a typed
+`PreSpawnHealthResult` (`Healthy`, `Repaired`, or `Failed`) without starting an
+agent turn. Claude's built-in policy probes first and repairs its npm shim only when
+needed; failures include the repair actions and an actionable error.
+
 ```csharp
 var runner = new CliRunner(new CliOptions());
 var driver = runner.Get("claude");                 // or runner.Claude

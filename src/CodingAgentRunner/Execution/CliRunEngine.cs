@@ -183,6 +183,16 @@ internal sealed class CliRunEngine : ICliDriver
         }
     }
 
+    /// <inheritdoc />
+    public async Task<PreSpawnHealthResult> EnsureHealthyAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (_descriptor.EnsureHealthy is not { } health)
+            return PreSpawnHealthResult.Healthy();
+
+        return await health(new PreSpawnHealthContext(() => TestCliPath(), Logger), ct).ConfigureAwait(false);
+    }
+
     // ── Test hook ───────────────────────────────────────────────────────
 
     /// <summary>
@@ -275,15 +285,12 @@ internal sealed class CliRunEngine : ICliDriver
             }
         }
 
-        if (_descriptor.EnsureHealthy is { } heal)
+        var health = await EnsureHealthyAsync(ct).ConfigureAwait(false);
+        if (!health.IsHealthy)
         {
-            var (healthy, healError) = await heal(new PreSpawnHealthContext(() => TestCliPath(), Logger), ct).ConfigureAwait(false);
-            if (!healthy)
-            {
-                Logger.LogError("Pre-spawn health check failed for {Cli} ({RunId}): {Error}", CliType, request.RunId, healError);
-                subagents?.Dispose();
-                return (null, $"{CliType} CLI not available: {healError}");
-            }
+            Logger.LogError("Pre-spawn health check failed for {Cli} ({RunId}): {Error}", CliType, request.RunId, health.Error);
+            subagents?.Dispose();
+            return (null, $"{CliType} CLI not available: {health.Error}");
         }
 
         var model = NormalizeModel(request.Model);

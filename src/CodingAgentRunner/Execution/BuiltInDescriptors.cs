@@ -76,18 +76,21 @@ internal static class BuiltInDescriptors
         };
     }
 
-    private static async Task<(bool Ok, string? Error)> HealClaudeAsync(PreSpawnHealthContext ctx, CancellationToken ct)
+    private static async Task<PreSpawnHealthResult> HealClaudeAsync(PreSpawnHealthContext ctx, CancellationToken ct)
     {
         var probe = ctx.Probe();
-        if (probe.Available) return (true, null);
+        if (probe.Available) return PreSpawnHealthResult.Healthy();
         ctx.Logger.LogWarning("claude --version failed pre-spawn at '{Path}'; running the npm-shim healer", probe.Path);
         var outcome = await NpmShimHealer.TryHealClaudeAsync(ctx.Logger, ct).ConfigureAwait(false);
         if (outcome.Actions.Count > 0)
             ctx.Logger.LogInformation("npm-shim healer actions for claude: {Actions}", string.Join("; ", outcome.Actions));
         if (!outcome.Available)
-            return (false, outcome.Error ?? "npm-shim healer reported claude unavailable after repair");
+            return PreSpawnHealthResult.Failed(
+                outcome.Error ?? "npm-shim healer reported claude unavailable after repair", outcome.Actions);
         var verify = ctx.Probe();
-        return verify.Available ? (true, null) : (false, $"claude --version still failing after heal at '{verify.Path}'");
+        return verify.Available
+            ? PreSpawnHealthResult.Repaired(outcome.Actions)
+            : PreSpawnHealthResult.Failed($"claude --version still failing after heal at '{verify.Path}'", outcome.Actions);
     }
 
     // ── Codex ───────────────────────────────────────────────────────────
