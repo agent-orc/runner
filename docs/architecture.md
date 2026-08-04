@@ -65,7 +65,18 @@ engine (`CliRunEngine`) stay `internal` — reachable only through `CliRunner` /
 catalog. The spawner, the hardening, and the log stores stay `internal` too: that
 machine room is not part of the contract, and there is **no "add your own CLI"
 extension point** today — the descriptors are a fixed, inspectable catalog, not a
-registration hook. The one launch-time seam is `CliOptions.Spawner` (see below).
+registration hook. `CliOptions.Spawner` is the process-launch seam (see below);
+it does not own argument policy.
+
+`CliRunRequest.LaunchExtensions` is a separate, constrained host seam for a
+built-in CLI option that must survive a runner upgrade. It is not an argv overlay:
+the host can currently request exactly one Claude
+`CliLaunchExtension.AppendClaudeSystemPromptFile(absolutePath)`, and the runner
+checks the CLI, cardinality, absolute existing file path, and option kind before it
+spawns. The descriptor places that option while retaining base argv order, structured
+output, permission and reasoning flags, prompt transport, hardening, events, and
+outcomes. Raw flags and replacements for runner-owned switches are intentionally not
+accepted. This seam was added for Agent Studio AGT-2371.
 
 `CliRunRequest.Attachments` carries durable references from a chat/task message.
 The host-owned `CliOptions.AttachmentResolver` resolves them to existing absolute

@@ -678,6 +678,32 @@ public class CliDriverEngineTests
             Tuning = new Dictionary<string, string> { ["  "] = "v" },
         });
         Assert.Contains("Tuning", e4);
+
+        var (_, e5) = await driver.StartAsync(new CliRunRequest
+        {
+            RunId = "r", Prompt = "x", WorkingDirectory = wd,
+            LaunchExtensions = [new CliLaunchExtension
+            {
+                Kind = CliLaunchExtensionKind.ClaudeAppendSystemPromptFile,
+                Value = "relative-system-prompt.md",
+            }],
+        });
+        Assert.Contains("absolute path", e5);
+    }
+
+    [Fact]
+    public void LaunchExtensions_RejectConflictingOrUnsupportedRequests()
+    {
+        var file = Path.GetTempFileName();
+        try
+        {
+            var extension = CliLaunchExtension.AppendClaudeSystemPromptFile(file);
+            Assert.Contains("at most one", CliLaunchExtensions.Validate(CliTypes.Claude, [extension, extension]));
+            Assert.Contains("not supported by codex", CliLaunchExtensions.Validate(CliTypes.Codex, [extension]));
+            Assert.Contains("not supported", CliLaunchExtensions.Validate(CliTypes.Claude,
+            [new CliLaunchExtension { Kind = (CliLaunchExtensionKind)999, Value = file }]));
+        }
+        finally { File.Delete(file); }
     }
 
     [Fact]

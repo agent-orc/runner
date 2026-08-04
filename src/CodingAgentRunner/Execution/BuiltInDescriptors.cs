@@ -61,6 +61,13 @@ internal static class BuiltInDescriptors
         foreach (var flag in CliReasoningFlags.For(CliTypes.Claude, ctx.ResolvedModel, ctx.ResolvedThinkingLevel)) argv.Add(flag);
         argv.Add("--output-format"); argv.Add("stream-json"); argv.Add("--verbose");
         foreach (var flag in CliPermissionFlags.For(CliTypes.Claude, r.PermissionMode)) argv.Add(flag);
+        foreach (var extension in ctx.LaunchExtensions)
+        {
+            // Validation happens before the descriptor is invoked. Keep this before
+            // the prompt so the runner, not the host, owns positional prompt order.
+            argv.Add("--append-system-prompt-file");
+            argv.Add(extension.Value);
+        }
         var stdinPayload = ctx.ClaudePromptTransport == ClaudePromptTransport.Stdin && !string.IsNullOrEmpty(r.Prompt)
             ? r.Prompt
             : null;
