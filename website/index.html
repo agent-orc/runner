@@ -553,7 +553,7 @@ driver.OnRunEvent += (runId, e) =&gt;
     </div>
     <div>
       <h2 id="status">Status</h2>
-      <div class="note">Stable core, pre-1.0. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, watchdog, quota module, metrics recorder and optional rendering package are implemented and tested (427 tests, CI on Windows + Linux). BenchmarkDotNet micro-benchmarks are available as an optional manual run. The public API may still shift before 1.0 — pin a version and watch releases.</div>
+      <div class="note">Stable core, pre-1.0. The spawn engine, descriptor-driven CLI catalog, event contract, outcome model, watchdog, quota module, metrics recorder and optional rendering package are implemented and tested (566 tests, CI on Windows + Linux). BenchmarkDotNet micro-benchmarks are available as an optional manual run. The public API may still shift before 1.0 — pin a version and watch releases.</div>
       <h2 id="license" style="margin-top:22px;">License</h2>
       <p class="lead">Apache-2.0. Issues and pull requests welcome on <a href="https://github.com/agent-orc/runner">GitHub</a>.</p>
     </div>
@@ -1122,12 +1122,12 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows. Token counts come from CLI-reported usage objects.",
   "runner": {
     "gitCommit": "c38edc8d0095c6852fc27fc7a3f9cb3a0f8e2537",
-    "workspace": "C:/Projects/coding-agent-runner"
+    "workspace": "[local checkout]"
   },
   "environment": {
     "os": "Windows",
     "shell": "PowerShell",
-    "cwd": "C:/Projects/coding-agent-runner",
+    "cwd": "[local checkout]",
     "notes": [
       "Measurements include CLI startup, local plugin/config loading and network/model latency.",
       "The table's firstCliFrameMs is the first CLI frame: the first newline-delimited JSON object emitted on stdout. It is not necessarily the first user-visible assistant text. firstOutputMs is kept as a legacy alias in the aggregate rows.",
@@ -1139,17 +1139,17 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     {
       "cli": "Claude",
       "version": "2.1.186",
-      "path": "C:/Users/rmisc/AppData/Roaming/npm/claude.cmd"
+      "path": "[npm-global-prefix]/claude.cmd"
     },
     {
       "cli": "Codex",
       "version": "0.142.0",
-      "path": "C:/Users/rmisc/.vscode-insiders/extensions/openai.chatgpt-26.5616.71553-win32-x64/bin/windows-x86_64/codex.exe"
+      "path": "[vscode-extensions]/openai.chatgpt/bin/windows-x86_64/codex.exe"
     },
     {
       "cli": "Gemini",
       "version": "0.41.2",
-      "path": "C:/Users/rmisc/AppData/Roaming/npm/gemini.cmd"
+      "path": "[npm-global-prefix]/gemini.cmd"
     }
   ],
   "contextScale": [

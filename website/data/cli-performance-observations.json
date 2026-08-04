@@ -5,12 +5,12 @@
   "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows. Token counts come from CLI-reported usage objects.",
   "runner": {
     "gitCommit": "c38edc8d0095c6852fc27fc7a3f9cb3a0f8e2537",
-    "workspace": "C:/Projects/coding-agent-runner"
+    "workspace": "[local checkout]"
   },
   "environment": {
     "os": "Windows",
     "shell": "PowerShell",
-    "cwd": "C:/Projects/coding-agent-runner",
+    "cwd": "[local checkout]",
     "notes": [
       "Measurements include CLI startup, local plugin/config loading and network/model latency.",
       "The table's firstCliFrameMs is the first CLI frame: the first newline-delimited JSON object emitted on stdout. It is not necessarily the first user-visible assistant text. firstOutputMs is kept as a legacy alias in the aggregate rows.",
@@ -22,17 +22,17 @@
     {
       "cli": "Claude",
       "version": "2.1.186",
-      "path": "C:/Users/rmisc/AppData/Roaming/npm/claude.cmd"
+      "path": "[npm-global-prefix]/claude.cmd"
     },
     {
       "cli": "Codex",
       "version": "0.142.0",
-      "path": "C:/Users/rmisc/.vscode-insiders/extensions/openai.chatgpt-26.5616.71553-win32-x64/bin/windows-x86_64/codex.exe"
+      "path": "[vscode-extensions]/openai.chatgpt/bin/windows-x86_64/codex.exe"
     },
     {
       "cli": "Gemini",
       "version": "0.41.2",
-      "path": "C:/Users/rmisc/AppData/Roaming/npm/gemini.cmd"
+      "path": "[npm-global-prefix]/gemini.cmd"
     }
   ],
   "contextScale": [
