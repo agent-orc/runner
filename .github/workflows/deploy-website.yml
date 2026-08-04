@@ -2,7 +2,7 @@ name: deploy-website
 
 # Publishes website/ as a single-commit "deploy" branch on every push to main.
 # The agent-orchestrator.dev web host pulls that branch and serves it under
-# /runner/ (see the private agent-orchestrator-website repo for the hosting side).
+# /runner/. The hosting side is maintained separately.
 # The site is plain static HTML with relative links — no build step required.
 on:
   push:
