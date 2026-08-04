@@ -12,6 +12,7 @@ code** so the institutional memory isn't lost during the extraction.
 - **[Chat attachments](chat-attachments.md)** — resolving durable chat attachment references to local files, CLI delivery, and actionable start failures.
 - **[Cheap-subagent delegation](delegation.md)** — the agent definitions a run gets, the prompt block that advertises them, how a project overrides or opts out, and what `codex exec` does with subagents today.
 - **[Why Windows hardening](why-windows-hardening.md)** — the war stories behind each hardening behaviour, and why each ships with a test.
+- **[Process-spawner composition](process-spawner-composition.md)** — decorate a prepared launch while retaining the supported default spawn path.
 - **[Process termination & abort handling](process-termination.md)** — the outcome model (`stopped` vs `completed` vs `failed`), the abort scenarios, process-tree reaping, and the watchdog.
 - **[Voice & messaging](voice-and-messaging.md)** — how to write about the project: plain statements, no marketing language. Read before editing the README, the website, or any user-facing text.
 - **[Extraction plan & the cut](extraction-plan.html)** — how the library is being carved out of a production orchestrator: the boundary, the migration path, and the open questions.

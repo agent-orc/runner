@@ -51,7 +51,7 @@ internal static class WindowsHandleScrubSpawner
     public static Result Spawn(
         string exePath,
         IReadOnlyList<string> argList,
-        string cwd,
+        string? cwd,
         IReadOnlyDictionary<string, string?> envBlock,
         bool wantStdin,
         ILogger? logger = null)
