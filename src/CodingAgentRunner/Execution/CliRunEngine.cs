@@ -80,6 +80,16 @@ internal sealed class CliRunEngine : ICliDriver
     public bool SupportsCleanContext => _descriptor.SupportsCleanContext;
 
     /// <inheritdoc />
+    public CliCleanContextLease AcquireCleanContext()
+    {
+        if (_descriptor.CleanContext is not { } spec)
+            throw new InvalidOperationException($"{CliType} does not support clean contexts.");
+
+        return CleanContextPreparer.PrepareFromSpec(CliType, spec, Home.GetUserHome(), Logger)
+            ?? throw new InvalidOperationException($"Could not prepare a clean context for {CliType}.");
+    }
+
+    /// <inheritdoc />
     public CliCapabilities Capabilities(string? model) => _descriptor.Capabilities(model);
 
     /// <inheritdoc />
@@ -242,6 +252,13 @@ internal sealed class CliRunEngine : ICliDriver
             foreach (var kv in request.Tuning)
                 if (string.IsNullOrWhiteSpace(kv.Key))
                     return (null, "Tuning keys cannot be empty.");
+        if (request.CleanContextLease is { } suppliedLease)
+        {
+            if (suppliedLease.IsDisposed)
+                return (null, "CleanContextLease has already been disposed.");
+            if (!string.Equals(suppliedLease.CliType, CliType, StringComparison.OrdinalIgnoreCase))
+                return (null, $"CleanContextLease belongs to '{suppliedLease.CliType}', not '{CliType}'.");
+        }
 
         if (_processes.TryGetValue(request.RunId, out var existing))
         {
@@ -321,15 +338,17 @@ internal sealed class CliRunEngine : ICliDriver
         if (request.ExtraEnvironment is not null)
             foreach (var kv in request.ExtraEnvironment) psi.Environment[kv.Key] = kv.Value;
 
-        CleanContextPreparation? cleanContext = null;
-        if (CliContextModes.Normalize(request.ContextMode) == CliContextModes.Clean && _descriptor.CleanContext is { } cleanSpec)
+        CliCleanContextLease? cleanContext = null;
+        var activeCleanContext = request.CleanContextLease;
+        if (activeCleanContext is null && CliContextModes.Normalize(request.ContextMode) == CliContextModes.Clean && _descriptor.CleanContext is { } cleanSpec)
         {
             cleanContext = CleanContextPreparer.PrepareFromSpec(CliType, cleanSpec, Home.GetUserHome(), Logger);
-            if (cleanContext != null)
-            {
-                foreach (var kv in cleanContext.EnvOverrides) psi.Environment[kv.Key] = kv.Value;
-                Logger.LogInformation("{Cli} clean context for {RunId}: isolated home at {Home}", CliType, request.RunId, cleanContext.TempHome);
-            }
+            activeCleanContext = cleanContext;
+        }
+        if (activeCleanContext != null)
+        {
+            foreach (var kv in activeCleanContext.EnvOverrides) psi.Environment[kv.Key] = kv.Value;
+            Logger.LogInformation("{Cli} clean context for {RunId}: isolated home at {Home}", CliType, request.RunId, activeCleanContext.TempHome);
         }
 
         AgentGitCommandGuard.Apply(psi, Options.GitGuard, Options.AllowAgentGitMutation, Logger);
@@ -367,7 +386,7 @@ internal sealed class CliRunEngine : ICliDriver
             Status = "running",
             Model = model,
             ThinkingLevel = thinking,
-            CleanContextHome = cleanContext?.TempHome,
+            CleanContextHome = activeCleanContext?.TempHome,
             Subagents = subagents?.Available.Select(a => a.Name).ToList() ?? [],
         };
 
@@ -800,7 +819,7 @@ internal sealed class CliRunEngine : ICliDriver
         public RunLogStore OutputLog { get; init; } = null!;
         public Stream? ChildStdin { get; init; }
         public Action<RunStopReason>? KillOverride { get; init; }
-        public CleanContextPreparation? CleanContext { get; set; }
+        public CliCleanContextLease? CleanContext { get; set; }
         public SubagentMaterialization? Subagents { get; set; }
         public RunStopReason StopReason { get; set; } = RunStopReason.None;
         public string? LastFailureReason { get; set; }

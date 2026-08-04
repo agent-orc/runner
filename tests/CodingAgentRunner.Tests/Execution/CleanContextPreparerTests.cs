@@ -150,4 +150,28 @@ public class CleanContextPreparerTests
         Assert.Equal(["auth.json"], codex!.LinkedSeedFiles);
         Assert.Equal(["config.toml"], codex.CopiedSeedFiles);
     }
+
+    [Fact]
+    public void PrepareCodex_LinksRefreshableCredentials_AndCopiesConfig()
+    {
+        var home = Path.Combine(Path.GetTempPath(), "car-codex-home-" + Guid.NewGuid().ToString("N"));
+        var source = Path.Combine(home, ".codex");
+        Directory.CreateDirectory(source);
+        File.WriteAllText(Path.Combine(source, "auth.json"), "{\"token\":\"source\"}");
+        File.WriteAllText(Path.Combine(source, "config.toml"), "model = \"source\"");
+        try
+        {
+            using var lease = CleanContextPreparer.PrepareCodex(home);
+            Assert.NotNull(lease);
+            File.WriteAllText(Path.Combine(lease!.TempHome, "auth.json"), "{\"token\":\"refreshed\"}");
+            File.WriteAllText(Path.Combine(lease.TempHome, "config.toml"), "model = \"clean\"");
+
+            Assert.Equal("{\"token\":\"refreshed\"}", File.ReadAllText(Path.Combine(source, "auth.json")));
+            Assert.Equal("model = \"source\"", File.ReadAllText(Path.Combine(source, "config.toml")));
+        }
+        finally
+        {
+            try { Directory.Delete(home, recursive: true); } catch { /* ignore */ }
+        }
+    }
 }

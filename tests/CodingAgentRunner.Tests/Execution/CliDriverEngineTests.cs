@@ -49,6 +49,12 @@ public class CliDriverEngineTests
         public void Dispose() { try { Directory.Delete(_root, recursive: true); } catch { } }
     }
 
+    private sealed class TestHome(string home) : IUserHomeProvider
+    {
+        public string GetUserHome() => home;
+        public string GetTempRoot() => Path.GetTempPath();
+    }
+
     [Fact]
     public async Task Run_StreamsOutput_RaisesTypedEvents_AndClassifiesCleanExitAsCompleted()
     {
@@ -94,6 +100,114 @@ public class CliDriverEngineTests
         var output = driver.GetExecution("engine-test");
         Assert.Equal("completed", output!.Status);
         Assert.Contains(driver.GetOutput("engine-test"), l => l.Stream == "stdout");
+    }
+
+    [Fact]
+    public async Task AcquiredCleanContextLease_IsReusedAcrossAttempts_AndReleasedOnlyByHost()
+    {
+        var home = Path.Combine(Path.GetTempPath(), "car-lease-home-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(home, ".claude"));
+        File.WriteAllText(Path.Combine(home, ".claude", ".credentials.json"), "{\"token\":\"x\"}");
+        using var logs = new TempLogs();
+        try
+        {
+            var descriptor = ProbeDescriptor("dotnet", ["--version"]) with
+            {
+                CleanContext = BuiltInDescriptors.Get(CliTypes.Claude).CleanContext,
+            };
+            ICliDriver driver = new CliRunEngine(descriptor,
+                new CliOptions { AllowAgentGitMutation = true }, null, logs, new TestHome(home));
+            using var lease = driver.AcquireCleanContext();
+            var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+            driver.OnFinished += (_, run) => finished.TrySetResult(run);
+
+            foreach (var runId in new[] { "lease-one", "lease-two" })
+            {
+                var (run, error) = await driver.StartAsync(new CliRunRequest
+                {
+                    RunId = runId, Prompt = "x", WorkingDirectory = Path.GetTempPath(), CleanContextLease = lease,
+                });
+                Assert.Null(error);
+                Assert.Equal(lease.TempHome, run!.CleanContextHome);
+                await finished.Task.WaitAsync(TimeSpan.FromSeconds(30));
+                Assert.True(Directory.Exists(lease.TempHome));
+                finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
+            lease.Dispose();
+            Assert.False(Directory.Exists(lease.TempHome));
+        }
+        finally
+        {
+            try { Directory.Delete(home, recursive: true); } catch { /* ignore */ }
+        }
+    }
+
+    [Fact]
+    public async Task AcquiredCleanContextLease_SurvivesFailedStart_AndConcurrentLeasesAreIndependent()
+    {
+        var home = Path.Combine(Path.GetTempPath(), "car-lease-home-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(home, ".claude"));
+        using var logs = new TempLogs();
+        try
+        {
+            var descriptor = ProbeDescriptor("definitely-not-a-real-binary-xyz123", []) with
+            {
+                CleanContext = BuiltInDescriptors.Get(CliTypes.Claude).CleanContext,
+            };
+            ICliDriver driver = new CliRunEngine(descriptor,
+                new CliOptions { AllowAgentGitMutation = true }, null, logs, new TestHome(home));
+            using var first = driver.AcquireCleanContext();
+            using var second = driver.AcquireCleanContext();
+            Assert.NotEqual(first.TempHome, second.TempHome);
+
+            var (_, error) = await driver.StartAsync(new CliRunRequest
+            {
+                RunId = "lease-failed-start", Prompt = "x", WorkingDirectory = Path.GetTempPath(), CleanContextLease = first,
+            });
+            Assert.NotNull(error);
+            Assert.True(Directory.Exists(first.TempHome));
+            Assert.True(Directory.Exists(second.TempHome));
+
+            first.Dispose();
+            Assert.False(Directory.Exists(first.TempHome));
+            Assert.True(Directory.Exists(second.TempHome));
+        }
+        finally
+        {
+            try { Directory.Delete(home, recursive: true); } catch { /* ignore */ }
+        }
+    }
+
+    [Fact]
+    public async Task PerRunCleanContext_IsReleasedWhenSpawnFails()
+    {
+        var home = Path.Combine(Path.GetTempPath(), "car-lease-home-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(home, ".claude"));
+        using var logs = new TempLogs();
+        try
+        {
+            var spawner = new ThrowingSpawner();
+            var descriptor = ProbeDescriptor("ignored", []) with
+            {
+                CleanContext = BuiltInDescriptors.Get(CliTypes.Claude).CleanContext,
+            };
+            var driver = new CliRunEngine(descriptor,
+                new CliOptions { AllowAgentGitMutation = true, Spawner = spawner }, null, logs, new TestHome(home));
+
+            var (_, error) = await driver.StartAsync(new CliRunRequest
+            {
+                RunId = "per-run-failed-start", Prompt = "x", WorkingDirectory = Path.GetTempPath(),
+            });
+
+            Assert.NotNull(error);
+            Assert.NotNull(spawner.CleanContextHome);
+            Assert.False(Directory.Exists(spawner.CleanContextHome));
+        }
+        finally
+        {
+            try { Directory.Delete(home, recursive: true); } catch { /* ignore */ }
+        }
     }
 
     [Fact]
@@ -256,6 +370,17 @@ public class CliDriverEngineTests
             p.Start();
             var stdin = psi.RedirectStandardInput ? p.StandardInput.BaseStream : Stream.Null;
             return new CliSpawn(p, stdin, p.StandardOutput, p.StandardError);
+        }
+    }
+
+    private sealed class ThrowingSpawner : ICliProcessSpawner
+    {
+        public string? CleanContextHome { get; private set; }
+
+        public CliSpawn Spawn(ProcessStartInfo psi)
+        {
+            CleanContextHome = psi.Environment.TryGetValue("CLAUDE_CONFIG_DIR", out var home) ? home : null;
+            throw new InvalidOperationException("spawn failed");
         }
     }
 

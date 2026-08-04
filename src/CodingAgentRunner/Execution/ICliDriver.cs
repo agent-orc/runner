@@ -86,6 +86,17 @@ public interface ICliDriver
     bool SupportsCleanContext { get; }
 
     /// <summary>
+    /// Create an isolated CLI home that the caller owns until it explicitly disposes
+    /// the returned lease. Supply the lease through
+    /// <see cref="CliRunRequest.CleanContextLease"/> to reuse it across fresh or
+    /// resumed attempts. The runner does not dispose a supplied lease when an
+    /// attempt ends.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The CLI does not support clean contexts, or the home could not be prepared.</exception>
+    CliCleanContextLease AcquireCleanContext()
+        => throw new InvalidOperationException($"{CliType} does not support clean contexts.");
+
+    /// <summary>
     /// What this CLI + model can do — supported reasoning levels, clean-context and
     /// resume support, and any CLI-specific knobs. Lets a UI render exactly the
     /// controls that apply to the selected CLI/model instead of a generalized set.
