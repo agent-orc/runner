@@ -1,6 +1,6 @@
 # Current Development State
 
-_Last updated: 2026-07-10 (initial fill during Workstream onboarding)._
+_Last updated: 2026-08-04._
 
 An honest snapshot. Update it when the state actually changes.
 
@@ -26,12 +26,11 @@ directly through `CliRunner` / `ICliDriver` in the same process.
 
 ## Extraction status
 
-The library is being **carved out of Agent Studio**, specifically the
-Agent Studio backend's `Features/Cli/` area (~59 `.cs` files). The extraction
-boundary and open questions are written up in
-[../extraction-plan.html](../extraction-plan.html). That document is currently in
-**German** and predates the English hard rule for this repo — see
-[Development Signals](development-signals.md).
+The library was **extracted from Agent Studio**. The original migration plan has
+been removed because the implemented architecture and resolved decisions have
+superseded it. The current boundaries are documented in
+[Architecture](../architecture.md) and the resolved choices in the
+[Decision Log](decision-log.md).
 
 Overall status, as stated on the README: **core complete, pre-1.0.** The public
 API may still shift before 1.0.

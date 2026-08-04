@@ -1,7 +1,7 @@
 # CodingAgentRunner — Developer Wiki
 
 The development knowledge base for CodingAgentRunner. This wiki travels **with the
-code** so the institutional memory isn't lost during the extraction.
+code** so project knowledge stays alongside the implementation.
 
 ## Pages
 
@@ -15,7 +15,6 @@ code** so the institutional memory isn't lost during the extraction.
 - **[Process-spawner composition](process-spawner-composition.md)** — decorate a prepared launch while retaining the supported default spawn path.
 - **[Process termination & abort handling](process-termination.md)** — the outcome model (`stopped` vs `completed` vs `failed`), the abort scenarios, process-tree reaping, and the watchdog.
 - **[Voice & messaging](voice-and-messaging.md)** — how to write about the project: plain statements, no marketing language. Read before editing the README, the website, or any user-facing text.
-- **[Extraction plan & the cut](extraction-plan.html)** — how the library is being carved out of a production orchestrator: the boundary, the migration path, and the open questions.
 - **[Workstream](workstream/)** — the project's living state under the Agent Studio Workstream frame: current development state, development signals, system knowledge, decision log, and workstream log.
 
 ## Principle

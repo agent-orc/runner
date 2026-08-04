@@ -27,14 +27,6 @@ The README states the public API "may still shift before 1.0." No API-stability
 commitment exists yet. Watch: what has to settle before a 1.0 can be cut.
 _Source: README status line._
 
-## Doc-language: `docs/extraction-plan.html` is in German
-
-English is a hard rule for this repository (public repo). The extraction-plan
-document predates that rule and is written in German. It is not a blocker for the
-library, but it is an open item against the English rule.
-_Source: `docs/extraction-plan.html` (German body); English hard rule from the
-2026-07-10 onboarding directive._
-
 ## Housekeeping: scratch files at repo root
 
 `test_substring.csx` and `test_substring2.csx` are tracked at the repository root
