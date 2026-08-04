@@ -19,13 +19,62 @@ public readonly record struct PreSpawnHealthContext(
     Func<(bool Available, string? Version, string Path)> Probe,
     ILogger Logger);
 
+/// <summary>The outcome of a CLI health check performed before spawn.</summary>
+public enum PreSpawnHealthStatus
+{
+    /// <summary>The CLI was already ready to start.</summary>
+    Healthy,
+
+    /// <summary>A known recoverable problem was repaired and the CLI is ready to start.</summary>
+    Repaired,
+
+    /// <summary>The CLI is not ready to start. <see cref="PreSpawnHealthResult.Error"/> explains why.</summary>
+    Failed,
+}
+
+/// <summary>
+/// A typed, actionable outcome from <see cref="ICliDriver.EnsureHealthyAsync"/>.
+/// This operation only probes and, where the descriptor supports it, repairs the
+/// local CLI installation; it never starts an agent run.
+/// </summary>
+public sealed record PreSpawnHealthResult
+{
+    /// <summary>The health verdict.</summary>
+    public required PreSpawnHealthStatus Status { get; init; }
+
+    /// <summary>True when the CLI is ready to start.</summary>
+    public bool IsHealthy => Status is PreSpawnHealthStatus.Healthy or PreSpawnHealthStatus.Repaired;
+
+    /// <summary>Actions taken while repairing the installation.</summary>
+    public IReadOnlyList<string> Actions { get; init; } = Array.Empty<string>();
+
+    /// <summary>An actionable failure explanation when <see cref="Status"/> is <see cref="PreSpawnHealthStatus.Failed"/>.</summary>
+    public string? Error { get; init; }
+
+    /// <summary>Creates an already-healthy result.</summary>
+    public static PreSpawnHealthResult Healthy() => new() { Status = PreSpawnHealthStatus.Healthy };
+
+    /// <summary>Creates a successful repair result.</summary>
+    public static PreSpawnHealthResult Repaired(IReadOnlyList<string>? actions = null) => new()
+    {
+        Status = PreSpawnHealthStatus.Repaired,
+        Actions = actions ?? Array.Empty<string>(),
+    };
+
+    /// <summary>Creates a failed result with an actionable error.</summary>
+    public static PreSpawnHealthResult Failed(string error, IReadOnlyList<string>? actions = null) => new()
+    {
+        Status = PreSpawnHealthStatus.Failed,
+        Error = error,
+        Actions = actions ?? Array.Empty<string>(),
+    };
+}
+
 /// <summary>
 /// An optional pre-spawn self-heal for a known, recoverable environment issue (e.g.
-/// Claude's half-installed npm shim). Returns <c>(true, null)</c> when healthy, or
-/// <c>(false, error)</c> to fail the spawn with a clear message. Null on a descriptor
-/// means "always healthy".
+/// Claude's half-installed npm shim). Null on a descriptor means "always healthy".
 /// </summary>
-public delegate Task<(bool Ok, string? Error)> PreSpawnHealth(PreSpawnHealthContext context, CancellationToken ct);
+public delegate Task<PreSpawnHealthResult> PreSpawnHealth(PreSpawnHealthContext context, CancellationToken ct);
 
 /// <summary>
 /// The one per-CLI value a consumer resolves by type and <em>uses</em> — a record of

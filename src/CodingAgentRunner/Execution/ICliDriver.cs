@@ -23,6 +23,14 @@ public interface ICliDriver
     /// <summary>Probe a CLI path (or the configured one) for availability + version.</summary>
     (bool Available, string? Version, string Path) TestCliPath(string? path = null);
 
+    /// <summary>
+    /// Checks that this CLI is ready to start and applies its built-in recoverable
+    /// repairs when needed. This is the same policy run immediately before spawn,
+    /// but does not start an agent run. Cancellation is propagated to the health
+    /// operation.
+    /// </summary>
+    Task<PreSpawnHealthResult> EnsureHealthyAsync(CancellationToken ct = default);
+
     /// <summary>Start a run. Returns the live <see cref="CliRunInfo"/>, or an error string.</summary>
     Task<(CliRunInfo? Run, string? Error)> StartAsync(CliRunRequest request, CancellationToken ct = default);
 

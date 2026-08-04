@@ -19,6 +19,8 @@ public class RunWatchdogTests
         public string GetCliPath() => "fake";
         public bool IsAvailable() => true;
         public (bool Available, string? Version, string Path) TestCliPath(string? path = null) => (true, "1.0", "fake");
+        public Task<PreSpawnHealthResult> EnsureHealthyAsync(CancellationToken ct = default)
+            => Task.FromResult(PreSpawnHealthResult.Healthy());
         public Task<(CliRunInfo? Run, string? Error)> StartAsync(CliRunRequest request, CancellationToken ct = default)
             => Task.FromResult<(CliRunInfo?, string?)>((null, null));
         public IAsyncEnumerable<CliRunEvent> StreamAsync(CliRunRequest request, CancellationToken ct = default)

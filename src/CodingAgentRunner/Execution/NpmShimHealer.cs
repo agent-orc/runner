@@ -42,6 +42,7 @@ internal static class NpmShimHealer
         ILogger? logger = null,
         CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (!OperatingSystem.IsWindows())
         {
             return new HealOutcome(true, Array.Empty<string>(), null);
@@ -257,6 +258,7 @@ internal static class NpmShimHealer
             catch (OperationCanceledException)
             {
                 try { p.Kill(entireProcessTree: true); } catch { /* best effort */ }
+                ct.ThrowIfCancellationRequested();
                 return new HealOutcome(false, actions, "smoke-test probe timed out");
             }
 
@@ -315,6 +317,7 @@ internal static class NpmShimHealer
             catch (OperationCanceledException)
             {
                 try { p.Kill(entireProcessTree: true); } catch { /* best effort */ }
+                ct.ThrowIfCancellationRequested();
                 logger?.LogWarning("postinstall (node install.cjs) timed out");
                 return false;
             }
