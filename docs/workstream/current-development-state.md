@@ -27,7 +27,7 @@ directly through `CliRunner` / `ICliDriver` in the same process.
 ## Extraction status
 
 The library is being **carved out of Agent Studio**, specifically the
-agent-taskboard backend's `Features/Cli/` area (~59 `.cs` files). The extraction
+Agent Studio backend's `Features/Cli/` area (~59 `.cs` files). The extraction
 boundary and open questions are written up in
 [../extraction-plan.html](../extraction-plan.html). That document is currently in
 **German** and predates the English hard rule for this repo — see
@@ -55,7 +55,7 @@ API may still shift before 1.0.
 - Optional `CodingAgentRunner.Rendering` package (Markdown/HTML span model).
 - Environment diagnostics (`InspectEnvironment()` / `CliSetup`).
 
-Test/CI state per the README: **427 tests, CI on Windows + Linux.**
+Test/CI state per the README: **566 tests, CI on Windows + Linux.**
 BenchmarkDotNet micro-benchmarks exist as an optional manual run.
 
 ## Packaging

@@ -2,7 +2,7 @@
 
 The **Workstream frame** for CodingAgentRunner. This is the same five-area
 structure the other Agent Studio repositories use (originally described in
-agent-taskboard's `docs/concepts/engineering-workstream.md`; the concept was
+Agent Studio's internal engineering-workstream concept; the concept was
 renamed from "engineering workstream" to just **Workstream**). It travels with
 the code so the project's living state, signals, and decisions are versioned
 next to what they describe.
