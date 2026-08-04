@@ -101,10 +101,28 @@ changes.
 Windows-safe launch: `BinaryResolver` resolves a `.cmd` shim to the real `.exe`
 (the prompt-truncation fix); environment hardening; stdin default-deny; a
 handle-scrubbing Win32 spawner that hands the child only its three std pipes. The
-spawner is pluggable through `CliOptions.Spawner` (`ICliProcessSpawner`) — inject a
-custom launcher, e.g. a Windows pseudo-terminal, or leave it null for redirected
-pipes. The *platform-owns-git* guard injects a PATH-front `git` wrapper that blocks
-mutating commands; it is defence-in-depth, not a sandbox.
+spawner is pluggable through `CliOptions.Spawner` (`ICliProcessSpawner`). To inspect,
+validate, or decorate CAR's prepared `ProcessStartInfo` while retaining its curated
+Windows handle list (and the normal redirected-pipe spawn elsewhere), use
+`CliProcessSpawner`:
+
+```csharp
+var runner = new CliRunner(new CliOptions
+{
+    Spawner = CliProcessSpawner.Decorate(startInfo =>
+    {
+        if (!Path.IsPathFullyQualified(startInfo.FileName))
+            throw new InvalidOperationException("The CLI executable must be absolute.");
+        startInfo.Environment["HOST_LAUNCH_ID"] = launchId;
+    }),
+});
+```
+
+Implement `ICliProcessSpawner` directly only when the host owns a different launch
+mechanism, such as a Windows pseudo-terminal. This composition seam was added for
+[Agent Studio AGT-2371](https://linear.app/agent-studio/issue/AGT-2371). The
+*platform-owns-git* guard injects a PATH-front `git` wrapper that blocks mutating
+commands; it is defence-in-depth, not a sandbox.
 
 ### Protocol & completion
 Each per-CLI adapter maps the CLI's `stream-json` frames onto the normalized

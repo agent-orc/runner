@@ -224,18 +224,10 @@ internal sealed class CliRunEngine : ICliDriver
 
     private Task<ChildHandle> SpawnChildAsync(ProcessStartInfo psi)
     {
-        // A consumer-injected spawner (e.g. a Windows PTY) takes over the launch; the
-        // engine treats its result identically to the built-in pipe spawn.
-        if (Options.Spawner is { } spawner)
-        {
-            var s = spawner.Spawn(psi);
-            return Task.FromResult(new ChildHandle(s.Process, s.Stdin, s.Stdout, s.Stderr, s.KillOverride));
-        }
-
-        var p = new Process { StartInfo = psi, EnableRaisingEvents = true };
-        p.Start();
-        var stdin = psi.RedirectStandardInput ? p.StandardInput.BaseStream : Stream.Null;
-        return Task.FromResult(new ChildHandle(p, stdin, p.StandardOutput, p.StandardError));
+        // A consumer can decorate CAR's default through CliProcessSpawner, while a
+        // custom spawner (for example a Windows PTY) still owns its launch mechanism.
+        var s = (Options.Spawner ?? CliProcessSpawner.Default).Spawn(psi);
+        return Task.FromResult(new ChildHandle(s.Process, s.Stdin, s.Stdout, s.Stderr, s.KillOverride));
     }
 
     // ── Start ───────────────────────────────────────────────────────────
