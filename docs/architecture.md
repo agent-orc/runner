@@ -99,12 +99,26 @@ changes.
 
 ### Spawning / hardening
 Windows-safe launch: `BinaryResolver` resolves a `.cmd` shim to the real `.exe`
-(the prompt-truncation fix); environment hardening; stdin default-deny; a
-handle-scrubbing Win32 spawner that hands the child only its three std pipes. The
-spawner is pluggable through `CliOptions.Spawner` (`ICliProcessSpawner`) — inject a
-custom launcher, e.g. a Windows pseudo-terminal, or leave it null for redirected
-pipes. The *platform-owns-git* guard injects a PATH-front `git` wrapper that blocks
-mutating commands; it is defence-in-depth, not a sandbox.
+(the prompt-truncation fix); environment hardening; stdin default-deny; and
+`DefaultCliProcessSpawner` uses a handle-scrubbing Win32 launch that hands the child
+only its three std pipes. On non-Windows the same default uses redirected
+`Process.Start` pipes. The spawner is pluggable through `CliOptions.Spawner`
+(`ICliProcessSpawner`). A host that needs to inspect, validate, or change the
+prepared `ProcessStartInfo` can delegate back to the supported default instead of
+replacing CAR's hardening:
+
+```csharp
+sealed class DecoratingSpawner : ICliProcessSpawner
+{
+    public CliSpawn Spawn(ProcessStartInfo startInfo)
+    {
+        startInfo.Environment["HOST_LAUNCH_TAG"] = "agent-studio";
+        return DefaultCliProcessSpawner.Instance.Spawn(startInfo);
+    }
+}
+```
+
+This composition seam was added for [Agent Studio AGT-2371](https://linear.app/agent-studio/issue/AGT-2371). A custom launcher such as a Windows pseudo-terminal can still return its own pipes and kill action. The *platform-owns-git* guard injects a PATH-front `git` wrapper that blocks mutating commands; it is defence-in-depth, not a sandbox.
 
 ### Protocol & completion
 Each per-CLI adapter maps the CLI's `stream-json` frames onto the normalized

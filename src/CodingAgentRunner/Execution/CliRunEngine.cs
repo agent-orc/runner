@@ -224,18 +224,10 @@ internal sealed class CliRunEngine : ICliDriver
 
     private Task<ChildHandle> SpawnChildAsync(ProcessStartInfo psi)
     {
-        // A consumer-injected spawner (e.g. a Windows PTY) takes over the launch; the
-        // engine treats its result identically to the built-in pipe spawn.
-        if (Options.Spawner is { } spawner)
-        {
-            var s = spawner.Spawn(psi);
-            return Task.FromResult(new ChildHandle(s.Process, s.Stdin, s.Stdout, s.Stderr, s.KillOverride));
-        }
-
-        var p = new Process { StartInfo = psi, EnableRaisingEvents = true };
-        p.Start();
-        var stdin = psi.RedirectStandardInput ? p.StandardInput.BaseStream : Stream.Null;
-        return Task.FromResult(new ChildHandle(p, stdin, p.StandardOutput, p.StandardError));
+        // Custom spawners can decorate the prepared launch and delegate back to the
+        // supported default, retaining the Windows handle scrubber.
+        var s = (Options.Spawner ?? DefaultCliProcessSpawner.Instance).Spawn(psi);
+        return Task.FromResult(new ChildHandle(s.Process, s.Stdin, s.Stdout, s.Stderr, s.KillOverride));
     }
 
     // ── Start ───────────────────────────────────────────────────────────

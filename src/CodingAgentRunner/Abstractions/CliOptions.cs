@@ -52,8 +52,11 @@ public sealed record CliOptions
 
     /// <summary>
     /// Optional custom process spawner — inject one (e.g. a Windows pseudo-terminal
-    /// spawner) to change how the engine launches a CLI. Null uses plain redirected
-    /// pipes. See <see cref="ICliProcessSpawner"/>.
+    /// spawner) to change how the engine launches a CLI. Null uses
+    /// <see cref="DefaultCliProcessSpawner"/>. A decorator can mutate the prepared
+    /// start info and delegate to <see cref="DefaultCliProcessSpawner.Instance"/> to
+    /// retain CAR's Windows handle scrubbing and default pipes. See
+    /// <see cref="ICliProcessSpawner"/>.
     /// </summary>
     public ICliProcessSpawner? Spawner { get; init; }
 

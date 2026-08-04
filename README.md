@@ -70,7 +70,7 @@ Internally each CLI is a `CliDescriptor` — data plus a few pure delegates — 
 - ✅ Platform-owns-git guard (brand-neutral, configurable).
 - ✅ Environment diagnostics (`CliRunner.InspectEnvironment()`): which CLIs are installed and signed in, plus the install command and sign-in steps for anything missing — as data (`EnvironmentReport` / `CliSetup`) and as a renderable text report.
 - ✅ Quota cache · escalation · cap/gate · free event-harvest (poll harder near the limit; skip a run before it hits the wall) — with built-in probes for Claude (OAuth usage endpoint, real server-side percent) and Codex (session-log rate limits).
-- ✅ Pluggable process spawner (`CliOptions.Spawner` / `ICliProcessSpawner`) — inject a custom launcher (e.g. a Windows PTY); null uses redirected pipes.
+- ✅ Pluggable process spawner (`CliOptions.Spawner` / `ICliProcessSpawner`) — inject a custom launcher (e.g. a Windows PTY), or decorate the prepared launch and delegate to `DefaultCliProcessSpawner.Instance`; null uses that default.
 - ✅ Run metrics from the event stream (`RunMetricsRecorder`) plus an optional `CodingAgentRunner.Rendering` package for Markdown/HTML UI output.
 - ✅ Optional BenchmarkDotNet micro-benchmarks for adapter parsing, usage parsing and rendering hot paths.
 - ✅ Built-in quota probes: `ClaudeOAuthUsageProbe` (the CLI's own usage endpoint) and `CodexSessionLogProbe` (rollout-log rate limits). The `IQuotaProbe` seam stays open for your own.

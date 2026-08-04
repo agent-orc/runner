@@ -39,7 +39,39 @@ public class CliDriverEngineTests
 
     private static CliRunEngine ProbeEngine(string exe, string[] args, IRunLogPathProvider logs, ICliProcessSpawner? spawner = null)
         // git-guard off so the test keeps a clean PATH.
-        => new(ProbeDescriptor(exe, args), new CliOptions { AllowAgentGitMutation = true, Spawner = spawner }, null, logs);
+        => new(ProbeDescriptor(ResolveTestExecutable(exe), args), new CliOptions { AllowAgentGitMutation = true, Spawner = spawner }, null, logs);
+
+    // The curated Windows CreateProcessW path intentionally receives an executable
+    // path, rather than relying on Process.Start's PATH search. Keep test probes on
+    // that same contract so Windows acceptance runs do not depend on a bare `dotnet`.
+    private static string ResolveTestExecutable(string executable)
+    {
+        if (!OperatingSystem.IsWindows() || !string.Equals(executable, "dotnet", StringComparison.OrdinalIgnoreCase))
+            return executable;
+
+        var roots = new[]
+        {
+            Environment.GetEnvironmentVariable("DOTNET_ROOT"),
+            Environment.GetEnvironmentVariable("DOTNET_ROOT(x86)"),
+            Path.GetDirectoryName(Environment.ProcessPath),
+        };
+        foreach (var root in roots.Where(root => !string.IsNullOrWhiteSpace(root)))
+        {
+            var candidate = Path.Combine(root!, "dotnet.exe");
+            if (File.Exists(candidate)) return candidate;
+        }
+
+        var where = Path.Combine(Environment.SystemDirectory, "where.exe");
+        using var lookup = Process.Start(new ProcessStartInfo(where, "dotnet")
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        });
+        var resolved = lookup?.StandardOutput.ReadLine();
+        lookup?.WaitForExit();
+        return !string.IsNullOrWhiteSpace(resolved) ? resolved.Trim() : executable;
+    }
 
     private sealed class TempLogs : IRunLogPathProvider, IDisposable
     {
