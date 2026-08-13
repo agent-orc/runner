@@ -772,7 +772,7 @@ public class CliDriverEngineTests
         using var logs = new TempLogs();
         // A process that prints a known environment-blocker line, then exits 0 on its own.
         var (exe, args) = OperatingSystem.IsWindows()
-            ? ("cmd", new[] { "/c", "echo EACCES: permission denied" })
+            ? ("cmd.exe", new[] { "/d", "/s", "/c", "echo EACCES: permission denied & exit /b 0" })
             : ("sh", new[] { "-c", "echo 'EACCES: permission denied'" });
         // Same probe descriptor, but with the real environment-blocker classifier wired in.
         var descriptor = ProbeDescriptor(exe, args) with { InterruptClassifier = InterruptClassifiers.EnvironmentBlocker() };
