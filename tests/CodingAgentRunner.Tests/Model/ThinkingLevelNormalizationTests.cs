@@ -45,6 +45,14 @@ public class ThinkingLevelNormalizationTests
     }
 
     [Fact]
+    public void Codex_Max_IsAcceptedByModelsThatOfferIt()
+    {
+        Assert.Equal("max", CliThinkingLevels.Normalize("codex", "gpt-6-astra", "max"));
+        Assert.Equal("max", CliThinkingLevels.Normalize("codex", "gpt-5.6-luna", "max"));
+        Assert.Equal("medium", CliThinkingLevels.Normalize("codex", "gpt-5.5", "max"));
+    }
+
+    [Fact]
     public void Codex_UltraLevel_EmitsReasoningEffortFlag()
     {
         // The whole point of the ladder change: ultra reaches the argv instead of

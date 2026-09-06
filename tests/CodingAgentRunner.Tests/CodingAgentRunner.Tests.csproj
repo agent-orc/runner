@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <None Update="testdata\cli-fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="testdata\model-discovery\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

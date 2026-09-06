@@ -45,7 +45,7 @@ public sealed class ModelPriceCatalog
     /// <summary>Every listing in the catalog, in the order supplied. The "list endpoint" for catalogs.</summary>
     public IReadOnlyList<ModelListing> Listings => _listings;
 
-    /// <summary>The seeded catalog: the known Claude 4.x/5 and OpenAI gpt-5.x families. See <see cref="ModelPriceSeed"/>.</summary>
+    /// <summary>The seeded catalog: known Claude 4.x/5 and OpenAI gpt-5.x/gpt-6 models. See <see cref="ModelPriceSeed"/>.</summary>
     public static ModelPriceCatalog Default { get; } = new(ModelPriceSeed.Listings());
 
     /// <summary>Find the listing for a model id or alias, or null if it is not in the catalog. Case- and dot/dash-insensitive.</summary>

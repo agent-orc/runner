@@ -2,7 +2,7 @@ namespace CodingAgentRunner.Pricing;
 
 /// <summary>
 /// Seed data for <see cref="ModelPriceCatalog.Default"/>: known API prices for the Claude 4.x/5 and
-/// OpenAI gpt-5.x families as of the catalog's build. This is the starting point that replaces the
+/// OpenAI gpt-5.x/gpt-6 families as of the catalog's build. This is the starting point that replaces the
 /// hardcoded, partly-null price table that lived in the consumer.
 /// </summary>
 /// <remarks>
@@ -15,7 +15,7 @@ namespace CodingAgentRunner.Pricing;
 /// <para>
 /// Where a number is not confirmed against an authoritative source it is either marked
 /// <see cref="ModelPrice.Unconfirmed"/> or left out entirely (an empty history) rather than invented.
-/// The OpenAI gpt-5.x families are listed as known models with no published price yet, so a lookup
+/// The OpenAI entries are listed as known models with no published price yet, so a lookup
 /// resolves to <see cref="PriceStatus.NoPriceForDate"/> instead of guessing a rate.
 /// </para>
 /// </remarks>
@@ -122,7 +122,13 @@ internal static class ModelPriceSeed
             History = [AnthropicPrice(1.00m, 5.00m, SinceForever)],
         },
 
-        // ---- OpenAI gpt-5.6 family (Codex) — known models, price not yet published here ----
+        // ---- OpenAI Codex families — known models, price not yet published here ----
+        new ModelListing
+        {
+            ModelId = "gpt-6-astra",
+            Vendor = VendorOpenAi,
+            Note = "Pricing not yet published in this catalog; resolves to NoPriceForDate rather than a guessed rate.",
+        },
         new ModelListing
         {
             ModelId = "gpt-5.6",

@@ -34,6 +34,15 @@ public sealed record CliOptions
     /// <summary>Extra environment variables applied to every spawned CLI process.</summary>
     public IReadOnlyDictionary<string, string>? EnvironmentOverrides { get; init; }
 
+    /// <summary>Maximum duration of each CLI model-discovery subprocess. Default: 10 seconds.</summary>
+    public TimeSpan ModelDiscoveryTimeout { get; init; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>How long one discovered model catalog stays in memory. Default: 5 minutes.</summary>
+    public TimeSpan ModelDiscoveryCacheTtl { get; init; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>Clock used for model-discovery timestamps and cache expiry.</summary>
+    public TimeProvider ModelDiscoveryTimeProvider { get; init; } = TimeProvider.System;
+
     /// <summary>When <c>true</c>, the git guard is disabled (the agent may run mutating git).</summary>
     public bool AllowAgentGitMutation { get; init; }
 

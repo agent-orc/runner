@@ -6,6 +6,25 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `KnownModels`, a library registry for Claude and Codex model ids, labels, vendors,
+  context windows, aliases, and generation ordering. It includes `gpt-6-astra`.
+- `ICliModelDiscovery` and `CliRunner.DiscoverModelsAsync`. Codex discovery runs
+  `codex debug models` through the configured hardened spawner and merges the live
+  response with the registry. Known models missing from an installed CLI stay visible
+  with `Available=false` and a versioned note; unknown public models remain available
+  with a metadata note. Claude Code has no list command, so its registry availability
+  is based on the CLI version probe. Discovery has a timeout and an in-memory TTL cache.
+- A known, unpriced `gpt-6-astra` entry in `ModelPriceCatalog.Default`.
+
+### Changed
+
+- Codex thinking levels now accept `max`, no longer offer the removed `minimal` rung,
+  and use live per-model ladders when a discovered catalog is supplied. The static
+  fallback covers gpt-6 through `ultra`, including `max`; gpt-5.6 Luna stops at `max`,
+  while the other gpt-5.6 variants include `ultra`.
+
 ## [0.7.0] - 2026-08-02
 
 ### Added

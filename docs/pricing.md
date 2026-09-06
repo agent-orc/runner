@@ -66,7 +66,8 @@ all resolve to their listing.
 
 ## Seed data and confidence
 
-The seed covers the Claude 4.x/5 families and the OpenAI gpt-5.x families as a starting point.
+The seed covers the Claude 4.x/5 families and the OpenAI gpt-5.x families, plus a
+known unpriced listing for `gpt-6-astra`, as a starting point.
 
 - **Anthropic rates** are the published per-MTok input/output figures. Cache rates follow
   Anthropic's documented economics — cache-read = 0.1x input, and cache-write = 1.25x input (the
@@ -74,8 +75,9 @@ The seed covers the Claude 4.x/5 families and the OpenAI gpt-5.x families as a s
   independently sourced.
 - **Numbers that could not be confirmed** against an authoritative source are marked
   `Unconfirmed` (cost is still computed, and `CostBreakdown.Unconfirmed` surfaces the caveat) or
-  left unpriced (an empty history → `NoPriceForDate`). The gpt-5.x models are listed as known but
-  unpriced rather than carrying a guessed rate. Nothing is invented.
+  left unpriced (an empty history → `NoPriceForDate`). The OpenAI entries without a
+  published rate are listed as known but unpriced rather than carrying a guessed rate.
+  Nothing is invented.
 
 When an entry omits cache rates, cache-read and cache-write tokens are billed at the input rate
 rather than dropped — a documented approximation used only for entries that lack their own cache

@@ -15,6 +15,7 @@ on top.
                  ▲ events · outcomes · quota
 ┌────────────────────────────────────────────────────────────────┐
 │ CodingAgentRunner                                                │
+│   Models      known registry · CLI discovery · reasoning ladders  │
 │   Quota       remaining-quota cache · escalation · cap/gate       │
 │   Lifecycle   stop · process-tree reap · built-in watchdog        │
 │   Protocol    stream-json → typed CliRunEvent (incl. completion)  │
@@ -187,6 +188,33 @@ value most-specific-first — CLI + Model + ThinkingLevel, then CLI + Model, the
 CLI + ThinkingLevel, then CLI, then a global fallback — and `Set(scope, value)` is the
 one-line override. (The resolution primitive ships; the library does not yet pre-seed
 a registry of `CliDefault<T>` values beyond the thinking/reasoning tables above.)
+
+### Model registry and discovery
+
+`KnownModels` is the stable registry for the Claude and Codex families understood by
+the library. Each entry carries its id, label, vendor, context window, aliases, and a
+generation order. Availability is not static metadata: it comes from the CLI installed
+on the host.
+
+`CliRunner.DiscoverModelsAsync(cliType, forceRefresh, ct)` returns a
+`CliModelCatalog`. For Codex, `CodexCliModelDiscovery` runs `codex debug models` with
+the configured `CliOptions.CodexPath`, redirected stdout/stderr, no stdin, the normal
+hardened environment, the configured process spawner, and a timeout. Entries marked
+`visibility=hide` are excluded. Public entries retain the CLI's priority, context
+window, description, speed/service tiers, and exact reasoning ladder. The live list is
+merged with `KnownModels`: known entries absent from that CLI version stay in the
+catalog with `Available=false`; unknown entries reported by the CLI stay available and
+carry an explanatory note.
+
+Claude Code has no model-list command. `ClaudeCliModelDiscovery` probes CLI presence
+and returns the Claude registry with a note that availability is presence-based. Both
+implement `ICliModelDiscovery`, which is also the replacement seam for a future Claude
+probe. A runner caches completed catalogs in memory for
+`CliOptions.ModelDiscoveryCacheTtl`; `forceRefresh=true` bypasses the cached value.
+
+`CliThinkingLevels.For`, `DefaultFor`, and `Normalize` accept an optional discovered
+catalog. A CLI-reported ladder wins when present; the static compatibility table is
+used only when discovery has no ladder metadata for that model.
 
 ### Lifecycle
 Stop a run — reported as `RunEnded(Stopped, …)`, a deliberate stop, never a crash —

@@ -29,16 +29,19 @@ public class CliThinkingLevelsTests
         => Assert.Equal(Split(expectedCsv), CliThinkingLevels.For("claude", model));
 
     [Theory]
-    [InlineData("gpt-5.5", "minimal,low,medium,high,xhigh")]
-    [InlineData("gpt-5-5", "minimal,low,medium,high,xhigh")]
-    [InlineData("gpt-5", "minimal,low,medium,high")]
-    [InlineData("gpt-5-codex", "minimal,low,medium,high")]
-    [InlineData("gpt-6", "minimal,low,medium,high,xhigh")]
-    // gpt-5.6 family → the full ladder up to ultra (LIVE codex-cli 0.144.0 evidence).
-    [InlineData("gpt-5.6-sol", "minimal,low,medium,high,xhigh,ultra")]
-    [InlineData("gpt-5.6", "minimal,low,medium,high,xhigh,ultra")]
-    [InlineData("gpt-5-6-sol", "minimal,low,medium,high,xhigh,ultra")]  // already dash-form
-    [InlineData("gpt-5.5-sol", "minimal,low,medium,high,xhigh")]        // 5.5 is xhigh, NOT ultra
+    [InlineData("gpt-5.5", "low,medium,high,xhigh")]
+    [InlineData("gpt-5-5", "low,medium,high,xhigh")]
+    [InlineData("gpt-5", "low,medium,high")]
+    [InlineData("gpt-5-codex", "low,medium,high")]
+    [InlineData("gpt-6", "low,medium,high,xhigh,max,ultra")]
+    [InlineData("gpt-6-astra", "low,medium,high,xhigh,max,ultra")]
+    // gpt-5.6 includes max; Luna stops there while the other variants include ultra.
+    [InlineData("gpt-5.6-sol", "low,medium,high,xhigh,max,ultra")]
+    [InlineData("gpt-5.6-terra", "low,medium,high,xhigh,max,ultra")]
+    [InlineData("gpt-5.6-luna", "low,medium,high,xhigh,max")]
+    [InlineData("gpt-5.6", "low,medium,high,xhigh,max,ultra")]
+    [InlineData("gpt-5-6-sol", "low,medium,high,xhigh,max,ultra")]  // already dash-form
+    [InlineData("gpt-5.5-sol", "low,medium,high,xhigh")]            // 5.5 is xhigh, NOT ultra
     // Foreign models routed to codex → NO ladder, even with dots.
     [InlineData("claude-opus-4-8", "")]
     [InlineData("claude.opus.4.8", "")]                         // dots: still recognized as foreign (the fix)

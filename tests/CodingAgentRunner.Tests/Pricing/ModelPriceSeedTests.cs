@@ -57,11 +57,12 @@ public class ModelPriceSeedTests
     }
 
     [Theory]
+    [InlineData("gpt-6-astra")]
     [InlineData("gpt-5.6")]
     [InlineData("gpt-5.5")]
     [InlineData("gpt-5")]
     [InlineData("gpt-5-codex")]
-    public void Gpt5Family_IsKnownButUnpriced(string model)
+    public void OpenAiModelsWithoutPublishedRates_AreKnownButUnpriced(string model)
     {
         var listing = Catalog.Find(model);
         Assert.NotNull(listing);

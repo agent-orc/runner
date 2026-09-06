@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using CodingAgentRunner.Abstractions;
 using CodingAgentRunner.Diagnostics;
@@ -28,6 +29,12 @@ namespace CodingAgentRunner;
 public sealed class CliRunner
 {
     private readonly Dictionary<string, ICliDriver> _drivers;
+    private readonly Dictionary<string, ICliModelDiscovery> _modelDiscoveries;
+    private readonly ConcurrentDictionary<string, ModelCatalogCacheEntry> _modelCatalogCache =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _modelDiscoveryLocks =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly CliOptions _options;
     private readonly IUserHomeProvider _home;
 
     /// <summary>Build a runner with an engine for every built-in CLI sharing the given options/providers.</summary>
@@ -35,13 +42,31 @@ public sealed class CliRunner
         CliOptions? options = null,
         ILogger? logger = null,
         IRunLogPathProvider? logPaths = null,
-        IUserHomeProvider? home = null)
+        IUserHomeProvider? home = null,
+        IEnumerable<ICliModelDiscovery>? modelDiscoveries = null)
     {
+        _options = options ?? new CliOptions();
         var catalog = BuiltInDescriptors.DefaultCatalog();
         _home = home ?? new DefaultUserHomeProvider();
         _drivers = new Dictionary<string, ICliDriver>(StringComparer.OrdinalIgnoreCase);
         foreach (var type in catalog.Available)
-            _drivers[type] = new CliRunEngine(catalog.Get(type), options, logger, logPaths, _home);
+            _drivers[type] = new CliRunEngine(catalog.Get(type), _options, logger, logPaths, _home);
+
+        _modelDiscoveries = new Dictionary<string, ICliModelDiscovery>(StringComparer.OrdinalIgnoreCase)
+        {
+            [CliTypes.Claude] = new ClaudeCliModelDiscovery(_options, _options.ModelDiscoveryTimeProvider),
+            [CliTypes.Codex] = new CodexCliModelDiscovery(_options, _options.ModelDiscoveryTimeProvider),
+        };
+        if (modelDiscoveries is not null)
+        {
+            foreach (var discovery in modelDiscoveries)
+            {
+                ArgumentNullException.ThrowIfNull(discovery);
+                if (string.IsNullOrWhiteSpace(discovery.CliType))
+                    throw new ArgumentException("A model discovery service must name its CLI type.", nameof(modelDiscoveries));
+                _modelDiscoveries[discovery.CliType.Trim()] = discovery;
+            }
+        }
     }
 
     // ── Typed accessors (sugar over Get) — for code that statically knows the CLI ──
@@ -76,6 +101,55 @@ public sealed class CliRunner
     /// </summary>
     public EnvironmentReport InspectEnvironment() => EnvironmentInspector.Inspect(Drivers, _home);
 
+    /// <summary>
+    /// Discover the models offered by the installed CLI and merge them with
+    /// <see cref="KnownModels"/>. Known models absent from the live response remain
+    /// in the catalog with <see cref="CliModelInfo.Available"/> set to false.
+    /// Results are cached in memory for <see cref="CliOptions.ModelDiscoveryCacheTtl"/>;
+    /// <paramref name="forceRefresh"/> bypasses the cached value.
+    /// </summary>
+    public async Task<CliModelCatalog> DiscoverModelsAsync(
+        string cliType,
+        bool forceRefresh = false,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(cliType)
+            || !_modelDiscoveries.TryGetValue(cliType.Trim(), out var discovery))
+            throw new ArgumentException(
+                $"No model discovery service for CLI type '{cliType}'. Known: {string.Join(", ", _modelDiscoveries.Keys)}.",
+                nameof(cliType));
+
+        var key = discovery.CliType;
+        var now = _options.ModelDiscoveryTimeProvider.GetUtcNow();
+        if (!forceRefresh
+            && _modelCatalogCache.TryGetValue(key, out var cached)
+            && cached.ExpiresAt > now)
+            return cached.Catalog;
+
+        var gate = _modelDiscoveryLocks.GetOrAdd(key, static _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            now = _options.ModelDiscoveryTimeProvider.GetUtcNow();
+            if (!forceRefresh
+                && _modelCatalogCache.TryGetValue(key, out cached)
+                && cached.ExpiresAt > now)
+                return cached.Catalog;
+
+            var catalog = await discovery.DiscoverAsync(ct).ConfigureAwait(false);
+            now = _options.ModelDiscoveryTimeProvider.GetUtcNow();
+            var ttl = _options.ModelDiscoveryCacheTtl < TimeSpan.Zero
+                ? TimeSpan.Zero
+                : _options.ModelDiscoveryCacheTtl;
+            _modelCatalogCache[key] = new ModelCatalogCacheEntry(catalog, now + ttl);
+            return catalog;
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
     /// <summary>The CLI types this runner can resolve.</summary>
     public IReadOnlyCollection<string> SupportedCliTypes => _drivers.Keys;
 
@@ -104,4 +178,6 @@ public sealed class CliRunner
         driver = null!;
         return false;
     }
+
+    private sealed record ModelCatalogCacheEntry(CliModelCatalog Catalog, DateTimeOffset ExpiresAt);
 }

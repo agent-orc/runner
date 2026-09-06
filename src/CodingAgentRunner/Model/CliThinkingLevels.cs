@@ -6,7 +6,10 @@ namespace CodingAgentRunner.Model;
 /// </summary>
 public static class CliThinkingLevels
 {
-    /// <summary>Lowest reasoning effort (OpenAI only).</summary>
+    /// <summary>
+    /// Legacy lowest reasoning effort. Kept as a value constant for compatibility;
+    /// current Codex model metadata no longer offers it.
+    /// </summary>
     public const string Minimal = "minimal";
     /// <summary>Low reasoning effort.</summary>
     public const string Low = "low";
@@ -16,31 +19,47 @@ public static class CliThinkingLevels
     public const string High = "high";
     /// <summary>Extra-high reasoning effort (newer models only).</summary>
     public const string XHigh = "xhigh";
+    /// <summary>Maximum reasoning effort (select Claude and Codex models).</summary>
+    public const string Max = "max";
     /// <summary>
-    /// Ultra reasoning effort — the top OpenAI/Codex rung, above <see cref="XHigh"/>
-    /// (newest Codex models only, e.g. the gpt-5.6 family). Server-validated by Codex.
+    /// Ultra reasoning effort — the top Codex rung, above <see cref="Max"/>
+    /// (newest Codex models only, including gpt-5.6 and gpt-6).
     /// </summary>
     public const string Ultra = "ultra";
-    /// <summary>Maximum reasoning effort (select Claude models only).</summary>
-    public const string Max = "max";
 
-    private static readonly IReadOnlyList<string> OpenAiLevels = [Minimal, Low, Medium, High];
-    private static readonly IReadOnlyList<string> OpenAiXHighLevels = [Minimal, Low, Medium, High, XHigh];
-    // Ultra sits one rung above xhigh — the newest Codex families expose the full ladder.
-    private static readonly IReadOnlyList<string> OpenAiUltraLevels = [Minimal, Low, Medium, High, XHigh, Ultra];
+    private static readonly IReadOnlyList<string> OpenAiLevels = [Low, Medium, High];
+    private static readonly IReadOnlyList<string> OpenAiXHighLevels = [Low, Medium, High, XHigh];
+    private static readonly IReadOnlyList<string> OpenAiMaxLevels = [Low, Medium, High, XHigh, Max];
+    private static readonly IReadOnlyList<string> OpenAiUltraLevels = [Low, Medium, High, XHigh, Max, Ultra];
     private static readonly IReadOnlyList<string> ClaudeBasicLevels = [Low, Medium, High];
     private static readonly IReadOnlyList<string> ClaudeMaxLevels = [Low, Medium, High, Max];
     private static readonly IReadOnlyList<string> ClaudeXHighMaxLevels = [Low, Medium, High, XHigh, Max];
 
     /// <summary>The thinking / reasoning levels the given CLI + model supports. Empty means no selector.</summary>
     public static IReadOnlyList<string> For(string? cliType, string? model)
+        => For(cliType, model, discoveredCatalog: null);
+
+    /// <summary>
+    /// The thinking levels for a CLI + model, preferring a ladder reported by live
+    /// discovery and falling back to the static table only when discovery has no
+    /// ladder metadata for that model.
+    /// </summary>
+    public static IReadOnlyList<string> For(
+        string? cliType,
+        string? model,
+        CliModelCatalog? discoveredCatalog)
     {
         var cli = CliTypes.Normalize(cliType);
         var m = (model ?? string.Empty).Trim();
 
+        var discovered = FindDiscovered(cli, m, discoveredCatalog);
+        if (discovered?.ThinkingLevelsDiscovered == true)
+            return discovered.ThinkingLevels;
+
         if (string.Equals(cli, CliTypes.Codex, StringComparison.OrdinalIgnoreCase))
         {
             if (IsForeignCodexModel(m)) return [];
+            if (IsGpt56Luna(m)) return OpenAiMaxLevels;
             if (IsUltraCapableCodexModel(m)) return OpenAiUltraLevels;
             return IsXHighCapableCodexModel(m) ? OpenAiXHighLevels : OpenAiLevels;
         }
@@ -90,26 +109,54 @@ public static class CliThinkingLevels
 
     /// <summary>The default thinking level for the given CLI + model, or null when there is no selector.</summary>
     public static string? DefaultFor(string? cliType, string? model)
+        => DefaultFor(cliType, model, discoveredCatalog: null);
+
+    /// <summary>Resolve the default from live discovery when known, otherwise from the static table.</summary>
+    public static string? DefaultFor(
+        string? cliType,
+        string? model,
+        CliModelCatalog? discoveredCatalog)
     {
-        var levels = For(cliType, model);
+        var cli = CliTypes.Normalize(cliType);
+        var discovered = FindDiscovered(cli, (model ?? string.Empty).Trim(), discoveredCatalog);
+        if (discovered?.ThinkingLevelsDiscovered == true)
+        {
+            if (discovered.ThinkingLevels.Count == 0) return null;
+            var discoveredDefault = discovered.DefaultThinkingLevel;
+            return discoveredDefault is not null
+                   && discovered.ThinkingLevels.Contains(discoveredDefault, StringComparer.OrdinalIgnoreCase)
+                ? discovered.ThinkingLevels.First(level =>
+                    string.Equals(level, discoveredDefault, StringComparison.OrdinalIgnoreCase))
+                : null;
+        }
+
+        var levels = For(cliType, model, discoveredCatalog);
         if (levels.Count == 0) return null;
-        return string.Equals(CliTypes.Normalize(cliType), CliTypes.Codex, StringComparison.OrdinalIgnoreCase)
+        return string.Equals(cli, CliTypes.Codex, StringComparison.OrdinalIgnoreCase)
             ? Medium
             : High;
     }
 
     /// <summary>Resolve a requested level against what the CLI + model supports, falling back to the default.</summary>
     public static string? Normalize(string? cliType, string? model, string? requested)
+        => Normalize(cliType, model, requested, discoveredCatalog: null);
+
+    /// <summary>Resolve a requested level using a live discovered ladder when one is known.</summary>
+    public static string? Normalize(
+        string? cliType,
+        string? model,
+        string? requested,
+        CliModelCatalog? discoveredCatalog)
     {
-        var levels = For(cliType, model);
+        var levels = For(cliType, model, discoveredCatalog);
         if (levels.Count == 0) return null;
         var value = string.IsNullOrWhiteSpace(requested)
-            ? DefaultFor(cliType, model)
+            ? DefaultFor(cliType, model, discoveredCatalog)
             : requested.Trim().ToLowerInvariant();
         if (value is null) return null;
         return levels.Contains(value, StringComparer.OrdinalIgnoreCase)
             ? levels.First(x => string.Equals(x, value, StringComparison.OrdinalIgnoreCase))
-            : DefaultFor(cliType, model);
+            : DefaultFor(cliType, model, discoveredCatalog);
     }
 
     private static bool IsForeignCodexModel(string model)
@@ -122,7 +169,7 @@ public static class CliThinkingLevels
 
     /// <summary>
     /// Codex exposes the "Extra High" (<c>xhigh</c>) reasoning effort only on newer
-    /// OpenAI models (gpt-5.5 and later). The codex <c>ReasoningEffort</c> enum
+    /// OpenAI models (gpt-5.3 Codex Spark and later). The Codex reasoning-effort enum
     /// serializes to lowercase, so the selector maps directly to
     /// <c>model_reasoning_effort="xhigh"</c>. Older codex models (gpt-5, gpt-5-codex)
     /// top out at <c>high</c>. Every ultra-capable model is also xhigh-capable.
@@ -130,23 +177,38 @@ public static class CliThinkingLevels
     private static bool IsXHighCapableCodexModel(string model)
     {
         var m = model.Replace('.', '-').ToLowerInvariant();
-        return m.Contains("gpt-5-5", StringComparison.Ordinal)   // gpt-5.5
-               || IsUltraCapableCodexModel(model)                // gpt-5.6 family (also carries ultra)
+        return m.Contains("gpt-5-3-codex-spark", StringComparison.Ordinal)
+               || m.Contains("gpt-5-4-mini", StringComparison.Ordinal)
+               || m.Contains("gpt-5-5", StringComparison.Ordinal)
+               || m.Contains("gpt-5-6", StringComparison.Ordinal)
                || m.Contains("gpt-6", StringComparison.Ordinal)
                || m.Contains("gpt-7", StringComparison.Ordinal);
     }
 
     /// <summary>
     /// Codex exposes the top <c>ultra</c> reasoning effort on its newest family, the
-    /// gpt-5.6 models. LIVE evidence (codex-cli 0.144.0): <c>gpt-5.6-sol</c> accepts
-    /// <c>model_reasoning_effort="ultra"</c> and rejects junk values server-side, so
-    /// ultra is a real rung above xhigh. The prefix match (normalized <c>gpt-5-6</c>)
-    /// covers <c>gpt-5.6-sol</c>, plain <c>gpt-5.6</c>, and future gpt-5.6 variants.
-    /// Older families stay xhigh-capped until there is evidence they accept ultra.
+    /// gpt-5.6 models and gpt-6. LIVE metadata from Codex supplies the exact ladder;
+    /// this table is used before discovery or when discovery is unavailable.
+    /// The gpt-5.6 Luna variant stops at <c>max</c>; other 5.6 variants include
+    /// <c>ultra</c> unless live metadata says otherwise.
     /// </summary>
     private static bool IsUltraCapableCodexModel(string model)
     {
         var m = model.Replace('.', '-').ToLowerInvariant();
-        return m.Contains("gpt-5-6", StringComparison.Ordinal);  // gpt-5.6 family
+        return (m.Contains("gpt-5-6", StringComparison.Ordinal) && !IsGpt56Luna(model))
+               || m.Contains("gpt-6", StringComparison.Ordinal)
+               || m.Contains("gpt-7", StringComparison.Ordinal);
     }
+
+    private static bool IsGpt56Luna(string model)
+        => model.Replace('.', '-').Contains("gpt-5-6-luna", StringComparison.OrdinalIgnoreCase);
+
+    private static CliModelInfo? FindDiscovered(
+        string cliType,
+        string model,
+        CliModelCatalog? discoveredCatalog)
+        => discoveredCatalog is not null
+           && string.Equals(discoveredCatalog.CliType, cliType, StringComparison.OrdinalIgnoreCase)
+            ? discoveredCatalog.Find(model)
+            : null;
 }

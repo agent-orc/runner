@@ -46,6 +46,12 @@ The library targets known coding-agent CLIs in their specific versions — it is
 | Google Antigravity (`agentapi`) | `antigravity` | driver shipped | shared only | reuses Gemini adapter | Maintained Google path; kept out of the default selectable set (`CliTypes.All`) until a consumer migrates. |
 | GitHub Copilot | `copilot` | removed | n/a | no supported adapter | Removed because the headless path was PTY/TUI-dependent and did not fit the hardened structured stream engine. |
 
+`CliRunner.DiscoverModelsAsync(cliType, forceRefresh, ct)` returns the known models
+and whether the installed CLI currently offers each one. Codex metadata comes from
+`codex debug models`; Claude Code has no list command, so its known models are marked
+available based on CLI presence. Results use a bounded hardened spawn and an in-memory
+TTL cache.
+
 `Context` means the CLI's persistent home/state, not the repository or prompt size.
 `clean` creates a temporary per-run CLI home and seeds only the minimum auth/base config
 (Claude via `CLAUDE_CONFIG_DIR`, Codex via `CODEX_HOME`). `shared` uses the operator's
@@ -65,6 +71,7 @@ Internally each CLI is a `CliDescriptor` — data plus a few pure delegates — 
 - ✅ One terminal event: `RunEnded` with a 3-valued outcome (completed / stopped / failed), classified from exit code + stop reason.
 - ✅ Typed interrupt classification (opt-in): an `IInterruptClassifier` raises a `CliRunEvent.Interrupt(InterruptReason, …, IsFatal)` for stop-worthy conditions (environment blocker, quota exhausted, silent completion, …); the library emits the event, your code decides whether to `Stop`.
 - ✅ Per-CLI capabilities (`CliCapabilities`: clean-context, resume, heartbeat-during-thinking, thinking levels) and overridable defaults resolved by specificity (`CliScope` / `CliDefault<T>`: CLI ▸ model ▸ thinking level) — ask the capability, don't switch on the CLI type.
+- ✅ Known-model registry and installed-CLI model discovery, including live Codex context windows, priority, service tiers, and per-model reasoning ladders; known models missing from the installed CLI remain visible as unavailable.
 - ✅ Built-in silence watchdog (`RunWatchdog` / `WatchdogPolicy`) — one-line attach, phase-aware budgets.
 - ✅ Durable per-stream output logs (crash-tolerant, fsync per line).
 - ✅ Platform-owns-git guard (brand-neutral, configurable).
@@ -318,7 +325,7 @@ src/CodingAgentRunner/
   CliRunner.cs                  entry point: resolves one ICliDriver per CLI from the catalog
   Attachments/                  durable-reference resolver contract + launch preparation
   Abstractions/                 consumer options + IUserHome/IRunLogPath providers
-  Model/                        value types, the run-outcome classifier, model catalog, CliCapabilities
+  Model/                        known-model registry, live discovery, thinking ladders, value types
   Events/                       CliRunEvent contract, phase machine, Interrupt + InterruptReason, watchdog
   Adapters/                     stream-json → CliRunEvent (Claude / Codex / Gemini; Antigravity reuses Gemini)
   Diagnostics/                  InspectEnvironment report + per-CLI setup knowledge (CliSetup)
