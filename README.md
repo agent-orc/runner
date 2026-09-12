@@ -374,6 +374,38 @@ tests through `sourceTests`. The JSON also records `contextTokens`,
 cached/cache-creation input tokens, output tokens, reasoning tokens and
 `totalTokensUsed` so first-output latency can be compared against real prompt size.
 
+### Regenerating CLI performance observations
+
+The generator validates model lifecycle metadata, measurement dates, CLI versions,
+scenario source-test references and the current-model measurement queue. It also
+updates the JSON fallback embedded in the static website:
+
+```bash
+node scripts/generate-cli-performance.mjs
+node scripts/generate-cli-performance.mjs --check
+```
+
+On a measurement host, write one JSON object per completed CLI run to a JSONL file,
+then import and aggregate it with:
+
+```bash
+node scripts/generate-cli-performance.mjs --runs artifacts/cli-performance/runs.jsonl
+```
+
+Each raw record supplies `measuredAt`, `scenario`, `cli`, `cliVersion`, `modelId`,
+`model`, `thinking`, `contextBucket`, `passed`, `wallClockMs`, `firstCliFrameMs`,
+`contextTokens`, `inputTokens`, `cachedInputTokens`,
+`cacheCreationInputTokens`, `outputTokens`, `reasoningTokens` and
+`totalTokensUsed`. The generator groups runs by scenario, CLI, model, thinking level
+and context bucket. It publishes the wall-clock median and nearest-rank P90; token
+counts and first CLI frame are medians. Existing historical aggregates remain in
+the file. If the required signed-in CLI version is unavailable, keep the model in
+`pendingMeasurements` instead of adding synthetic timing values.
+
+Website changes deploy through `.github/workflows/deploy-website.yml`: the platform
+pushes the task result to `main`, and the workflow publishes `website/` to the
+`deploy` branch.
+
 ## Releasing
 
 Both packages (`CodingAgentRunner` and `CodingAgentRunner.Rendering`) are
