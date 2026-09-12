@@ -25,6 +25,8 @@
     --accent:#2c50d0;--accent2:#8b5cf6;--accent3:#db2777;
     --teal:#0d9488;--amber:#d97706;--sky:#0284c7;
     --bg:#fafbff;--card:#fff;--code:#0d1022;--codefg:#e8eaf6;--ok:#067647;--warn:#b54708;
+    --status-neutral-bg:#f2f4f7;--status-neutral-fg:#475467;--status-pending-bg:#fff3e0;--status-pending-fg:#854a0e;
+    --space-1:4px;--space-2:8px;--space-3:12px;
     --sans:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
     --display:'Space Grotesk','Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
     --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
@@ -157,6 +159,19 @@
   .perf-status{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:750;background:#eef0f8;color:var(--muted);}
   .perf-status.sample{background:#edf5ff;color:#1d4ed8;}
   .perf-status.measured{background:#e7f6ed;color:var(--ok);}
+  .perf-status.obsolete{background:var(--status-neutral-bg);color:var(--status-neutral-fg);}
+  .perf-status.pending{background:var(--status-pending-bg);color:var(--status-pending-fg);}
+  .pending-row td{background:#fffcf5;}
+  .pending-copy{display:grid;gap:var(--space-1);}
+  .obsolete-summary td{background:var(--status-neutral-bg);padding:0;}
+  .obsolete-toggle{width:100%;display:flex;align-items:center;gap:var(--space-2);border:0;background:transparent;color:var(--fg);padding:var(--space-3);font:inherit;text-align:left;cursor:pointer;}
+  .obsolete-toggle:hover{background:#e9ecf1;}
+  .obsolete-toggle-icon{font-size:12px;color:var(--muted);transition:transform .15s ease;}
+  .obsolete-toggle[aria-expanded="true"] .obsolete-toggle-icon{transform:rotate(90deg);}
+  .obsolete-toggle-model{font-weight:800;}
+  .obsolete-toggle-meta{color:var(--muted);font-size:12.5px;margin-left:auto;}
+  .obsolete-detail td{background:#fafafa;color:#344054;}
+  .model-status-line{display:flex;align-items:center;gap:var(--space-1);flex-wrap:wrap;margin-top:var(--space-1);}
   .first-output-cell{min-width:0;}
   .frame-cell-head{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;}
   .first-output-value{font-size:16px;font-weight:800;color:var(--fg);}
@@ -198,6 +213,8 @@
     .perf-table-wrap td:before{content:attr(data-label);color:var(--muted);font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:.03em;}
     .perf-table-wrap td[colspan]:before{display:none;}
     .perf-table-wrap td[colspan]{display:block;border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px;}
+    .obsolete-toggle{flex-wrap:wrap;}
+    .obsolete-toggle-meta{width:100%;margin-left:0;padding-left:36px;}
   }
   @media(max-width:560px){.controlbar{grid-template-columns:1fr;}}
   /* architecture diagram */
@@ -589,12 +606,12 @@ dotnet run -c Release \
 
     <h3 id="cli-performance-observations">CLI performance observations</h3>
     <p class="lead">This part is only about the CLIs themselves: which CLI, model, thinking level and context size produced the first CLI frame, completed the run, and passed the scenario checks.</p>
-    <div class="note"><b>Measured locally on 2026-06-26.</b> Rows load from <code>website/data/cli-performance-observations.json</code> and aggregate real Claude/Codex CLI executions on this workstation. Gemini and Antigravity are omitted from timing rows because this local Gemini install failed before stdout and <code>agentapi</code> was not installed.</div>
+    <div class="note" id="cli-performance-provenance"><b>Loading measurement provenance.</b> Rows load from <code>website/data/cli-performance-observations.json</code>.</div>
 
     <div class="kpi-grid">
       <div class="kpi"><span>Primary question</span><strong>How soon does the CLI speak?</strong><small>time to first CLI frame gets its own weight beside total wall-clock and p90.</small></div>
       <div class="kpi"><span>Quality gate</span><strong>Did it pass?</strong><small>speed only counts when the expected answer, tests or review rubric succeeded.</small></div>
-      <div class="kpi"><span>Dimensions</span><strong>CLI + model + thinking</strong><small>Codex models such as GPT 5.5 Code, Claude Opus 4.8 / Sonnet 4.6, Antigravity and future drivers.</small></div>
+      <div class="kpi"><span>Dimensions</span><strong>CLI + model + thinking</strong><small>Current Claude 5 and GPT 5.6/6 models stay separate from retained obsolete-model history.</small></div>
       <div class="kpi"><span>Context</span><strong>tokens, not guesses</strong><small>each row shows CLI-reported context tokens and token usage.</small></div>
     </div>
 
@@ -605,7 +622,7 @@ dotnet run -c Release \
         <select id="perf-cli" data-cli-filter="cli" data-cli-all="All CLIs"><option value="all">All CLIs</option></select>
       </label>
       <label for="perf-model">Model
-        <select id="perf-model" data-cli-filter="model" data-cli-all="All models"><option value="all">All models</option></select>
+        <select id="perf-model" data-cli-filter="modelId" data-cli-all="All models"><option value="all">All models</option></select>
       </label>
       <label for="perf-thinking">Thinking
         <select id="perf-thinking" data-cli-filter="thinking" data-cli-all="All levels"><option value="all">All levels</option></select>
@@ -614,7 +631,7 @@ dotnet run -c Release \
         <select id="perf-context" data-cli-filter="contextBucket" data-cli-all="All token sizes"><option value="all">All token sizes</option></select>
       </label>
       <label for="perf-complexity">Scenario
-        <select id="perf-complexity" data-cli-filter="complexity" data-cli-all="All scenarios"><option value="all">All scenarios</option></select>
+        <select id="perf-complexity" data-cli-filter="scenario" data-cli-all="All scenarios"><option value="all">All scenarios</option></select>
       </label>
     </div>
     <div class="table-wrap perf-table-wrap">
@@ -1014,8 +1031,8 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     <h3 id="cli-performance-data-contract">CLI performance data contract</h3>
     <p class="lead">CLI performance numbers should come from real CLI executions, not from the host-side BenchmarkDotNet project. Store raw runs as JSON, then render aggregate rows by scenario, CLI, model, thinking level, context token bucket and measured token usage.</p>
     <pre>{
-  "schemaVersion": 2,
-  "generatedAt": "2026-06-26T00:00:00Z",
+  "schemaVersion": 3,
+  "generatedAt": "2026-09-12T08:00:00Z",
   "runner": {
     "packageVersion": "0.0.0-local",
     "gitCommit": "replace-with-source-commit"
@@ -1046,7 +1063,8 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "variant": {
         "cli": "codex",
         "cliVersion": "replace-with-cli-version",
-        "model": "GPT 5.5 Code",
+        "model": "GPT 6 Astra",
+        "modelId": "gpt-6-astra",
         "thinkingLevel": "medium",
         "contextMode": "clean",
         "contextBucket": "small"
@@ -1066,6 +1084,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
         "reasoningTokens": 0,
         "totalTokensUsed": 0
       },
+      "measuredAt": "2026-09-12T08:00:00Z",
       "outcome": {
         "status": "completed",
         "passed": true,
@@ -1086,10 +1105,11 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       <tr><td><code>scenario</code></td><td>Makes simple prompts, repo-reading prompts, small fixes and complex tasks comparable over time. Include <code>sourceTests</code> so each scenario links back to the source-level contract it exercises.</td></tr>
       <tr><td><code>variant</code></td><td>Captures the exact CLI, model, thinking level, permission mode, context mode and context token bucket used for the run.</td></tr>
       <tr><td><code>measurements</code></td><td>Records first CLI frame, total wall-clock, tool churn, touched files, context tokens, cached tokens, output tokens, reasoning tokens and total tokens used.</td></tr>
+      <tr><td><code>provenance</code> + <code>models</code></td><td>Dates every measurement environment, records the exact CLI versions, and separates current model ids from retained obsolete ids.</td></tr>
       <tr><td><code>outcome</code></td><td>Prevents a fast failure from looking like a good result; pass rate belongs beside duration.</td></tr>
       <tr><td><code>artifacts</code></td><td>Lets readers audit the transcript, generated patch and validation output behind every aggregate row.</td></tr>
     </table>
-    <p class="lead">Recommended aggregate key: <code>scenario.id + variant.cli + variant.model + variant.thinkingLevel + variant.contextBucket</code>. Publish <code>n</code>, median, p90, min/max, time to first CLI frame, pass rate, median <code>contextTokens</code>, token sub-counts and the top failure reasons for each aggregate.</p>
+    <p class="lead">Recommended aggregate key: <code>scenario.id + variant.cli + variant.model + variant.thinkingLevel + variant.contextBucket</code>. Publish <code>n</code>, median, p90, min/max, time to first CLI frame, pass rate, median <code>contextTokens</code>, token sub-counts and the top failure reasons for each aggregate. Keep unavailable current-model runs as explicit pending records; never fill missing measurements with synthetic timing values.</p>
 
     <h3 id="streaming">Push events vs pull streaming</h3>
     <p class="lead">Two shapes for the same events. The <code>event</code> handlers are best for multiplexing many concurrent runs through one handler (route by <code>evt.RunId</code>). <code>StreamAsync</code> is the ergonomic choice for a single run — <code>await foreach</code>, natural control flow, built-in cancellation. They coexist.</p>
@@ -1116,10 +1136,10 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
 
 <script type="application/json" id="cli-performance-data" data-src="data/cli-performance-observations.json">
 {
-  "schemaVersion": 2,
-  "state": "measured",
-  "generatedAt": "2026-06-26T11:39:13Z",
-  "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows. Token counts come from CLI-reported usage objects.",
+  "schemaVersion": 3,
+  "state": "historical-measurements-with-pending-current-runs",
+  "generatedAt": "2026-09-12T08:00:00Z",
+  "sourceTruth": "Aggregate rows come from real CLI executions. Retired-model history is retained. Current-model runs that could not be made with the required CLI versions are explicit pending records and never synthetic timing rows.",
   "runner": {
     "gitCommit": "c38edc8d0095c6852fc27fc7a3f9cb3a0f8e2537",
     "workspace": "[local checkout]"
@@ -1139,17 +1159,26 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     {
       "cli": "Claude",
       "version": "2.1.186",
-      "path": "[npm-global-prefix]/claude.cmd"
+      "measuredAt": "2026-06-26",
+      "status": "historical-measurement"
     },
     {
       "cli": "Codex",
       "version": "0.142.0",
-      "path": "[vscode-extensions]/openai.chatgpt/bin/windows-x86_64/codex.exe"
+      "measuredAt": "2026-06-26",
+      "status": "historical-measurement"
     },
     {
-      "cli": "Gemini",
-      "version": "0.41.2",
-      "path": "[npm-global-prefix]/gemini.cmd"
+      "cli": "Claude",
+      "version": "2.1.269",
+      "observedAt": "2026-09-12",
+      "status": "required-for-pending-runs"
+    },
+    {
+      "cli": "Codex",
+      "version": "0.153.4",
+      "observedAt": "2026-09-12",
+      "status": "required-for-pending-runs"
     }
   ],
   "contextScale": [
@@ -1378,6 +1407,7 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   ],
   "observations": [
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Claude",
@@ -1397,9 +1427,15 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "firstCliFrameMs": 1262,
       "firstOutputMs": 1262,
       "successPct": 100,
-      "notes": "2 successful answer-only runs; command used claude -p --model claude-haiku-4-5 without --effort."
+      "notes": "2 successful answer-only runs; command used claude -p --model claude-haiku-4-5 without --effort.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-haiku-4-5",
+      "aggregateKey": "simple-question.001|Claude|claude-haiku-4-5|none|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Claude",
@@ -1419,9 +1455,15 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "firstCliFrameMs": 1082,
       "firstOutputMs": 1082,
       "successPct": 100,
-      "notes": "1 successful answer-only run; command used claude -p --model claude-sonnet-4-6 without --effort."
+      "notes": "1 successful answer-only run; command used claude -p --model claude-sonnet-4-6 without --effort.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-sonnet-4-6",
+      "aggregateKey": "simple-question.001|Claude|claude-sonnet-4-6|none|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Claude",
@@ -1441,9 +1483,15 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "firstCliFrameMs": 1486,
       "firstOutputMs": 1486,
       "successPct": 100,
-      "notes": "3 successful answer-only runs; command used claude -p --model claude-sonnet-4-6 --effort medium."
+      "notes": "3 successful answer-only runs; command used claude -p --model claude-sonnet-4-6 --effort medium.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-sonnet-4-6",
+      "aggregateKey": "simple-question.001|Claude|claude-sonnet-4-6|medium|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Claude",
@@ -1463,9 +1511,15 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "firstCliFrameMs": 1122,
       "firstOutputMs": 1122,
       "successPct": 100,
-      "notes": "1 successful answer-only run; command used claude -p --model claude-opus-4-8 --effort high."
+      "notes": "1 successful answer-only run; command used claude -p --model claude-opus-4-8 --effort high.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-opus-4-8",
+      "aggregateKey": "simple-question.001|Claude|claude-opus-4-8|high|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Codex",
@@ -1485,9 +1539,15 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "firstCliFrameMs": 820,
       "firstOutputMs": 820,
       "successPct": 100,
-      "notes": "1 successful answer-only run; command used codex exec --json -m gpt-5.5 without model_reasoning_effort override."
+      "notes": "1 successful answer-only run; command used codex exec --json -m gpt-5.5 without model_reasoning_effort override.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "0.142.0",
+      "modelId": "gpt-5.5",
+      "aggregateKey": "simple-question.001|Codex|gpt-5.5|none|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Codex",
@@ -1507,9 +1567,15 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "firstCliFrameMs": 839,
       "firstOutputMs": 839,
       "successPct": 100,
-      "notes": "3 successful answer-only runs; command used codex exec --json -m gpt-5.5 -c model_reasoning_effort=medium --sandbox read-only."
+      "notes": "3 successful answer-only runs; command used codex exec --json -m gpt-5.5 -c model_reasoning_effort=medium --sandbox read-only.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "0.142.0",
+      "modelId": "gpt-5.5",
+      "aggregateKey": "simple-question.001|Codex|gpt-5.5|medium|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "repo-question.002",
       "cli": "Claude",
@@ -1529,9 +1595,15 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "firstCliFrameMs": 1127,
       "firstOutputMs": 1127,
       "successPct": 100,
-      "notes": "1 successful read-only repo question; result named src/CodingAgentRunner/Model/CliThinkingLevels.cs."
+      "notes": "1 successful read-only repo question; result named src/CodingAgentRunner/Model/CliThinkingLevels.cs.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-sonnet-4-6",
+      "aggregateKey": "repo-question.002|Claude|claude-sonnet-4-6|medium|large"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "repo-question.002",
       "cli": "Codex",
@@ -1551,9 +1623,15 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "firstCliFrameMs": 470,
       "firstOutputMs": 470,
       "successPct": 100,
-      "notes": "1 successful read-only repo question; command used --sandbox read-only."
+      "notes": "1 successful read-only repo question; command used --sandbox read-only.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "0.142.0",
+      "modelId": "gpt-5.5",
+      "aggregateKey": "repo-question.002|Codex|gpt-5.5|medium|large"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "repo-question.002",
       "cli": "Claude",
@@ -1573,7 +1651,261 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "firstCliFrameMs": 1357,
       "firstOutputMs": 1357,
       "successPct": 100,
-      "notes": "1 successful read-only repo question; command used claude -p --model claude-haiku-4-5 without --effort."
+      "notes": "1 successful read-only repo question; command used claude -p --model claude-haiku-4-5 without --effort.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-haiku-4-5",
+      "aggregateKey": "repo-question.002|Claude|claude-haiku-4-5|none|xl"
+    }
+  ],
+  "provenance": {
+    "dataAsOf": "2026-09-12",
+    "generatedBy": "scripts/generate-cli-performance.mjs",
+    "generationCommand": "node scripts/generate-cli-performance.mjs",
+    "rowMeasurementDateField": "observations[].measuredAt",
+    "aggregation": "One aggregate per scenario + CLI + model + thinking + context bucket. Numeric token fields and firstCliFrameMs are medians; medianMs is the wall-clock median; p90Ms uses nearest-rank P90; successPct includes every imported run.",
+    "inputs": [
+      "Preserved aggregate observations measured on 2026-06-26",
+      "Optional raw JSONL passed with --runs",
+      "Operator model-availability snapshot dated 2026-09-12"
+    ],
+    "measurementEnvironments": [
+      {
+        "id": "windows-local-2026-06-26",
+        "status": "measured",
+        "measuredAt": "2026-06-26T11:39:13Z",
+        "cliVersions": {
+          "Claude": "2.1.186",
+          "Codex": "0.142.0",
+          "Gemini": "0.41.2"
+        }
+      },
+      {
+        "id": "agent-runner-01-2026-09-12",
+        "status": "pending-incompatible-host",
+        "observedAt": "2026-09-12",
+        "cliVersions": {
+          "Claude": "2.1.202",
+          "Codex": "0.144.1"
+        },
+        "authentication": {
+          "Claude": "not logged in",
+          "Codex": "logged in"
+        },
+        "requiredCliVersions": {
+          "Claude": "2.1.269",
+          "Codex": "0.153.4"
+        }
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "claude-sonnet-5",
+      "label": "Claude Sonnet 5",
+      "cli": "Claude",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "claude-opus-5",
+      "label": "Claude Opus 5",
+      "cli": "Claude",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "claude-fable-5-1",
+      "label": "Claude Fable 5.1",
+      "cli": "Claude",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "label": "GPT 5.6 Sol",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "label": "GPT 5.6 Terra",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "label": "GPT 5.6 Luna",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-6-astra",
+      "label": "GPT 6 Astra",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "label": "Claude Haiku 4.5",
+      "cli": "Claude",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "claude-sonnet-4-6",
+      "label": "Claude Sonnet 4.6",
+      "cli": "Claude",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "claude-opus-4-8",
+      "label": "Claude Opus 4.8",
+      "cli": "Claude",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "gpt-5.5",
+      "label": "GPT 5.5",
+      "cli": "Codex",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "label": "GPT 5.4 Mini",
+      "cli": "Codex",
+      "status": "obsolete",
+      "lastMeasuredAt": null,
+      "notes": "No CLI performance measurement is retained in this dataset."
+    }
+  ],
+  "pendingMeasurements": [
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Claude",
+      "targetCliVersion": "2.1.269",
+      "observedCliVersion": "2.1.202",
+      "modelId": "claude-sonnet-5",
+      "model": "Claude Sonnet 5",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on a logged-in host with Claude Code 2.1.269; this review host has 2.1.202 and no Claude login."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Claude",
+      "targetCliVersion": "2.1.269",
+      "observedCliVersion": "2.1.202",
+      "modelId": "claude-opus-5",
+      "model": "Claude Opus 5",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on a logged-in host with Claude Code 2.1.269; this review host has 2.1.202 and no Claude login."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Claude",
+      "targetCliVersion": "2.1.269",
+      "observedCliVersion": "2.1.202",
+      "modelId": "claude-fable-5-1",
+      "model": "Claude Fable 5.1",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on a logged-in host with Claude Code 2.1.269; this review host has 2.1.202 and no Claude login."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-5.6-sol",
+      "model": "GPT 5.6 Sol",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1, so its timings would not be comparable."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-5.6-terra",
+      "model": "GPT 5.6 Terra",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1, so its timings would not be comparable."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-5.6-luna",
+      "model": "GPT 5.6 Luna",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1, so its timings would not be comparable."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-6-astra",
+      "model": "GPT 6 Astra",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1 and does not offer gpt-6-astra."
     }
   ]
 }
@@ -1591,9 +1923,14 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   var dataSrc = dataNode.getAttribute("data-src");
   var fallbackPayload = JSON.parse(dataNode.textContent);
   var selects = Array.prototype.slice.call(document.querySelectorAll("[data-cli-filter]"));
+  var provenanceNote = document.getElementById("cli-performance-provenance");
   var records = [];
   var maxFirstOutputMs = 1;
   var contextOrder = [];
+  var modelOrder = [];
+  var modelCatalog = {};
+  var scenarioCatalog = {};
+  var expandedObsoleteModels = {};
 
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (ch) {
@@ -1629,22 +1966,56 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   }
 
   function normalizePayload(payload) {
-    var scenarios = {};
     var scenarioList = Array.isArray(payload.scenarios) ? payload.scenarios : [];
     var observations = Array.isArray(payload) ? payload : (payload.observations || []);
+    var pending = Array.isArray(payload.pendingMeasurements) ? payload.pendingMeasurements : [];
+    var models = Array.isArray(payload.models) ? payload.models : [];
     contextOrder = Array.isArray(payload.contextScale) ? payload.contextScale.map(function (entry) { return entry.bucket; }) : [];
+    modelOrder = models.map(function (model) { return model.id; });
+    modelCatalog = {};
+    scenarioCatalog = {};
 
-    scenarioList.forEach(function (scenario) {
-      scenarios[scenario.id] = scenario;
+    models.forEach(function (model) {
+      modelCatalog[model.id] = model;
     });
 
-    return observations.map(function (record) {
-      var scenario = scenarios[record.scenario] || {};
+    scenarioList.forEach(function (scenario) {
+      scenarioCatalog[scenario.id] = scenario;
+    });
+
+    var measured = observations.map(function (record) {
+      var scenario = scenarioCatalog[record.scenario] || {};
+      var model = modelCatalog[record.modelId] || {};
       return Object.assign({}, record, {
         scenarioLabel: record.scenarioLabel || scenario.label || record.scenario,
         complexity: record.complexity || scenario.complexity || "unknown",
-        sourceTests: record.sourceTests || scenario.sourceTests || []
+        sourceTests: record.sourceTests || scenario.sourceTests || [],
+        lifecycle: record.lifecycle || model.status || "current"
       });
+    });
+
+    var queued = pending.map(function (record) {
+      var model = modelCatalog[record.modelId] || {};
+      return Object.assign({}, record, {
+        isPending: true,
+        lifecycle: model.status || "current",
+        scenario: "pending-scenarios",
+        scenarioIds: record.scenarios || [],
+        scenarioLabel: (record.scenarios || []).length + " scenarios pending",
+        complexity: "pending",
+        contextBucket: "pending",
+        sourceTests: []
+      });
+    });
+
+    return measured.concat(queued).sort(function (a, b) {
+      var modelDifference = modelOrder.indexOf(a.modelId) - modelOrder.indexOf(b.modelId);
+      if (modelDifference) return modelDifference;
+      if (a.isPending !== b.isPending) return a.isPending ? 1 : -1;
+      var scenarios = Object.keys(scenarioCatalog);
+      var scenarioDifference = scenarios.indexOf(a.scenario) - scenarios.indexOf(b.scenario);
+      if (scenarioDifference) return scenarioDifference;
+      return String(a.thinking).localeCompare(String(b.thinking));
     });
   }
 
@@ -1684,10 +2055,11 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
   }
 
   function scenarioCell(record) {
+    var scenarioId = record.isPending ? "simple · repo question · small fix · complex" : record.scenario;
     return "<td data-label=\"Scenario\"><div class=\"scenario-cell\">" +
       "<div class=\"scenario-head\"><span class=\"scenario-title\">" + escapeHtml(record.scenarioLabel) + "</span>" +
       "<span class=\"scenario-chip\">" + escapeHtml(record.complexity) + "</span></div>" +
-      "<span class=\"scenario-id\">" + escapeHtml(record.scenario) + "</span>" +
+      "<span class=\"scenario-id\">" + escapeHtml(scenarioId) + "</span>" +
       sourceTestsLine(record) +
       "</div></td>";
   }
@@ -1765,24 +2137,106 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
       "<span class=\"perf-meta\">" + escapeHtml(parts.join(" / ")) + "</span></td>";
   }
 
+  function pendingRow(record) {
+    return "<tr class=\"pending-row\">" +
+      scenarioCell(record) +
+      cliCell(record) +
+      "<td data-label=\"Thinking\"><span class=\"perf-status pending\">pending</span></td>" +
+      "<td data-label=\"Context tokens\">n/a<span class=\"perf-meta\">awaiting measurement</span></td>" +
+      "<td data-label=\"Tokens used\">n/a<span class=\"perf-meta\">cache split pending</span></td>" +
+      "<td data-label=\"Runs\">0</td>" +
+      "<td data-label=\"Median\">n/a</td>" +
+      "<td data-label=\"P90\">n/a</td>" +
+      "<td data-label=\"First CLI frame\"><div class=\"pending-copy\" title=\"" + escapeHtml(record.reason) + "\"><b>Pending</b>" +
+      "<span class=\"perf-meta\">requires " + escapeHtml(record.cli) + " " + escapeHtml(record.targetCliVersion) + "</span></div></td>" +
+      "</tr>";
+  }
+
+  function measuredRow(record, obsoleteDetail) {
+    return "<tr" + (obsoleteDetail ? " class=\"obsolete-detail\"" : "") + ">" +
+      scenarioCell(record) +
+      cliCell(record) +
+      "<td data-label=\"Thinking\">" + escapeHtml(title(record.thinking)) + "</td>" +
+      contextTokensCell(record) +
+      tokenUsageCell(record) +
+      "<td data-label=\"Runs\">" + escapeHtml(record.runs) + "</td>" +
+      "<td data-label=\"Median\">" + escapeHtml(formatMs(record.medianMs)) + "</td>" +
+      "<td data-label=\"P90\">" + escapeHtml(formatMs(record.p90Ms)) + "</td>" +
+      firstFrameCell(record) +
+      "</tr>";
+  }
+
+  function obsoleteRows(modelId, group) {
+    var model = modelCatalog[modelId] || { label: group[0].model, lastMeasuredAt: group[0].measuredAt };
+    var expanded = !!expandedObsoleteModels[modelId];
+    var totalRuns = group.reduce(function (sum, record) { return sum + Number(record.runs || 0); }, 0);
+    var summary = "<tr class=\"obsolete-summary\"><td colspan=\"9\">" +
+      "<button type=\"button\" class=\"obsolete-toggle\" data-obsolete-model=\"" + escapeHtml(modelId) + "\" aria-expanded=\"" + expanded + "\">" +
+      "<span class=\"obsolete-toggle-icon\" aria-hidden=\"true\">&#9654;</span>" + cliIcon(group[0]) +
+      "<span class=\"obsolete-toggle-model\">" + escapeHtml(model.label) + "</span>" +
+      "<span class=\"perf-status obsolete\">obsolete</span>" +
+      "<span class=\"obsolete-toggle-meta\">last measured <time datetime=\"" + escapeHtml(model.lastMeasuredAt) + "\">" + escapeHtml(model.lastMeasuredAt) + "</time> · " +
+      escapeHtml(group.length) + " aggregate " + (group.length === 1 ? "row" : "rows") + " · " + escapeHtml(totalRuns) + " runs</span>" +
+      "</button></td></tr>";
+    return summary + (expanded ? group.map(function (record) { return measuredRow(record, true); }).join("") : "");
+  }
+
   function hydrateFilters() {
     selects.forEach(function (select) {
       var key = select.getAttribute("data-cli-filter");
       var allLabel = select.getAttribute("data-cli-all") || "All";
-      var values = records.map(function (r) { return r[key]; })
-        .filter(function (value, index, all) { return all.indexOf(value) === index; })
-        .sort(function (a, b) {
-          if (key === "contextBucket" && contextOrder.length) {
-            return contextOrder.indexOf(a) - contextOrder.indexOf(b);
-          }
-          return String(a).localeCompare(String(b));
+      var options = {};
+
+      records.forEach(function (record) {
+        var values = key === "scenario" && record.scenarioIds ? record.scenarioIds : [record[key]];
+        values.filter(Boolean).forEach(function (value) {
+          var model = modelCatalog[record.modelId] || {};
+          var label = key === "modelId" ? (model.label || record.model) :
+            key === "scenario" ? ((scenarioCatalog[value] || {}).label || value) : title(value);
+          if (!options[value]) options[value] = { value: value, label: label, current: false };
+          if (record.lifecycle !== "obsolete") options[value].current = true;
         });
+      });
+      if (key === "modelId") {
+        modelOrder.forEach(function (modelId) {
+          var model = modelCatalog[modelId];
+          if (!options[modelId]) {
+            options[modelId] = { value: modelId, label: model.label, current: model.status === "current" };
+          }
+        });
+      }
+
+      function optionOrder(a, b) {
+        if (key === "modelId") return modelOrder.indexOf(a.value) - modelOrder.indexOf(b.value);
+        if (key === "scenario") {
+          var scenarioOrder = Object.keys(scenarioCatalog);
+          return scenarioOrder.indexOf(a.value) - scenarioOrder.indexOf(b.value);
+        }
+        if (key === "contextBucket" && contextOrder.length) {
+          var aIndex = a.value === "pending" ? -1 : contextOrder.indexOf(a.value);
+          var bIndex = b.value === "pending" ? -1 : contextOrder.indexOf(b.value);
+          return aIndex - bIndex;
+        }
+        return String(a.label).localeCompare(String(b.label));
+      }
+
+      function optionMarkup(option) {
+        return "<option value=\"" + escapeHtml(option.value) + "\">" + escapeHtml(option.label) + "</option>";
+      }
+
+      var values = Object.keys(options).map(function (value) { return options[value]; });
+      var current = values.filter(function (option) { return option.current; }).sort(optionOrder);
+      var obsolete = values.filter(function (option) { return !option.current; }).sort(optionOrder);
       select.innerHTML = "<option value=\"all\">" + escapeHtml(allLabel) + "</option>" +
-        values.map(function (value) {
-          return "<option value=\"" + escapeHtml(value) + "\">" + escapeHtml(title(value)) + "</option>";
-        }).join("");
+        "<optgroup label=\"Current models\">" + current.map(optionMarkup).join("") + "</optgroup>" +
+        "<optgroup label=\"Obsolete models\">" + obsolete.map(optionMarkup).join("") + "</optgroup>";
       select.addEventListener("change", render);
     });
+  }
+
+  function matchesFilter(record, key, value) {
+    if (key === "scenario" && record.scenarioIds) return record.scenarioIds.indexOf(value) >= 0;
+    return record[key] === value;
   }
 
   function render() {
@@ -1793,38 +2247,56 @@ dotnet run -c Release --project benchmarks/CodingAgentRunner.Benchmarks -- --fil
     });
 
     var filtered = records.filter(function (record) {
-      return Object.keys(active).every(function (key) { return record[key] === active[key]; });
+      return Object.keys(active).every(function (key) { return matchesFilter(record, key, active[key]); });
     });
 
     if (!filtered.length) {
-      tbody.innerHTML = "<tr><td colspan=\"9\">No measured rows match these filters.</td></tr>";
+      tbody.innerHTML = "<tr><td colspan=\"9\">No current, pending or historical rows match these filters.</td></tr>";
       return;
     }
 
-    tbody.innerHTML = filtered.map(function (r) {
-      return "<tr>" +
-        scenarioCell(r) +
-        cliCell(r) +
-        "<td data-label=\"Thinking\">" + escapeHtml(title(r.thinking)) + "</td>" +
-        contextTokensCell(r) +
-        tokenUsageCell(r) +
-        "<td data-label=\"Runs\">" + escapeHtml(r.runs) + "</td>" +
-        "<td data-label=\"Median\">" + escapeHtml(formatMs(r.medianMs)) + "</td>" +
-        "<td data-label=\"P90\">" + escapeHtml(formatMs(r.p90Ms)) + "</td>" +
-        firstFrameCell(r) +
-        "</tr>";
+    var current = filtered.filter(function (record) { return record.lifecycle !== "obsolete"; });
+    var obsolete = filtered.filter(function (record) { return record.lifecycle === "obsolete"; });
+    var obsoleteGroups = obsolete.reduce(function (groups, record) {
+      if (!groups[record.modelId]) groups[record.modelId] = [];
+      groups[record.modelId].push(record);
+      return groups;
+    }, {});
+
+    tbody.innerHTML = current.map(function (record) {
+      return record.isPending ? pendingRow(record) : measuredRow(record, false);
+    }).join("") + modelOrder.filter(function (modelId) {
+      return obsoleteGroups[modelId];
+    }).map(function (modelId) {
+      return obsoleteRows(modelId, obsoleteGroups[modelId]);
     }).join("");
   }
 
   function start(payload) {
     records = normalizePayload(payload);
-    maxFirstOutputMs = Math.max.apply(null, records.map(function (r) { return r.firstCliFrameMs || r.firstOutputMs; }));
+    var measuredFrameTimes = records.filter(function (record) { return !record.isPending; })
+      .map(function (record) { return record.firstCliFrameMs || record.firstOutputMs; });
+    maxFirstOutputMs = Math.max.apply(null, measuredFrameTimes.concat([1]));
+    if (provenanceNote) {
+      var provenance = payload.provenance || {};
+      var pendingCount = Array.isArray(payload.pendingMeasurements) ? payload.pendingMeasurements.length : 0;
+      provenanceNote.innerHTML = "<b>Data as of " + escapeHtml(provenance.dataAsOf || payload.generatedAt || "unknown") + ".</b> " +
+        "The retained timing rows were measured on 2026-06-26. " + escapeHtml(pendingCount) +
+        " current-model queues are marked pending because this host does not have the required signed-in CLI versions. No timing values are synthesized.";
+    }
     renderFrameExample(payload);
     hydrateFilters();
     render();
   }
 
   document.addEventListener("click", function (event) {
+    var obsoleteToggle = event.target.closest("[data-obsolete-model]");
+    if (obsoleteToggle) {
+      var modelId = obsoleteToggle.getAttribute("data-obsolete-model");
+      expandedObsoleteModels[modelId] = !expandedObsoleteModels[modelId];
+      render();
+      return;
+    }
     var openButton = event.target.closest("[data-open-cli-frame-modal]");
     if (!openButton || !frameModal) return;
     if (typeof frameModal.showModal === "function") frameModal.showModal();

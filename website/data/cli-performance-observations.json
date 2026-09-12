@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 2,
-  "state": "measured",
-  "generatedAt": "2026-06-26T11:39:13Z",
-  "sourceTruth": "Aggregates from real local CLI executions on 2026-06-26. Scenario definitions point at source tests; unavailable drivers are documented separately and do not get synthetic timing rows. Token counts come from CLI-reported usage objects.",
+  "schemaVersion": 3,
+  "state": "historical-measurements-with-pending-current-runs",
+  "generatedAt": "2026-09-12T08:00:00Z",
+  "sourceTruth": "Aggregate rows come from real CLI executions. Retired-model history is retained. Current-model runs that could not be made with the required CLI versions are explicit pending records and never synthetic timing rows.",
   "runner": {
     "gitCommit": "c38edc8d0095c6852fc27fc7a3f9cb3a0f8e2537",
     "workspace": "[local checkout]"
@@ -22,17 +22,26 @@
     {
       "cli": "Claude",
       "version": "2.1.186",
-      "path": "[npm-global-prefix]/claude.cmd"
+      "measuredAt": "2026-06-26",
+      "status": "historical-measurement"
     },
     {
       "cli": "Codex",
       "version": "0.142.0",
-      "path": "[vscode-extensions]/openai.chatgpt/bin/windows-x86_64/codex.exe"
+      "measuredAt": "2026-06-26",
+      "status": "historical-measurement"
     },
     {
-      "cli": "Gemini",
-      "version": "0.41.2",
-      "path": "[npm-global-prefix]/gemini.cmd"
+      "cli": "Claude",
+      "version": "2.1.269",
+      "observedAt": "2026-09-12",
+      "status": "required-for-pending-runs"
+    },
+    {
+      "cli": "Codex",
+      "version": "0.153.4",
+      "observedAt": "2026-09-12",
+      "status": "required-for-pending-runs"
     }
   ],
   "contextScale": [
@@ -261,6 +270,7 @@
   ],
   "observations": [
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Claude",
@@ -280,9 +290,15 @@
       "firstCliFrameMs": 1262,
       "firstOutputMs": 1262,
       "successPct": 100,
-      "notes": "2 successful answer-only runs; command used claude -p --model claude-haiku-4-5 without --effort."
+      "notes": "2 successful answer-only runs; command used claude -p --model claude-haiku-4-5 without --effort.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-haiku-4-5",
+      "aggregateKey": "simple-question.001|Claude|claude-haiku-4-5|none|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Claude",
@@ -302,9 +318,15 @@
       "firstCliFrameMs": 1082,
       "firstOutputMs": 1082,
       "successPct": 100,
-      "notes": "1 successful answer-only run; command used claude -p --model claude-sonnet-4-6 without --effort."
+      "notes": "1 successful answer-only run; command used claude -p --model claude-sonnet-4-6 without --effort.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-sonnet-4-6",
+      "aggregateKey": "simple-question.001|Claude|claude-sonnet-4-6|none|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Claude",
@@ -324,9 +346,15 @@
       "firstCliFrameMs": 1486,
       "firstOutputMs": 1486,
       "successPct": 100,
-      "notes": "3 successful answer-only runs; command used claude -p --model claude-sonnet-4-6 --effort medium."
+      "notes": "3 successful answer-only runs; command used claude -p --model claude-sonnet-4-6 --effort medium.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-sonnet-4-6",
+      "aggregateKey": "simple-question.001|Claude|claude-sonnet-4-6|medium|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Claude",
@@ -346,9 +374,15 @@
       "firstCliFrameMs": 1122,
       "firstOutputMs": 1122,
       "successPct": 100,
-      "notes": "1 successful answer-only run; command used claude -p --model claude-opus-4-8 --effort high."
+      "notes": "1 successful answer-only run; command used claude -p --model claude-opus-4-8 --effort high.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-opus-4-8",
+      "aggregateKey": "simple-question.001|Claude|claude-opus-4-8|high|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Codex",
@@ -368,9 +402,15 @@
       "firstCliFrameMs": 820,
       "firstOutputMs": 820,
       "successPct": 100,
-      "notes": "1 successful answer-only run; command used codex exec --json -m gpt-5.5 without model_reasoning_effort override."
+      "notes": "1 successful answer-only run; command used codex exec --json -m gpt-5.5 without model_reasoning_effort override.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "0.142.0",
+      "modelId": "gpt-5.5",
+      "aggregateKey": "simple-question.001|Codex|gpt-5.5|none|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "simple-question.001",
       "cli": "Codex",
@@ -390,9 +430,15 @@
       "firstCliFrameMs": 839,
       "firstOutputMs": 839,
       "successPct": 100,
-      "notes": "3 successful answer-only runs; command used codex exec --json -m gpt-5.5 -c model_reasoning_effort=medium --sandbox read-only."
+      "notes": "3 successful answer-only runs; command used codex exec --json -m gpt-5.5 -c model_reasoning_effort=medium --sandbox read-only.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "0.142.0",
+      "modelId": "gpt-5.5",
+      "aggregateKey": "simple-question.001|Codex|gpt-5.5|medium|small"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "repo-question.002",
       "cli": "Claude",
@@ -412,9 +458,15 @@
       "firstCliFrameMs": 1127,
       "firstOutputMs": 1127,
       "successPct": 100,
-      "notes": "1 successful read-only repo question; result named src/CodingAgentRunner/Model/CliThinkingLevels.cs."
+      "notes": "1 successful read-only repo question; result named src/CodingAgentRunner/Model/CliThinkingLevels.cs.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-sonnet-4-6",
+      "aggregateKey": "repo-question.002|Claude|claude-sonnet-4-6|medium|large"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "repo-question.002",
       "cli": "Codex",
@@ -434,9 +486,15 @@
       "firstCliFrameMs": 470,
       "firstOutputMs": 470,
       "successPct": 100,
-      "notes": "1 successful read-only repo question; command used --sandbox read-only."
+      "notes": "1 successful read-only repo question; command used --sandbox read-only.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "0.142.0",
+      "modelId": "gpt-5.5",
+      "aggregateKey": "repo-question.002|Codex|gpt-5.5|medium|large"
     },
     {
+      "recordType": "aggregate",
       "state": "measured",
       "scenario": "repo-question.002",
       "cli": "Claude",
@@ -456,7 +514,261 @@
       "firstCliFrameMs": 1357,
       "firstOutputMs": 1357,
       "successPct": 100,
-      "notes": "1 successful read-only repo question; command used claude -p --model claude-haiku-4-5 without --effort."
+      "notes": "1 successful read-only repo question; command used claude -p --model claude-haiku-4-5 without --effort.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-haiku-4-5",
+      "aggregateKey": "repo-question.002|Claude|claude-haiku-4-5|none|xl"
+    }
+  ],
+  "provenance": {
+    "dataAsOf": "2026-09-12",
+    "generatedBy": "scripts/generate-cli-performance.mjs",
+    "generationCommand": "node scripts/generate-cli-performance.mjs",
+    "rowMeasurementDateField": "observations[].measuredAt",
+    "aggregation": "One aggregate per scenario + CLI + model + thinking + context bucket. Numeric token fields and firstCliFrameMs are medians; medianMs is the wall-clock median; p90Ms uses nearest-rank P90; successPct includes every imported run.",
+    "inputs": [
+      "Preserved aggregate observations measured on 2026-06-26",
+      "Optional raw JSONL passed with --runs",
+      "Operator model-availability snapshot dated 2026-09-12"
+    ],
+    "measurementEnvironments": [
+      {
+        "id": "windows-local-2026-06-26",
+        "status": "measured",
+        "measuredAt": "2026-06-26T11:39:13Z",
+        "cliVersions": {
+          "Claude": "2.1.186",
+          "Codex": "0.142.0",
+          "Gemini": "0.41.2"
+        }
+      },
+      {
+        "id": "agent-runner-01-2026-09-12",
+        "status": "pending-incompatible-host",
+        "observedAt": "2026-09-12",
+        "cliVersions": {
+          "Claude": "2.1.202",
+          "Codex": "0.144.1"
+        },
+        "authentication": {
+          "Claude": "not logged in",
+          "Codex": "logged in"
+        },
+        "requiredCliVersions": {
+          "Claude": "2.1.269",
+          "Codex": "0.153.4"
+        }
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "claude-sonnet-5",
+      "label": "Claude Sonnet 5",
+      "cli": "Claude",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "claude-opus-5",
+      "label": "Claude Opus 5",
+      "cli": "Claude",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "claude-fable-5-1",
+      "label": "Claude Fable 5.1",
+      "cli": "Claude",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "label": "GPT 5.6 Sol",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "label": "GPT 5.6 Terra",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "label": "GPT 5.6 Luna",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-6-astra",
+      "label": "GPT 6 Astra",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "label": "Claude Haiku 4.5",
+      "cli": "Claude",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "claude-sonnet-4-6",
+      "label": "Claude Sonnet 4.6",
+      "cli": "Claude",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "claude-opus-4-8",
+      "label": "Claude Opus 4.8",
+      "cli": "Claude",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "gpt-5.5",
+      "label": "GPT 5.5",
+      "cli": "Codex",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "label": "GPT 5.4 Mini",
+      "cli": "Codex",
+      "status": "obsolete",
+      "lastMeasuredAt": null,
+      "notes": "No CLI performance measurement is retained in this dataset."
+    }
+  ],
+  "pendingMeasurements": [
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Claude",
+      "targetCliVersion": "2.1.269",
+      "observedCliVersion": "2.1.202",
+      "modelId": "claude-sonnet-5",
+      "model": "Claude Sonnet 5",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on a logged-in host with Claude Code 2.1.269; this review host has 2.1.202 and no Claude login."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Claude",
+      "targetCliVersion": "2.1.269",
+      "observedCliVersion": "2.1.202",
+      "modelId": "claude-opus-5",
+      "model": "Claude Opus 5",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on a logged-in host with Claude Code 2.1.269; this review host has 2.1.202 and no Claude login."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Claude",
+      "targetCliVersion": "2.1.269",
+      "observedCliVersion": "2.1.202",
+      "modelId": "claude-fable-5-1",
+      "model": "Claude Fable 5.1",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on a logged-in host with Claude Code 2.1.269; this review host has 2.1.202 and no Claude login."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-5.6-sol",
+      "model": "GPT 5.6 Sol",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1, so its timings would not be comparable."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-5.6-terra",
+      "model": "GPT 5.6 Terra",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1, so its timings would not be comparable."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-5.6-luna",
+      "model": "GPT 5.6 Luna",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1, so its timings would not be comparable."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-6-astra",
+      "model": "GPT 6 Astra",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1 and does not offer gpt-6-astra."
     }
   ]
 }
