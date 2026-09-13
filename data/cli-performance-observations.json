@@ -1,0 +1,774 @@
+{
+  "schemaVersion": 3,
+  "state": "historical-measurements-with-pending-current-runs",
+  "generatedAt": "2026-09-12T08:00:00Z",
+  "sourceTruth": "Aggregate rows come from real CLI executions. Retired-model history is retained. Current-model runs that could not be made with the required CLI versions are explicit pending records and never synthetic timing rows.",
+  "runner": {
+    "gitCommit": "c38edc8d0095c6852fc27fc7a3f9cb3a0f8e2537",
+    "workspace": "[local checkout]"
+  },
+  "environment": {
+    "os": "Windows",
+    "shell": "PowerShell",
+    "cwd": "[local checkout]",
+    "notes": [
+      "Measurements include CLI startup, local plugin/config loading and network/model latency.",
+      "The table's firstCliFrameMs is the first CLI frame: the first newline-delimited JSON object emitted on stdout. It is not necessarily the first user-visible assistant text. firstOutputMs is kept as a legacy alias in the aggregate rows.",
+      "contextTokens is the prompt-side context observed by the CLI. For Claude it sums input_tokens, cache_read_input_tokens and cache_creation_input_tokens; for Codex it uses reported input_tokens and records cached_input_tokens separately.",
+      "thinking=none means no explicit thinking or reasoning level was passed. The model or CLI may still report reasoning tokens."
+    ]
+  },
+  "cliVersions": [
+    {
+      "cli": "Claude",
+      "version": "2.1.186",
+      "measuredAt": "2026-06-26",
+      "status": "historical-measurement"
+    },
+    {
+      "cli": "Codex",
+      "version": "0.142.0",
+      "measuredAt": "2026-06-26",
+      "status": "historical-measurement"
+    },
+    {
+      "cli": "Claude",
+      "version": "2.1.269",
+      "observedAt": "2026-09-12",
+      "status": "required-for-pending-runs"
+    },
+    {
+      "cli": "Codex",
+      "version": "0.153.4",
+      "observedAt": "2026-09-12",
+      "status": "required-for-pending-runs"
+    }
+  ],
+  "contextScale": [
+    {
+      "bucket": "small",
+      "tokenRange": "20000-35000",
+      "description": "Short answer-only prompt plus the CLI's loaded local configuration, instructions and session envelope."
+    },
+    {
+      "bucket": "large",
+      "tokenRange": "50000-90000",
+      "description": "Read-only repository question with source navigation and project context."
+    },
+    {
+      "bucket": "xl",
+      "tokenRange": "100000-200000",
+      "description": "Large loaded context and multi-turn/tool work; useful for first-feedback latency checks."
+    }
+  ],
+  "frameExamples": [
+    {
+      "id": "claude-haiku-repo-none-2026-06-26",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cli": "Claude",
+      "model": "Claude Haiku 4.5",
+      "thinking": "none",
+      "scenario": "repo-question.002",
+      "prompt": "In one concise sentence, name the source file that defines CliThinkingLevels.Normalize and what it does for gpt-5.5 xhigh. Do not modify files.",
+      "wallClockMs": 12434,
+      "stdoutFrameCount": 17,
+      "totalFrameBytes": 25354,
+      "totalStdoutBytes": 25371,
+      "frameSizeDefinition": "UTF-8 bytes of each JSON frame payload, excluding the newline separator. totalStdoutBytes includes one newline separator per frame.",
+      "definition": "A CLI frame is one newline-delimited JSON object emitted by the agent CLI on stdout. Frames can be metadata, rate-limit notices, thinking-token updates, assistant messages, tool calls, tool results or the terminal result. Only some frames become user-visible text in the application UI.",
+      "frames": [
+        {
+          "index": 1,
+          "elapsedMs": 2393,
+          "type": "system",
+          "event": "init",
+          "category": "Session metadata",
+          "userVisibleText": false,
+          "frameBytes": 1747,
+          "summary": "CLI/session metadata frame."
+        },
+        {
+          "index": 2,
+          "elapsedMs": 3966,
+          "type": "system",
+          "event": "thinking_tokens",
+          "category": "Thinking telemetry",
+          "userVisibleText": false,
+          "frameBytes": 191,
+          "summary": "CLI/session metadata frame."
+        },
+        {
+          "index": 3,
+          "elapsedMs": 3970,
+          "type": "system",
+          "event": "thinking_tokens",
+          "category": "Thinking telemetry",
+          "userVisibleText": false,
+          "frameBytes": 193,
+          "summary": "CLI/session metadata frame."
+        },
+        {
+          "index": 4,
+          "elapsedMs": 4165,
+          "type": "system",
+          "event": "thinking_tokens",
+          "category": "Thinking telemetry",
+          "userVisibleText": false,
+          "frameBytes": 193,
+          "summary": "CLI/session metadata frame."
+        },
+        {
+          "index": 5,
+          "elapsedMs": 4369,
+          "type": "system",
+          "event": "thinking_tokens",
+          "category": "Thinking telemetry",
+          "userVisibleText": false,
+          "frameBytes": 193,
+          "summary": "CLI/session metadata frame."
+        },
+        {
+          "index": 6,
+          "elapsedMs": 4636,
+          "type": "system",
+          "event": "thinking_tokens",
+          "category": "Thinking telemetry",
+          "userVisibleText": false,
+          "frameBytes": 192,
+          "summary": "CLI/session metadata frame."
+        },
+        {
+          "index": 7,
+          "elapsedMs": 4636,
+          "type": "system",
+          "event": "thinking_tokens",
+          "category": "Thinking telemetry",
+          "userVisibleText": false,
+          "frameBytes": 194,
+          "summary": "CLI/session metadata frame."
+        },
+        {
+          "index": 8,
+          "elapsedMs": 4652,
+          "type": "assistant",
+          "event": "assistant",
+          "category": "Assistant protocol",
+          "userVisibleText": false,
+          "frameBytes": 1918,
+          "summary": "Assistant frame without text content."
+        },
+        {
+          "index": 9,
+          "elapsedMs": 5012,
+          "type": "assistant",
+          "event": "assistant",
+          "category": "Tool call",
+          "userVisibleText": false,
+          "frameBytes": 864,
+          "summary": "tool_use: Grep"
+        },
+        {
+          "index": 10,
+          "elapsedMs": 5100,
+          "type": "rate_limit_event",
+          "event": "rate_limit_event",
+          "category": "Rate-limit telemetry",
+          "userVisibleText": false,
+          "frameBytes": 292,
+          "summary": "Rate-limit/quota telemetry emitted by the CLI."
+        }
+      ]
+    }
+  ],
+  "unavailableDrivers": [
+    {
+      "cli": "Antigravity",
+      "reason": "agentapi was not found on PATH during measurement."
+    },
+    {
+      "cli": "Gemini",
+      "reason": "gemini 0.41.2 failed before producing stdout because bundle/policies/sandbox-default.toml was missing in the local npm installation."
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "simple-question.001",
+      "label": "Simple answer",
+      "complexity": "simple",
+      "description": "Answer-only prompt with no tool use. Prompt: Answer exactly: CAR-OK",
+      "sourceTests": [
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs",
+          "name": "Gemini_UserMessageIgnored_AssistantMessageIsOutput"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Metrics/RunMetricsTests.cs",
+          "name": "Recorder_DerivesTtfo_Ttsi_TurnWallClock_TokensPerSec_FromTheStream"
+        }
+      ]
+    },
+    {
+      "id": "repo-question.002",
+      "label": "Explain parser flow",
+      "complexity": "repo question",
+      "description": "Read-only source navigation prompt asking where CliThinkingLevels.Normalize handles gpt-5.5 xhigh.",
+      "sourceTests": [
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs",
+          "name": "EveryAdapter_TagsEveryEventWithTheRunId"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/ParsingInvariantsTests.cs",
+          "name": "EveryAdapter_MapsAnUnknownTypeString_ToUnknown_Capped200"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Adapters/CodexReasoningHeartbeatTests.cs",
+          "name": "ItemCompletedReasoning_EmitsHeartbeat_NotToolCompleted"
+        }
+      ]
+    },
+    {
+      "id": "small-fix.003",
+      "label": "One-file test fix",
+      "complexity": "small fix",
+      "description": "Defined for future measured implementation runs; not included in the current measured aggregate because no mutating CLI run was executed.",
+      "sourceTests": [
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/CliDriverEngineTests.cs",
+          "name": "Run_StreamsOutput_RaisesTypedEvents_AndClassifiesCleanExitAsCompleted"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/Hardening/AgentGitCommandGuardTests.cs",
+          "name": "IsForbidden_DetectsMutatingCommandPastGlobalOptions"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/CleanContextPreparerTests.cs",
+          "name": "PrepareClaude_CreatesIsolatedHome_SeedsAllowlist_AndRedirectsEnv"
+        }
+      ]
+    },
+    {
+      "id": "complex-task.004",
+      "label": "Multi-file feature",
+      "complexity": "complex task",
+      "description": "Defined for future measured implementation runs; not included in the current measured aggregate because no mutating multi-file CLI run was executed.",
+      "sourceTests": [
+        {
+          "path": "tests/CodingAgentRunner.Tests/Execution/CliDriverEngineTests.cs",
+          "name": "RunWatchdog_AutoStops_AHungRun"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Model/ThinkingLevelNormalizationTests.cs",
+          "name": "Codex_XHigh_OnGpt55_ButFallsToDefaultOnGpt5"
+        },
+        {
+          "path": "tests/CodingAgentRunner.Tests/Rendering/MarkdownRenderTests.cs",
+          "name": "MultiBlock_DocumentProducesOneLinePerBlock"
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "recordType": "aggregate",
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
+      "model": "Claude Haiku 4.5",
+      "thinking": "none",
+      "contextBucket": "small",
+      "contextTokens": 28521,
+      "inputTokens": 10,
+      "cachedInputTokens": 28511,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 52,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 28573,
+      "runs": 2,
+      "medianMs": 3755,
+      "p90Ms": 4374,
+      "firstCliFrameMs": 1262,
+      "firstOutputMs": 1262,
+      "successPct": 100,
+      "notes": "2 successful answer-only runs; command used claude -p --model claude-haiku-4-5 without --effort.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-haiku-4-5",
+      "aggregateKey": "simple-question.001|Claude|claude-haiku-4-5|none|small"
+    },
+    {
+      "recordType": "aggregate",
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
+      "model": "Claude Sonnet 4.6",
+      "thinking": "none",
+      "contextBucket": "small",
+      "contextTokens": 27696,
+      "inputTokens": 3,
+      "cachedInputTokens": 27693,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 7,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 27703,
+      "runs": 1,
+      "medianMs": 7744,
+      "p90Ms": 7744,
+      "firstCliFrameMs": 1082,
+      "firstOutputMs": 1082,
+      "successPct": 100,
+      "notes": "1 successful answer-only run; command used claude -p --model claude-sonnet-4-6 without --effort.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-sonnet-4-6",
+      "aggregateKey": "simple-question.001|Claude|claude-sonnet-4-6|none|small"
+    },
+    {
+      "recordType": "aggregate",
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
+      "model": "Claude Sonnet 4.6",
+      "thinking": "medium",
+      "contextBucket": "small",
+      "contextTokens": 27741,
+      "inputTokens": 3,
+      "cachedInputTokens": 27738,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 7,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 27748,
+      "runs": 3,
+      "medianMs": 3578,
+      "p90Ms": 3760,
+      "firstCliFrameMs": 1486,
+      "firstOutputMs": 1486,
+      "successPct": 100,
+      "notes": "3 successful answer-only runs; command used claude -p --model claude-sonnet-4-6 --effort medium.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-sonnet-4-6",
+      "aggregateKey": "simple-question.001|Claude|claude-sonnet-4-6|medium|small"
+    },
+    {
+      "recordType": "aggregate",
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Claude",
+      "model": "Claude Opus 4.8",
+      "thinking": "high",
+      "contextBucket": "small",
+      "contextTokens": 26237,
+      "inputTokens": 2648,
+      "cachedInputTokens": 20641,
+      "cacheCreationInputTokens": 2948,
+      "outputTokens": 8,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 26245,
+      "runs": 1,
+      "medianMs": 8278,
+      "p90Ms": 8278,
+      "firstCliFrameMs": 1122,
+      "firstOutputMs": 1122,
+      "successPct": 100,
+      "notes": "1 successful answer-only run; command used claude -p --model claude-opus-4-8 --effort high.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-opus-4-8",
+      "aggregateKey": "simple-question.001|Claude|claude-opus-4-8|high|small"
+    },
+    {
+      "recordType": "aggregate",
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Codex",
+      "model": "GPT 5.5",
+      "thinking": "none",
+      "contextBucket": "small",
+      "contextTokens": 22657,
+      "inputTokens": 22657,
+      "cachedInputTokens": 15744,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 28,
+      "reasoningTokens": 19,
+      "totalTokensUsed": 22704,
+      "runs": 1,
+      "medianMs": 8350,
+      "p90Ms": 8350,
+      "firstCliFrameMs": 820,
+      "firstOutputMs": 820,
+      "successPct": 100,
+      "notes": "1 successful answer-only run; command used codex exec --json -m gpt-5.5 without model_reasoning_effort override.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "0.142.0",
+      "modelId": "gpt-5.5",
+      "aggregateKey": "simple-question.001|Codex|gpt-5.5|none|small"
+    },
+    {
+      "recordType": "aggregate",
+      "state": "measured",
+      "scenario": "simple-question.001",
+      "cli": "Codex",
+      "model": "GPT 5.5",
+      "thinking": "medium",
+      "contextBucket": "small",
+      "contextTokens": 22657,
+      "inputTokens": 22657,
+      "cachedInputTokens": 2432,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 7,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 22664,
+      "runs": 3,
+      "medianMs": 5821,
+      "p90Ms": 8239,
+      "firstCliFrameMs": 839,
+      "firstOutputMs": 839,
+      "successPct": 100,
+      "notes": "3 successful answer-only runs; command used codex exec --json -m gpt-5.5 -c model_reasoning_effort=medium --sandbox read-only.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "0.142.0",
+      "modelId": "gpt-5.5",
+      "aggregateKey": "simple-question.001|Codex|gpt-5.5|medium|small"
+    },
+    {
+      "recordType": "aggregate",
+      "state": "measured",
+      "scenario": "repo-question.002",
+      "cli": "Claude",
+      "model": "Claude Sonnet 4.6",
+      "thinking": "medium",
+      "contextBucket": "large",
+      "contextTokens": 56830,
+      "inputTokens": 4,
+      "cachedInputTokens": 48437,
+      "cacheCreationInputTokens": 8389,
+      "outputTokens": 213,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 57043,
+      "runs": 1,
+      "medianMs": 8604,
+      "p90Ms": 8604,
+      "firstCliFrameMs": 1127,
+      "firstOutputMs": 1127,
+      "successPct": 100,
+      "notes": "1 successful read-only repo question; result named src/CodingAgentRunner/Model/CliThinkingLevels.cs.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-sonnet-4-6",
+      "aggregateKey": "repo-question.002|Claude|claude-sonnet-4-6|medium|large"
+    },
+    {
+      "recordType": "aggregate",
+      "state": "measured",
+      "scenario": "repo-question.002",
+      "cli": "Codex",
+      "model": "GPT 5.5",
+      "thinking": "medium",
+      "contextBucket": "large",
+      "contextTokens": 76556,
+      "inputTokens": 76556,
+      "cachedInputTokens": 57472,
+      "cacheCreationInputTokens": 0,
+      "outputTokens": 252,
+      "reasoningTokens": 46,
+      "totalTokensUsed": 76854,
+      "runs": 1,
+      "medianMs": 16260,
+      "p90Ms": 16260,
+      "firstCliFrameMs": 470,
+      "firstOutputMs": 470,
+      "successPct": 100,
+      "notes": "1 successful read-only repo question; command used --sandbox read-only.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "0.142.0",
+      "modelId": "gpt-5.5",
+      "aggregateKey": "repo-question.002|Codex|gpt-5.5|medium|large"
+    },
+    {
+      "recordType": "aggregate",
+      "state": "measured",
+      "scenario": "repo-question.002",
+      "cli": "Claude",
+      "model": "Claude Haiku 4.5",
+      "thinking": "none",
+      "contextBucket": "xl",
+      "contextTokens": 147495,
+      "inputTokens": 31,
+      "cachedInputTokens": 130033,
+      "cacheCreationInputTokens": 17431,
+      "outputTokens": 586,
+      "reasoningTokens": 0,
+      "totalTokensUsed": 148081,
+      "runs": 1,
+      "medianMs": 15650,
+      "p90Ms": 15650,
+      "firstCliFrameMs": 1357,
+      "firstOutputMs": 1357,
+      "successPct": 100,
+      "notes": "1 successful read-only repo question; command used claude -p --model claude-haiku-4-5 without --effort.",
+      "lifecycle": "obsolete",
+      "measuredAt": "2026-06-26T11:39:13Z",
+      "cliVersion": "2.1.186",
+      "modelId": "claude-haiku-4-5",
+      "aggregateKey": "repo-question.002|Claude|claude-haiku-4-5|none|xl"
+    }
+  ],
+  "provenance": {
+    "dataAsOf": "2026-09-12",
+    "generatedBy": "scripts/generate-cli-performance.mjs",
+    "generationCommand": "node scripts/generate-cli-performance.mjs",
+    "rowMeasurementDateField": "observations[].measuredAt",
+    "aggregation": "One aggregate per scenario + CLI + model + thinking + context bucket. Numeric token fields and firstCliFrameMs are medians; medianMs is the wall-clock median; p90Ms uses nearest-rank P90; successPct includes every imported run.",
+    "inputs": [
+      "Preserved aggregate observations measured on 2026-06-26",
+      "Optional raw JSONL passed with --runs",
+      "Operator model-availability snapshot dated 2026-09-12"
+    ],
+    "measurementEnvironments": [
+      {
+        "id": "windows-local-2026-06-26",
+        "status": "measured",
+        "measuredAt": "2026-06-26T11:39:13Z",
+        "cliVersions": {
+          "Claude": "2.1.186",
+          "Codex": "0.142.0",
+          "Gemini": "0.41.2"
+        }
+      },
+      {
+        "id": "agent-runner-01-2026-09-12",
+        "status": "pending-incompatible-host",
+        "observedAt": "2026-09-12",
+        "cliVersions": {
+          "Claude": "2.1.202",
+          "Codex": "0.144.1"
+        },
+        "authentication": {
+          "Claude": "not logged in",
+          "Codex": "logged in"
+        },
+        "requiredCliVersions": {
+          "Claude": "2.1.269",
+          "Codex": "0.153.4"
+        }
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "claude-sonnet-5",
+      "label": "Claude Sonnet 5",
+      "cli": "Claude",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "claude-opus-5",
+      "label": "Claude Opus 5",
+      "cli": "Claude",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "claude-fable-5-1",
+      "label": "Claude Fable 5.1",
+      "cli": "Claude",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "label": "GPT 5.6 Sol",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "label": "GPT 5.6 Terra",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "label": "GPT 5.6 Luna",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "gpt-6-astra",
+      "label": "GPT 6 Astra",
+      "cli": "Codex",
+      "status": "current",
+      "availabilityObservedAt": "2026-09-12"
+    },
+    {
+      "id": "claude-haiku-4-5",
+      "label": "Claude Haiku 4.5",
+      "cli": "Claude",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "claude-sonnet-4-6",
+      "label": "Claude Sonnet 4.6",
+      "cli": "Claude",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "claude-opus-4-8",
+      "label": "Claude Opus 4.8",
+      "cli": "Claude",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "gpt-5.5",
+      "label": "GPT 5.5",
+      "cli": "Codex",
+      "status": "obsolete",
+      "lastMeasuredAt": "2026-06-26"
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "label": "GPT 5.4 Mini",
+      "cli": "Codex",
+      "status": "obsolete",
+      "lastMeasuredAt": null,
+      "notes": "No CLI performance measurement is retained in this dataset."
+    }
+  ],
+  "pendingMeasurements": [
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Claude",
+      "targetCliVersion": "2.1.269",
+      "observedCliVersion": "2.1.202",
+      "modelId": "claude-sonnet-5",
+      "model": "Claude Sonnet 5",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on a logged-in host with Claude Code 2.1.269; this review host has 2.1.202 and no Claude login."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Claude",
+      "targetCliVersion": "2.1.269",
+      "observedCliVersion": "2.1.202",
+      "modelId": "claude-opus-5",
+      "model": "Claude Opus 5",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on a logged-in host with Claude Code 2.1.269; this review host has 2.1.202 and no Claude login."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Claude",
+      "targetCliVersion": "2.1.269",
+      "observedCliVersion": "2.1.202",
+      "modelId": "claude-fable-5-1",
+      "model": "Claude Fable 5.1",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on a logged-in host with Claude Code 2.1.269; this review host has 2.1.202 and no Claude login."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-5.6-sol",
+      "model": "GPT 5.6 Sol",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1, so its timings would not be comparable."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-5.6-terra",
+      "model": "GPT 5.6 Terra",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1, so its timings would not be comparable."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-5.6-luna",
+      "model": "GPT 5.6 Luna",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1, so its timings would not be comparable."
+    },
+    {
+      "state": "pending",
+      "recordedAt": "2026-09-12",
+      "cli": "Codex",
+      "targetCliVersion": "0.153.4",
+      "observedCliVersion": "0.144.1",
+      "modelId": "gpt-6-astra",
+      "model": "GPT 6 Astra",
+      "thinking": "pending",
+      "scenarios": [
+        "simple-question.001",
+        "repo-question.002",
+        "small-fix.003",
+        "complex-task.004"
+      ],
+      "reason": "Pending on Codex 0.153.4; this review host has 0.144.1 and does not offer gpt-6-astra."
+    }
+  ]
+}

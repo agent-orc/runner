@@ -1,0 +1,13 @@
+The font files in this directory are self-hosted subsets (latin, woff2)
+of the following typefaces, all licensed under the SIL Open Font License 1.1:
+
+- Inter (inter-latin.woff2)
+  Copyright 2016 The Inter Project Authors — https://github.com/rsms/inter
+- Space Grotesk (space-grotesk-latin.woff2)
+  Copyright 2020 The Space Grotesk Project Authors — https://github.com/floriankarsten/space-grotesk
+- JetBrains Mono (jetbrains-mono-latin.woff2)
+  Copyright 2020 The JetBrains Mono Project Authors — https://github.com/JetBrains/JetBrainsMono
+
+SIL Open Font License 1.1: https://openfontlicense.org/open-font-license-official-text/
+
+The fonts are hosted with this site (no third-party font CDN requests).
