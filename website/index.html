@@ -15,6 +15,7 @@
 <meta name="twitter:card" content="summary" />
 <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="stylesheet" href="family-navigation.css" />
 <style>
   /* Self-hosted fonts (SIL OFL 1.1, see fonts/LICENSE.txt) — no third-party requests. */
   @font-face{font-family:'Inter';font-style:normal;font-weight:400 800;font-display:swap;src:url(fonts/inter-latin.woff2) format('woff2');}
@@ -62,11 +63,43 @@
   .nav-menu-panel a:hover{background:#f2f4fc;text-decoration:none;}
   .nav-menu-panel a.is-active{background:#e8edfc;color:var(--accent);box-shadow:none;}
   .nav-separator{width:1px;height:20px;background:var(--line);margin:0 6px 0 9px;}
-  .nav-links a.external-link{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--fg);padding:5px 10px;}
-  .nav-links a.external-link:hover{border-color:#b3c2f2;background:#f7f9fc;color:var(--fg);}
+  :is(.nav-links,.nav-utilities) a.external-link{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--fg);padding:5px 10px;}
+  :is(.nav-links,.nav-utilities) a.external-link:hover{border-color:#b3c2f2;background:#f7f9fc;color:var(--fg);}
   .nav-icon{width:14px;height:14px;flex:0 0 auto;}
   .external-icon{width:12px;height:12px;flex:0 0 auto;color:var(--muted);}
-  @media(max-width:760px){.site-nav .wrap{align-items:flex-start;flex-direction:column;gap:7px}.nav-links{justify-content:flex-start}.nav-links a{padding-left:0;padding-right:10px}.nav-menu summary{padding-left:0}.nav-menu-panel{position:static;min-width:100%;box-shadow:none;margin:4px 0 4px;padding:5px}.nav-separator{display:none}.nav-links a.external-link{padding-left:10px}}
+  @media(max-width:760px){.site-nav .wrap{align-items:flex-start;flex-direction:column;gap:7px}.nav-links{justify-content:flex-start}.nav-links a{padding-left:0;padding-right:10px}.nav-menu summary{padding-left:0}.nav-menu-panel{position:static;min-width:100%;box-shadow:none;margin:4px 0 4px;padding:5px}.nav-separator{display:none}:is(.nav-links,.nav-utilities) a.external-link{padding-left:10px}}
+  /* Runner packing for Agent Orchestrator family navigation v1. */
+  .site-nav {
+    --ao-family-text: var(--fg);
+    --ao-family-border: var(--line);
+    --ao-family-background: #fff;
+    --ao-family-focus: var(--accent);
+  }
+  .site-nav .wrap {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "brand menus utilities";
+    gap: 14px;
+  }
+  .site-nav .brand { grid-area: brand; white-space: nowrap; }
+  .site-nav .nav-links { grid-area: menus; min-width: 0; justify-content: center; flex-wrap: nowrap; }
+  .nav-utilities { grid-area: utilities; display: flex; align-items: center; justify-self: end; gap: 6px; white-space: nowrap; }
+  .nav-utilities a.external-link { min-height: 36px; justify-content: center; border-radius: 7px; font-size: 13px; font-weight: 650; text-decoration: none; }
+  @media (max-width: 980px) {
+    .site-nav .ao-family-name, .nav-utilities .github-label, .nav-utilities .external-icon, .nav-utilities .nav-separator { display: none; }
+    .site-nav .ao-family-short { display: inline; }
+    .nav-utilities a.external-link { min-width: 36px; }
+  }
+  @media (max-width: 760px) {
+    .site-nav .wrap {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "brand utilities" "menus menus";
+      align-items: center;
+      gap: 7px 12px;
+    }
+    .site-nav .nav-links { justify-content: flex-start; flex-wrap: wrap; }
+    .nav-utilities a.external-link { min-width: 44px; min-height: 44px; }
+  }
   /* hero */
   header.hero{background:#fff;border-bottom:1px solid var(--line);padding:64px 0 56px;text-align:center;}
   .badge{display:inline-block;font-size:12.5px;font-weight:600;color:var(--accent);background:#e8edfc;border:1px solid #cdd8f8;padding:4px 12px;border-radius:999px;margin-bottom:20px;}
@@ -307,11 +340,19 @@
           <a href="#streaming">Push vs pull</a>
         </div>
       </details>
+    </div>
+    <div class="nav-utilities" role="group" aria-label="Project and ecosystem links">
       <span class="nav-separator" aria-hidden="true"></span>
-      <a class="external-link" href="https://github.com/agent-orc/runner" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository, opens an external site">
+      <a class="external-link" href="https://github.com/agent-orc/runner" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository, opens an external site" title="GitHub repository">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.87c.68 0 1.36.09 2 .26 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
-        <span>GitHub</span>
+        <span class="github-label">GitHub</span>
         <svg class="external-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h6v6"/><path d="m5 11 7-7"/><path d="M12 12v1H3V4h1"/></svg>
+      </a>
+      <!-- Agent Orchestrator family navigation v1 -->
+      <a class="ao-family-link" data-family-link="1" href="https://agent-orchestrator.dev/" aria-label="Agent Orchestrator home" title="Agent Orchestrator">
+        <span class="ao-family-mark" aria-hidden="true"></span>
+        <span class="ao-family-name">Agent Orchestrator</span>
+        <span class="ao-family-short" aria-hidden="true">AO</span>
       </a>
     </div>
   </div>
