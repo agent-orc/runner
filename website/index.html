@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary" />
 <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
-<link rel="stylesheet" href="family-navigation.css?v=2" />
+<link rel="stylesheet" href="family-navigation.css?v=3" />
 <style>
   /* Self-hosted fonts (SIL OFL 1.1, see fonts/LICENSE.txt) — no third-party requests. */
   @font-face{font-family:'Inter';font-style:normal;font-weight:400 800;font-display:swap;src:url(fonts/inter-latin.woff2) format('woff2');}
@@ -68,7 +68,7 @@
   .nav-icon{width:14px;height:14px;flex:0 0 auto;}
   .external-icon{width:12px;height:12px;flex:0 0 auto;color:var(--muted);}
   @media(max-width:760px){.site-nav .wrap{align-items:flex-start;flex-direction:column;gap:7px}.nav-links{justify-content:flex-start}.nav-links a{padding-left:0;padding-right:10px}.nav-menu summary{padding-left:0}.nav-menu-panel{position:static;min-width:100%;box-shadow:none;margin:4px 0 4px;padding:5px}.nav-separator{display:none}:is(.nav-links,.nav-utilities) a.external-link{padding-left:10px}}
-  /* Runner packing for Agent Orchestrator family navigation v2. */
+  /* Runner packing for Agent Orchestrator family navigation v3. */
   .site-nav {
     --ao-family-text: var(--muted);
     --ao-family-focus: var(--accent);
@@ -351,9 +351,9 @@
         <span class="github-label">GitHub</span>
         <svg class="external-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h6v6"/><path d="m5 11 7-7"/><path d="M12 12v1H3V4h1"/></svg>
       </a>
-      <!-- Agent Orchestrator family navigation v2 -->
-      <a class="ao-family-link" data-family-link="2" href="https://agent-orchestrator.dev/" aria-label="Back to Agent Orchestrator (agent-orc)" title="Agent Orchestrator home">
-        <svg class="ao-family-back" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m10 3-5 5 5 5M5 8h9"/></svg>
+      <!-- Agent Orchestrator family navigation v3 -->
+      <a class="ao-family-link" data-family-link="3" href="https://agent-orchestrator.dev/" aria-label="Up to Agent Orchestrator (agent-orc)" title="Up to Agent Orchestrator">
+        <svg class="ao-family-up" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m3 8 5-5 5 5M8 3v11"/></svg>
         <span class="ao-family-name">agent-orc</span>
       </a>
     </div>
