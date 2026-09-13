@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary" />
 <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
-<link rel="stylesheet" href="family-navigation.css" />
+<link rel="stylesheet" href="family-navigation.css?v=2" />
 <style>
   /* Self-hosted fonts (SIL OFL 1.1, see fonts/LICENSE.txt) — no third-party requests. */
   @font-face{font-family:'Inter';font-style:normal;font-weight:400 800;font-display:swap;src:url(fonts/inter-latin.woff2) format('woff2');}
@@ -68,11 +68,9 @@
   .nav-icon{width:14px;height:14px;flex:0 0 auto;}
   .external-icon{width:12px;height:12px;flex:0 0 auto;color:var(--muted);}
   @media(max-width:760px){.site-nav .wrap{align-items:flex-start;flex-direction:column;gap:7px}.nav-links{justify-content:flex-start}.nav-links a{padding-left:0;padding-right:10px}.nav-menu summary{padding-left:0}.nav-menu-panel{position:static;min-width:100%;box-shadow:none;margin:4px 0 4px;padding:5px}.nav-separator{display:none}:is(.nav-links,.nav-utilities) a.external-link{padding-left:10px}}
-  /* Runner packing for Agent Orchestrator family navigation v1. */
+  /* Runner packing for Agent Orchestrator family navigation v2. */
   .site-nav {
-    --ao-family-text: var(--fg);
-    --ao-family-border: var(--line);
-    --ao-family-background: #fff;
+    --ao-family-text: var(--muted);
     --ao-family-focus: var(--accent);
   }
   .site-nav .wrap {
@@ -86,8 +84,7 @@
   .nav-utilities { grid-area: utilities; display: flex; align-items: center; justify-self: end; gap: 6px; white-space: nowrap; }
   .nav-utilities a.external-link { min-height: 36px; justify-content: center; border-radius: 7px; font-size: 13px; font-weight: 650; text-decoration: none; }
   @media (max-width: 980px) {
-    .site-nav .ao-family-name, .nav-utilities .github-label, .nav-utilities .external-icon, .nav-utilities .nav-separator { display: none; }
-    .site-nav .ao-family-short { display: inline; }
+    .nav-utilities .github-label, .nav-utilities .external-icon, .nav-utilities .nav-separator { display: none; }
     .nav-utilities a.external-link { min-width: 36px; }
   }
   @media (max-width: 760px) {
@@ -99,6 +96,11 @@
     }
     .site-nav .nav-links { justify-content: flex-start; flex-wrap: wrap; }
     .nav-utilities a.external-link { min-width: 44px; min-height: 44px; }
+  }
+  .nav-menu-panel .mobile-github-link { display: none; }
+  @media (max-width: 360px) {
+    .nav-utilities a.external-link { display: none; }
+    .nav-menu-panel .mobile-github-link { display: block; }
   }
   /* hero */
   header.hero{background:#fff;border-bottom:1px solid var(--line);padding:64px 0 56px;text-align:center;}
@@ -326,6 +328,7 @@
         <summary>Docs</summary>
         <div class="nav-menu-panel">
           <a href="#docs">Documentation</a>
+          <a class="mobile-github-link" href="https://github.com/agent-orc/runner" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository, opens an external site">GitHub repository <span aria-hidden="true">↗</span></a>
           <a href="#quickstart">Quickstart</a>
           <a href="#setup">Setup &amp; diagnostics</a>
           <a href="#identity">Run identity</a>
@@ -348,11 +351,10 @@
         <span class="github-label">GitHub</span>
         <svg class="external-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h6v6"/><path d="m5 11 7-7"/><path d="M12 12v1H3V4h1"/></svg>
       </a>
-      <!-- Agent Orchestrator family navigation v1 -->
-      <a class="ao-family-link" data-family-link="1" href="https://agent-orchestrator.dev/" aria-label="Agent Orchestrator home" title="Agent Orchestrator">
-        <span class="ao-family-mark" aria-hidden="true"></span>
-        <span class="ao-family-name">Agent Orchestrator</span>
-        <span class="ao-family-short" aria-hidden="true">AO</span>
+      <!-- Agent Orchestrator family navigation v2 -->
+      <a class="ao-family-link" data-family-link="2" href="https://agent-orchestrator.dev/" aria-label="Back to Agent Orchestrator (agent-orc)" title="Agent Orchestrator home">
+        <svg class="ao-family-back" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m10 3-5 5 5 5M5 8h9"/></svg>
+        <span class="ao-family-name">agent-orc</span>
       </a>
     </div>
   </div>

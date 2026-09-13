@@ -1,25 +1,28 @@
-/* Agent Orchestrator family-link contract v1. Maintained in Marketing Studio:
+/* Agent Orchestrator family-link contract v2. Maintained in Marketing Studio:
    02-produktname/dachmarke-und-produktseiten-header.md. Keep both pilot copies identical. */
 a.ao-family-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   flex: 0 0 auto;
   min-height: 36px;
-  padding: 6px 10px;
-  border: 1px solid var(--ao-family-border, var(--border, var(--line, #e2e8f0)));
+  padding: 6px;
+  border: 0;
   border-radius: 7px;
-  background: var(--ao-family-background, var(--panel, var(--card, #fff)));
-  color: var(--ao-family-text, var(--text, var(--fg, #1a2233)));
-  font: 600 12px/1.3 ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+  background: transparent;
+  color: var(--ao-family-text, var(--muted, #59667d));
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
   white-space: nowrap;
   text-decoration: none;
 }
 
 a.ao-family-link:hover {
-  border-color: var(--ao-family-focus, var(--accent, #2f6df0));
-  background: var(--ao-family-hover, var(--bg-alt, #f5f7fb));
+  color: var(--ao-family-focus, var(--accent, #2f6df0));
+  background: var(--ao-family-hover, var(--accent-soft, #f0f3fb));
   text-decoration: none;
 }
 
@@ -28,19 +31,10 @@ a.ao-family-link:focus-visible {
   outline-offset: 3px;
 }
 
-.ao-family-mark {
-  width: 9px;
-  height: 9px;
+.ao-family-back {
+  width: 14px;
+  height: 14px;
   flex: 0 0 auto;
-  border-radius: 50%;
-  background: #ffa028;
-}
-
-.ao-family-short { display: none; }
-
-@media (max-width: 980px) {
-  .ao-family-name { display: none; }
-  .ao-family-short { display: inline; }
 }
 
 @media (max-width: 760px) {
