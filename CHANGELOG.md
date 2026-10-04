@@ -16,14 +16,19 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
   with `Available=false` and a versioned note; unknown public models remain available
   with a metadata note. Claude Code has no list command, so its registry availability
   is based on the CLI version probe. Discovery has a timeout and an in-memory TTL cache.
-- A known, unpriced `gpt-6-astra` entry in `ModelPriceCatalog.Default`.
+- A `gpt-6-astra` entry in `ModelPriceCatalog.Default`.
 
 ### Changed
 
-- Codex thinking levels now accept `max`, no longer offer the removed `minimal` rung,
-  and use live per-model ladders when a discovered catalog is supplied. The static
-  fallback covers gpt-6 through `ultra`, including `max`; gpt-5.6 Luna stops at `max`,
-  while the other gpt-5.6 variants include `ultra`.
+- Codex thinking levels use live per-model ladders when discovery supplies them.
+  The static fallback now matches known model ids: `gpt-6-luna` and `gpt-5.6-luna`
+  stop at `max`, `gpt-6.1-sol` has `minimal` through `xhigh` with default `xhigh`,
+  and `gpt-6-sol`, `gpt-6-astra`, and the other known gpt-5.6 variants include `ultra`.
+- `ModelPriceCatalog.Default` now uses a generated seed from the dated TokenEconomy
+  price snapshot (catalogue 0.3.7, 2026-10-04). It includes GPT-6 Sol/Luna/6.1 Sol
+  and Claude Opus/Sonnet 5.x prices with effective dates. The unsupported
+  `claude-mythos-5` listing was removed. The snapshot, source version, and generated
+  seed are checked together by the pricing tests.
 
 ## [0.7.0] - 2026-08-02
 

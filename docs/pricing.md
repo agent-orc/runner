@@ -1,8 +1,7 @@
 # Pricing
 
-`CodingAgentRunner.Pricing` is one library of per-model API prices, with history, plus a
-pure cost API over it. It exists so that every token-cost computation goes through a single,
-deterministic, unit-tested source instead of a hardcoded price table copied into each caller.
+`CodingAgentRunner.Pricing` provides a pure cost API and a static price snapshot with
+history. A caller can also supply its own listings.
 
 It ships in the core `CodingAgentRunner` package — reference it the same way you reference
 `CliThinkingLevels`.
@@ -20,7 +19,9 @@ It ships in the core `CodingAgentRunner` package — reference it the same way y
 
 ## The cost API
 
-`ModelPriceCatalog.Default` is the seeded catalog. Everything on it is pure and deterministic.
+`ModelPriceCatalog.Default` is the seeded catalog. It uses the TokenEconomy catalogue
+snapshot dated 2026-10-04, marked for TokenEconomy 0.3.7. Everything on it is pure
+and deterministic.
 
 ```csharp
 using CodingAgentRunner.Pricing;
@@ -66,18 +67,23 @@ all resolve to their listing.
 
 ## Seed data and confidence
 
-The seed covers the Claude 4.x/5 families and the OpenAI gpt-5.x families, plus a
-known unpriced listing for `gpt-6-astra`, as a starting point.
+The pinned source is [pricing/model-prices.json](../pricing/model-prices.json), copied
+from TokenEconomy's `src/TokenEconomy/catalog/model-prices.json`. Its source version,
+date, path, and SHA-256 are in
+[pricing/catalog-source.json](../pricing/catalog-source.json). The generated
+`ModelPriceSeed.cs` carries all supported listing fields and dated price history,
+including the source text and confidence flag. The pricing test compares every
+generated listing and rate with the pinned JSON and checks its version and hash.
 
-- **Anthropic rates** are the published per-MTok input/output figures. Cache rates follow
-  Anthropic's documented economics — cache-read = 0.1x input, and cache-write = 1.25x input (the
-  5-minute-TTL rate; the 1-hour TTL is 2x and is not modelled) — so they are derived, not
-  independently sourced.
-- **Numbers that could not be confirmed** against an authoritative source are marked
-  `Unconfirmed` (cost is still computed, and `CostBreakdown.Unconfirmed` surfaces the caveat) or
-  left unpriced (an empty history → `NoPriceForDate`). The OpenAI entries without a
-  published rate are listed as known but unpriced rather than carrying a guessed rate.
-  Nothing is invented.
+To refresh the seed, copy a newer TokenEconomy catalogue into `pricing/model-prices.json`,
+update `pricing/catalog-source.json` from its snapshot index, run
+`python3 scripts/generate-model-price-seed.py`, then run
+`python3 scripts/generate-model-price-seed.py --check` and the package tests. The
+runner keeps this snapshot in its package and has no TokenEconomy runtime dependency.
+
+The seed represents the catalogue's standard API tariff. For example, GPT-6 Sol and
+GPT-6.1 Sol have higher long-context rates that this API cannot select from the
+token counts alone. Use a host-supplied catalog when the applicable tariff differs.
 
 When an entry omits cache rates, cache-read and cache-write tokens are billed at the input rate
 rather than dropped — a documented approximation used only for entries that lack their own cache

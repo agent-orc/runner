@@ -31,6 +31,7 @@
   <ItemGroup>
     <None Update="testdata\cli-fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Update="testdata\model-discovery\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\pricing\*.json" Link="pricing\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

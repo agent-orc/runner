@@ -290,7 +290,8 @@ through one deterministic source instead of a hardcoded table copied into each c
 `ModelListing` holds a model's id, aliases, and a price *history*; each `ModelPrice` entry carries
 per-MTok input/output (and optional cache) rates and a `ValidFrom` UTC instant. `ModelPriceCatalog`
 resolves the price valid *at a run's timestamp* (`ResolvePrice`) and computes a per-component
-`CostBreakdown` (`ComputeCost`); `ModelPriceCatalog.Default` is the seeded catalog. Unknown and
+`CostBreakdown` (`ComputeCost`); `ModelPriceCatalog.Default` is generated from a pinned
+TokenEconomy price snapshot. Unknown and
 unpriced models are reported explicitly through `PriceStatus` (`UnknownModel` / `NoPriceForDate`)
 with a `null` total — never a silent zero. See [pricing.md](pricing.md).
 

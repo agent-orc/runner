@@ -87,9 +87,9 @@ public class ModelPriceCatalogTests
     public void Find_ResolvesAliases()
     {
         Assert.Equal("claude-haiku-4-5", ModelPriceCatalog.Default.Find("claude-haiku-4-5-20251001")?.ModelId);
-        // gpt-5.6-sol is an alias of gpt-5.6, and dot/dash folding makes gpt-5-6 resolve too.
-        Assert.Equal("gpt-5.6", ModelPriceCatalog.Default.Find("gpt-5.6-sol")?.ModelId);
-        Assert.Equal("gpt-5.6", ModelPriceCatalog.Default.Find("gpt-5-6")?.ModelId);
+        // The catalogue uses gpt-5.6-sol as its canonical id.
+        Assert.Equal("gpt-5.6-sol", ModelPriceCatalog.Default.Find("gpt-5.6")?.ModelId);
+        Assert.Equal("gpt-5.6-sol", ModelPriceCatalog.Default.Find("gpt-5-6")?.ModelId);
     }
 
     [Theory]
@@ -113,9 +113,9 @@ public class ModelPriceCatalogTests
     [Fact]
     public void KnownButUnpriced_ResolvesToNoPriceForDate_NotZero()
     {
-        var breakdown = ModelPriceCatalog.Default.ComputeCost("gpt-5.6", new TokenUsage(1_000, 1_000), Now);
+        var breakdown = Custom().ComputeCost("unpriced-model", new TokenUsage(1_000, 1_000), Now);
         Assert.Equal(PriceStatus.NoPriceForDate, breakdown.Status);
-        Assert.Equal("gpt-5.6", breakdown.ModelId);   // model WAS found, just not priced
+        Assert.Equal("unpriced-model", breakdown.ModelId);
         Assert.False(breakdown.HasPrice);
         Assert.Null(breakdown.Total);
     }
@@ -157,7 +157,7 @@ public class ModelPriceCatalogTests
     }
 
     [Fact]
-    public void SeededSonnet5_HasIntroThenStandardPricing_AcrossTheBoundary()
+    public void SeededSonnet5_UsesCataloguePriceAfterSeptemberBoundary()
     {
         var standardFrom = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -166,10 +166,10 @@ public class ModelPriceCatalogTests
         Assert.Equal(2.00m, intro.Price!.InputPerMTok);
         Assert.Equal(10.00m, intro.Price.OutputPerMTok);
 
-        // At/after the boundary: standard $3 / MTok input.
+        // The dated TokenEconomy snapshot still lists $2 / $10 after this boundary.
         var standard = ModelPriceCatalog.Default.ResolvePrice("claude-sonnet-5", standardFrom);
-        Assert.Equal(3.00m, standard.Price!.InputPerMTok);
-        Assert.Equal(15.00m, standard.Price.OutputPerMTok);
+        Assert.Equal(2.00m, standard.Price!.InputPerMTok);
+        Assert.Equal(10.00m, standard.Price.OutputPerMTok);
     }
 
     [Fact]
@@ -184,13 +184,12 @@ public class ModelPriceCatalogTests
     }
 
     [Fact]
-    public void Unconfirmed_Price_SurfacesOnBreakdown()
+    public void Confirmed_Price_SurfacesOnBreakdown()
     {
-        // Opus 4.5 is seeded as an assumed Opus-tier rate, flagged unconfirmed.
         var breakdown = ModelPriceCatalog.Default.ComputeCost("claude-opus-4-5", new TokenUsage(1_000_000, 0), Now);
         Assert.Equal(PriceStatus.Resolved, breakdown.Status);
-        Assert.True(breakdown.Unconfirmed);
-        Assert.Equal(5.00m, breakdown.Total);   // still computed, just flagged
+        Assert.False(breakdown.Unconfirmed);
+        Assert.Equal(5.00m, breakdown.Total);
     }
 
     [Fact]

@@ -7,8 +7,7 @@ namespace CodingAgentRunner.Model;
 public static class CliThinkingLevels
 {
     /// <summary>
-    /// Legacy lowest reasoning effort. Kept as a value constant for compatibility;
-    /// current Codex model metadata no longer offers it.
+    /// Lowest reasoning effort. Offered by select Codex models.
     /// </summary>
     public const string Minimal = "minimal";
     /// <summary>Low reasoning effort.</summary>
@@ -23,7 +22,7 @@ public static class CliThinkingLevels
     public const string Max = "max";
     /// <summary>
     /// Ultra reasoning effort — the top Codex rung, above <see cref="Max"/>
-    /// (newest Codex models only, including gpt-5.6 and gpt-6).
+    /// (select Codex models only).
     /// </summary>
     public const string Ultra = "ultra";
 
@@ -31,6 +30,7 @@ public static class CliThinkingLevels
     private static readonly IReadOnlyList<string> OpenAiXHighLevels = [Low, Medium, High, XHigh];
     private static readonly IReadOnlyList<string> OpenAiMaxLevels = [Low, Medium, High, XHigh, Max];
     private static readonly IReadOnlyList<string> OpenAiUltraLevels = [Low, Medium, High, XHigh, Max, Ultra];
+    private static readonly IReadOnlyList<string> OpenAiMinimalXHighLevels = [Minimal, Low, Medium, High, XHigh];
     private static readonly IReadOnlyList<string> ClaudeBasicLevels = [Low, Medium, High];
     private static readonly IReadOnlyList<string> ClaudeMaxLevels = [Low, Medium, High, Max];
     private static readonly IReadOnlyList<string> ClaudeXHighMaxLevels = [Low, Medium, High, XHigh, Max];
@@ -59,8 +59,11 @@ public static class CliThinkingLevels
         if (string.Equals(cli, CliTypes.Codex, StringComparison.OrdinalIgnoreCase))
         {
             if (IsForeignCodexModel(m)) return [];
-            if (IsGpt56Luna(m)) return OpenAiMaxLevels;
-            if (IsUltraCapableCodexModel(m)) return OpenAiUltraLevels;
+            var id = m.Replace('.', '-').ToLowerInvariant();
+            if (id == "gpt-6-1-sol") return OpenAiMinimalXHighLevels;
+            if (id is "gpt-6-luna" or "gpt-5-6-luna") return OpenAiMaxLevels;
+            if (id is "gpt-6-sol" or "gpt-6-astra" or "gpt-6"
+                or "gpt-5-6" or "gpt-5-6-sol" or "gpt-5-6-terra") return OpenAiUltraLevels;
             return IsXHighCapableCodexModel(m) ? OpenAiXHighLevels : OpenAiLevels;
         }
 
@@ -133,7 +136,8 @@ public static class CliThinkingLevels
         var levels = For(cliType, model, discoveredCatalog);
         if (levels.Count == 0) return null;
         return string.Equals(cli, CliTypes.Codex, StringComparison.OrdinalIgnoreCase)
-            ? Medium
+            ? (string.Equals((model ?? string.Empty).Trim().Replace('.', '-'), "gpt-6-1-sol", StringComparison.OrdinalIgnoreCase)
+                ? XHigh : Medium)
             : High;
     }
 
@@ -172,36 +176,14 @@ public static class CliThinkingLevels
     /// OpenAI models (gpt-5.3 Codex Spark and later). The Codex reasoning-effort enum
     /// serializes to lowercase, so the selector maps directly to
     /// <c>model_reasoning_effort="xhigh"</c>. Older codex models (gpt-5, gpt-5-codex)
-    /// top out at <c>high</c>. Every ultra-capable model is also xhigh-capable.
+    /// top out at <c>high</c>.
     /// </summary>
     private static bool IsXHighCapableCodexModel(string model)
     {
         var m = model.Replace('.', '-').ToLowerInvariant();
-        return m.Contains("gpt-5-3-codex-spark", StringComparison.Ordinal)
-               || m.Contains("gpt-5-4-mini", StringComparison.Ordinal)
-               || m.Contains("gpt-5-5", StringComparison.Ordinal)
-               || m.Contains("gpt-5-6", StringComparison.Ordinal)
-               || m.Contains("gpt-6", StringComparison.Ordinal)
-               || m.Contains("gpt-7", StringComparison.Ordinal);
+        return m is "gpt-5-3-codex-spark" or "gpt-5-4-mini" or "gpt-5-5"
+            or "gpt-5-5-sol";
     }
-
-    /// <summary>
-    /// Codex exposes the top <c>ultra</c> reasoning effort on its newest family, the
-    /// gpt-5.6 models and gpt-6. LIVE metadata from Codex supplies the exact ladder;
-    /// this table is used before discovery or when discovery is unavailable.
-    /// The gpt-5.6 Luna variant stops at <c>max</c>; other 5.6 variants include
-    /// <c>ultra</c> unless live metadata says otherwise.
-    /// </summary>
-    private static bool IsUltraCapableCodexModel(string model)
-    {
-        var m = model.Replace('.', '-').ToLowerInvariant();
-        return (m.Contains("gpt-5-6", StringComparison.Ordinal) && !IsGpt56Luna(model))
-               || m.Contains("gpt-6", StringComparison.Ordinal)
-               || m.Contains("gpt-7", StringComparison.Ordinal);
-    }
-
-    private static bool IsGpt56Luna(string model)
-        => model.Replace('.', '-').Contains("gpt-5-6-luna", StringComparison.OrdinalIgnoreCase);
 
     private static CliModelInfo? FindDiscovered(
         string cliType,

@@ -35,6 +35,9 @@ public class CliThinkingLevelsTests
     [InlineData("gpt-5-codex", "low,medium,high")]
     [InlineData("gpt-6", "low,medium,high,xhigh,max,ultra")]
     [InlineData("gpt-6-astra", "low,medium,high,xhigh,max,ultra")]
+    [InlineData("gpt-6-sol", "low,medium,high,xhigh,max,ultra")]
+    [InlineData("gpt-6-luna", "low,medium,high,xhigh,max")]
+    [InlineData("gpt-6.1-sol", "minimal,low,medium,high,xhigh")]
     // gpt-5.6 includes max; Luna stops there while the other variants include ultra.
     [InlineData("gpt-5.6-sol", "low,medium,high,xhigh,max,ultra")]
     [InlineData("gpt-5.6-terra", "low,medium,high,xhigh,max,ultra")]
@@ -42,12 +45,32 @@ public class CliThinkingLevelsTests
     [InlineData("gpt-5.6", "low,medium,high,xhigh,max,ultra")]
     [InlineData("gpt-5-6-sol", "low,medium,high,xhigh,max,ultra")]  // already dash-form
     [InlineData("gpt-5.5-sol", "low,medium,high,xhigh")]            // 5.5 is xhigh, NOT ultra
+    [InlineData("my-gpt-6-sol-clone", "low,medium,high")]
+    [InlineData("gpt-6-luna-preview", "low,medium,high")]
     // Foreign models routed to codex → NO ladder, even with dots.
     [InlineData("claude-opus-4-8", "")]
     [InlineData("claude.opus.4.8", "")]                         // dots: still recognized as foreign (the fix)
     [InlineData("gemini-pro", "")]
     public void Codex_LadderPerModel(string model, string expectedCsv)
         => Assert.Equal(Split(expectedCsv), CliThinkingLevels.For("codex", model));
+
+    [Theory]
+    [InlineData("gpt-6-sol", "medium")]
+    [InlineData("gpt-6-astra", "medium")]
+    [InlineData("gpt-6-luna", "medium")]
+    [InlineData("gpt-5.6-sol", "medium")]
+    [InlineData("gpt-5.6-terra", "medium")]
+    [InlineData("gpt-5.6-luna", "medium")]
+    [InlineData("gpt-6.1-sol", "xhigh")]
+    public void Codex_DefaultPerModel(string model, string expected)
+        => Assert.Equal(expected, CliThinkingLevels.DefaultFor("codex", model));
+
+    [Fact]
+    public void Codex_UnsupportedRungFallsBackToModelDefault()
+    {
+        Assert.Equal("medium", CliThinkingLevels.Normalize("codex", "gpt-6-luna", "ultra"));
+        Assert.Equal("xhigh", CliThinkingLevels.Normalize("codex", "gpt-6.1-sol", "ultra"));
+    }
 
     [Fact]
     public void Gemini_NeverHasLevels()
