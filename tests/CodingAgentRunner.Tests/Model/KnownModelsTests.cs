@@ -16,6 +16,9 @@ public class KnownModelsTests
         Assert.Equal("openai", astra.Vendor);
         Assert.Equal(272_000, astra.ContextWindow);
         Assert.True(astra.GenerationOrder > KnownModels.Find(CliTypes.Codex, "gpt-5.6-sol")!.GenerationOrder);
+        var haiku = Assert.IsType<KnownModel>(KnownModels.Find(CliTypes.Claude, "claude-haiku-5-5"));
+        Assert.Equal("Claude Haiku 5.5", haiku.Label);
+        Assert.Equal(1_000_000, haiku.ContextWindow);
     }
 
     [Fact]

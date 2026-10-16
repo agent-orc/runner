@@ -12,7 +12,7 @@ It ships in the core `CodingAgentRunner` package — reference it the same way y
   optional vendor, and a price **history**.
 - A **`ModelPrice`** is one entry in that history: `InputPerMTok`, `OutputPerMTok`, optional
   `CacheReadPerMTok` / `CacheWritePerMTok`, a `Currency`, a `ValidFrom` UTC instant (inclusive),
-  and a `Source` / `Note` / `Unconfirmed` flag.
+  and a `Source` / `Note` / `Unconfirmed` flag. A price can also set a prompt-length threshold and rate multiplier.
 - **Prices are kept, not overwritten.** A price change adds a new entry with a later
   `ValidFrom`. The cost of a run is computed with the entry that was valid *at the run's
   timestamp*, so a re-priced run in the past still costs what it cost then.
@@ -20,7 +20,7 @@ It ships in the core `CodingAgentRunner` package — reference it the same way y
 ## The cost API
 
 `ModelPriceCatalog.Default` is the seeded catalog. It uses the TokenEconomy catalogue
-snapshot dated 2026-10-04, marked for TokenEconomy 0.3.7. Everything on it is pure
+snapshot dated 2026-10-16, based on TokenEconomy 0.3.7 with an Anthropic-verified Haiku 5.5 entry. Everything on it is pure
 and deterministic.
 
 ```csharp
@@ -88,3 +88,7 @@ token counts alone. Use a host-supplied catalog when the applicable tariff diffe
 When an entry omits cache rates, cache-read and cache-write tokens are billed at the input rate
 rather than dropped — a documented approximation used only for entries that lack their own cache
 figures (the seeded Anthropic entries all carry them).
+
+Claude Haiku 5.5 uses its lower rates through 100,000 prompt tokens. Above that threshold, `ComputeCost` applies the 5× rate to the whole request, including input, output, cache reads, and cache writes. Prompt length includes fresh input and both cache token categories.
+
+For exact Haiku 5.5 costs, call `ComputeCost` per API request. Aggregating several requests before pricing loses which prompts crossed the 100,000-token threshold.

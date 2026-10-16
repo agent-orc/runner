@@ -1,5 +1,34 @@
 [
   {
+    "modelId": "claude-haiku-5-5",
+    "releaseDate": "2026-10-07",
+    "releaseDateSource": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+    "displayName": "Claude Haiku 5.5",
+    "vendor": "anthropic",
+    "history": [
+      {
+        "validFrom": "2026-10-07T00:00:00Z",
+        "inputPerMTok": 0.1,
+        "cacheReadPerMTok": 0.01,
+        "cacheWritePerMTok": 0.125,
+        "outputPerMTok": 0.5,
+        "longContextThreshold": 100000,
+        "longContextRateMultiplier": 5,
+        "currency": "USD",
+        "source": "Anthropic official pricing and model pages; verified 2026-10-16. https://platform.claude.com/docs/en/about-claude/pricing; https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+        "sourceUrls": [
+          "https://platform.claude.com/docs/en/about-claude/pricing",
+          "https://platform.claude.com/docs/en/models/haiku-5-5/overview"
+        ],
+        "verifiedOn": "2026-10-16",
+        "validFromBasis": "provider-announced-date",
+        "note": "Standard global Claude API rates for prompts up to 100,000 input tokens. Above 100,000 (including cache reads and writes), the entire request uses 5x input, output, cache-read, and 5-minute cache-write rates: $0.50/$2.50/$0.05/$0.625 per MTok. Dates use midnight UTC as a calendar-day convention, not a published intraday billing cutover.",
+        "unconfirmed": false
+      }
+    ],
+    "note": "Claude Code 2.1.301 runs this model; 2.1.281 reports unrecognized_model and falls back to Haiku 4.5 (operator probes, 2026-10-16)."
+  },
+  {
     "modelId": "claude-sonnet-5-5",
     "releaseDate": "2026-09-28",
     "releaseDateSource": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
@@ -40,7 +69,7 @@
       {
         "validFrom": "2026-09-22T00:00:00Z",
         "inputPerMTok": 4,
-        "cacheReadPerMTok": 0.20,
+        "cacheReadPerMTok": 0.2,
         "cacheWritePerMTok": 5,
         "outputPerMTok": 20,
         "currency": "USD",
@@ -480,7 +509,7 @@
       {
         "validFrom": "2026-09-22T00:00:00Z",
         "inputPerMTok": 2,
-        "cacheReadPerMTok": 0.20,
+        "cacheReadPerMTok": 0.2,
         "cacheWritePerMTok": 2.5,
         "outputPerMTok": 10,
         "currency": "USD",
@@ -506,10 +535,10 @@
     "history": [
       {
         "validFrom": "2026-09-22T00:00:00Z",
-        "inputPerMTok": 0.10,
+        "inputPerMTok": 0.1,
         "cacheReadPerMTok": 0.01,
         "cacheWritePerMTok": 0.125,
-        "outputPerMTok": 0.50,
+        "outputPerMTok": 0.5,
         "currency": "USD",
         "source": "OpenAI official pricing, model, and dated changelog evidence; retrieved 2026-09-24. https://developers.openai.com/api/docs/changelog; https://developers.openai.com/api/docs/pricing; https://developers.openai.com/api/docs/models/gpt-6-luna. Re-verified unchanged on 2026-09-29: https://developers.openai.com/api/docs/pricing; https://developers.openai.com/api/docs/models/gpt-6-luna",
         "sourceUrls": [

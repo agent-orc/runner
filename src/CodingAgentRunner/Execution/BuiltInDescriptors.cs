@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using CodingAgentRunner.Abstractions;
@@ -184,86 +184,56 @@ internal static class BuiltInDescriptors
     }
 #pragma warning restore CS0618
 
-    // ── Antigravity (agentapi) ──────────────────────────────────────────
+    // ── Antigravity (agy) ───────────────────────────────────────────────
 
-    /// <summary>Antigravity: <c>agentapi new-conversation --model=&lt;tier&gt; "&lt;prompt&gt;"</c> / <c>send-message &lt;uuid&gt;</c>; reuses the Gemini frame adapter.</summary>
+    /// <summary>Antigravity: <c>agy --input-format stream-json --output-format stream-json</c>.</summary>
     public static readonly CliDescriptor Antigravity = new()
     {
         CliType = CliTypes.Antigravity,
-        GetCliPath = o => o.AntigravityPath ?? "agentapi",
+        GetCliPath = o => o.AntigravityPath ?? DefaultAntigravityPath(),
         Capabilities = m => Capabilities(CliTypes.Antigravity, m, supportsCleanContext: false, supportsResume: true),
         CanResumeSessionId = static s => !string.IsNullOrWhiteSpace(s) && Uuid.IsMatch(s),
         InterruptClassifier = InterruptClassifiers.None,
         Liveness = LivenessSpec.InBandDefault,
-        Parse = (line, runId, stream) => stream == CliStreamKind.Stdout ? GeminiEventAdapter.Map(line, runId) : Array.Empty<CliRunEvent>(),
-        ProbeCliPath = ProbeAntigravity,
+        Parse = (line, runId, stream) => AntigravityEventAdapter.Map(line, runId, stream),
         BuildLaunch = AntigravityLaunch,
     };
 
     private static LaunchSpec AntigravityLaunch(CliLaunchContext ctx)
     {
         var r = ctx.Request;
-        var argv = new List<string>();
+        var argv = new List<string>
+        {
+            "--input-format", "stream-json",
+            "--output-format", "stream-json",
+            "--print-timeout", "0",
+            "--disable-slash-commands",
+        };
         if (!string.IsNullOrWhiteSpace(r.ResumeSessionId))
         {
-            argv.Add("send-message"); argv.Add(r.ResumeSessionId!);
+            argv.Add("--conversation"); argv.Add(r.ResumeSessionId!);
         }
-        else
+        if (!string.IsNullOrWhiteSpace(ctx.ResolvedModel))
         {
-            argv.Add("new-conversation");
-            var mapped = MapAntigravityModel(ctx.ResolvedModel);
-            if (!string.IsNullOrEmpty(mapped)) argv.Add($"--model={mapped}");
+            argv.Add("--model"); argv.Add(ctx.ResolvedModel!);
         }
-        // The prompt is the last positional argument (a space when empty, so argv stays well-formed).
-        argv.Add(string.IsNullOrEmpty(r.Prompt) ? " " : r.Prompt);
+        if (!string.IsNullOrWhiteSpace(ctx.ResolvedThinkingLevel))
+        {
+            argv.Add("--effort"); argv.Add(ctx.ResolvedThinkingLevel!);
+        }
+        foreach (var flag in CliPermissionFlags.For(CliTypes.Antigravity, r.PermissionMode)) argv.Add(flag);
+        foreach (var dir in r.AdditionalWorkingDirectories ?? [])
+        {
+            argv.Add("--add-dir"); argv.Add(dir);
+        }
         return new LaunchSpec
         {
             Executable = SafeResolve(ctx.CliPath),
             Argv = argv,
             WorkingDirectory = r.WorkingDirectory,
+            StdinPayload = JsonSerializer.Serialize(new { @event = "user", message = new { content = r.Prompt } }) + "\n",
             NormalizedModel = ctx.ResolvedModel,
         };
-    }
-
-    private static string? MapAntigravityModel(string? model)
-    {
-        if (string.IsNullOrWhiteSpace(model)) return null;
-        var m = model.ToLowerInvariant();
-        if (m.Contains("lite")) return "flash_lite";
-        if (m.Contains("pro")) return "pro";
-        if (m.Contains("flash")) return "flash";
-        return "flash";
-    }
-
-    private static (bool Available, string? Version, string Path) ProbeAntigravity(CliOptions options, string? path)
-    {
-        var resolved = SafeResolve(string.IsNullOrWhiteSpace(path) ? (options.AntigravityPath ?? "agentapi") : path.Trim());
-        try
-        {
-            using var proc = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = resolved,
-                    Arguments = "--version",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                },
-            };
-            proc.Start();
-            var o = proc.StandardOutput.ReadToEnd().Trim();
-            var e = proc.StandardError.ReadToEnd().Trim();
-            proc.WaitForExit(5000);
-            // agentapi has no --version: a non-zero exit that reports an unknown command
-            // (or prints its usage banner) still means the CLI is present.
-            var ok = proc.ExitCode == 0
-                || o.Contains("unknown command: --version") || e.Contains("unknown command: --version")
-                || o.Contains("Usage: agentapi") || e.Contains("Usage: agentapi");
-            return (ok, "agentapi", resolved);
-        }
-        catch { return (false, null, resolved); }
     }
 
     // ── shared helpers ──────────────────────────────────────────────────
@@ -283,6 +253,14 @@ internal static class BuiltInDescriptors
     {
         try { return BinaryResolver.ResolveExecutable(path); }
         catch { return path; }
+    }
+
+    internal static string DefaultAntigravityPath()
+    {
+        var candidate = OperatingSystem.IsWindows()
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "agy", "bin", "agy.exe")
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin", "agy");
+        return File.Exists(candidate) ? candidate : "agy";
     }
 
     private static bool IsImage(ResolvedAttachment attachment)

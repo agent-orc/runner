@@ -8,6 +8,10 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 ### Added
 
+- Claude Haiku 5.5 in the known-model, thinking-level, and price tables. Its
+  prices switch for the whole request when prompt input exceeds 100,000 tokens.
+- Antigravity model discovery through `agy models`.
+
 - `KnownModels`, a library registry for Claude and Codex model ids, labels, vendors,
   context windows, aliases, and generation ordering. It includes `gpt-6-astra`.
 - `ICliModelDiscovery` and `CliRunner.DiscoverModelsAsync`. Codex discovery runs
@@ -19,6 +23,11 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 - A `gpt-6-astra` entry in `ModelPriceCatalog.Default`.
 
 ### Changed
+
+- The Antigravity descriptor launches `agy` with a stream-JSON prompt on stdin,
+  resumes by conversation id, and parses its native session, text, tool, usage,
+  and result events. Headless permission denials now end as failures even when
+  the CLI exits 0. The deprecated Gemini descriptor is unchanged.
 
 - Codex thinking levels use live per-model ladders when discovery supplies them.
   The static fallback now matches known model ids: `gpt-6-luna` and `gpt-5.6-luna`

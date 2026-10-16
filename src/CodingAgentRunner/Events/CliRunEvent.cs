@@ -86,7 +86,11 @@ public abstract record CliRunEvent
     public sealed record TurnCompleted(string? UsageSummary) : CliRunEvent;
 
     /// <summary>The current turn failed. <see cref="Reason"/> is the adapter's best one-line explanation.</summary>
-    public sealed record TurnFailed(string Reason) : CliRunEvent;
+    public sealed record TurnFailed(string Reason) : CliRunEvent
+    {
+        /// <summary>Tool permissions the CLI explicitly denied, when reported.</summary>
+        public IReadOnlyList<DeniedAction> DeniedActions { get; init; } = [];
+    }
 
     /// <summary>The CLI emitted an explicit "I need user input" signal (a provider-specific marker, or a consumer-defined sentinel).</summary>
     public sealed record NeedsInput(string Reason) : CliRunEvent;
@@ -193,6 +197,9 @@ public enum DiagnosticSeverity
     /// <summary>A condition that prevented the subsystem from operating.</summary>
     Error,
 }
+
+/// <summary>A tool action rejected by a headless CLI permission policy.</summary>
+public sealed record DeniedAction(string Action, string? DisplayName);
 
 /// <summary>
 /// One top-level item inside a <see cref="CliRunEvent.PlanUpdated"/> frame,

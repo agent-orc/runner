@@ -34,6 +34,7 @@ public static class CliThinkingLevels
     private static readonly IReadOnlyList<string> ClaudeBasicLevels = [Low, Medium, High];
     private static readonly IReadOnlyList<string> ClaudeMaxLevels = [Low, Medium, High, Max];
     private static readonly IReadOnlyList<string> ClaudeXHighMaxLevels = [Low, Medium, High, XHigh, Max];
+    private static readonly IReadOnlyList<string> AntigravityLevels = [Low, Medium, High, XHigh, Max];
 
     /// <summary>The thinking / reasoning levels the given CLI + model supports. Empty means no selector.</summary>
     public static IReadOnlyList<string> For(string? cliType, string? model)
@@ -75,6 +76,7 @@ public static class CliThinkingLevels
             // internal whitespace ("claude - opus - 4 - 8") — both fall back to no ladder.
             if (!n.StartsWith("claude-", StringComparison.Ordinal)) return [];
             if (n.Contains("haiku-4-5", StringComparison.Ordinal)) return [];
+            if (n.Contains("haiku-5-5", StringComparison.Ordinal)) return ClaudeXHighMaxLevels;
             if (n.Contains("opus-4-8", StringComparison.Ordinal)
                 || n.Contains("opus-4-7", StringComparison.Ordinal))
                 return ClaudeXHighMaxLevels;
@@ -90,6 +92,9 @@ public static class CliThinkingLevels
             if (n.StartsWith("claude-sonnet-", StringComparison.Ordinal)) return ClaudeBasicLevels;
             return [];
         }
+
+        if (string.Equals(cli, CliTypes.Antigravity, StringComparison.OrdinalIgnoreCase))
+            return AntigravityLevels;
 
         return [];
     }
@@ -135,10 +140,15 @@ public static class CliThinkingLevels
 
         var levels = For(cliType, model, discoveredCatalog);
         if (levels.Count == 0) return null;
+        // agy model slugs may already encode effort (for example argon-low).
+        // Omit --effort unless the caller selects one explicitly.
+        if (string.Equals(cli, CliTypes.Antigravity, StringComparison.OrdinalIgnoreCase))
+            return null;
         return string.Equals(cli, CliTypes.Codex, StringComparison.OrdinalIgnoreCase)
             ? (string.Equals((model ?? string.Empty).Trim().Replace('.', '-'), "gpt-6-1-sol", StringComparison.OrdinalIgnoreCase)
                 ? XHigh : Medium)
-            : High;
+            : (model ?? "").Contains("haiku-5-5", StringComparison.OrdinalIgnoreCase)
+                ? Medium : High;
     }
 
     /// <summary>Resolve a requested level against what the CLI + model supports, falling back to the default.</summary>

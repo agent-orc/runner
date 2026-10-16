@@ -41,8 +41,7 @@ npm         installed 11.16.0
 What the report contains, per CLI:
 
 - **Installed** — did the CLI answer its availability probe (`--version` for most
-  CLIs; Antigravity has a custom probe)? `ResolvedPath` shows where PATH/PATHEXT
-  resolution landed.
+  CLIs)? `ResolvedPath` shows the resolved binary path; Antigravity checks the native `agy` install path first.
 - **Credentials** — `Found` / `NotFound` / `Unknown`. `Found` means a credential
   *source* exists: a known credential file under the user home, or the CLI's
   API-key environment variable. It does **not** validate the credential — an
@@ -76,7 +75,7 @@ All commands below are scriptable (CI, provisioning, dev-container setup).
 | Claude Code | `npm install -g @anthropic-ai/claude-code` | Windows: `irm https://claude.ai/install.ps1 \| iex` · macOS/Linux: `curl -fsSL https://claude.ai/install.sh \| bash` · `winget install Anthropic.ClaudeCode` |
 | Codex | `npm install -g @openai/codex` | Windows: `irm https://chatgpt.com/codex/install.ps1 \| iex` · macOS/Linux: `curl -fsSL https://chatgpt.com/codex/install.sh \| sh` · `brew install --cask codex` |
 | Gemini (deprecated here) | `npm install -g @google/gemini-cli` | `brew install gemini-cli` |
-| Antigravity (`agentapi`) | Windows: `irm https://antigravity.google/cli/install.ps1 \| iex` | macOS/Linux: `curl -fsSL https://antigravity.google/cli/install.sh \| bash` — installs the `agy` CLI, which provides `agentapi` |
+| Antigravity (`agy`) | Windows: `irm https://antigravity.google/cli/install.ps1 \| iex` | macOS/Linux: `curl -fsSL https://antigravity.google/cli/install.sh \| bash` — installs `agy` |
 
 The npm installs need Node.js (the report checks for it). After an install, a
 new terminal (or a PATH refresh) is needed before the command resolves.
@@ -127,3 +126,7 @@ explain* (`InspectEnvironment`), *self-heal only what it created or what is
 mechanically broken* (the npm-shim heal for a present-but-broken `claude`
 install), and leave *installing and authenticating* to the operator or their
 provisioning script — which the `CliSetupInfo` data is designed to feed.
+
+Antigravity runs the official `agy` binary with the operator’s existing sign-in. Its stdin stream uses `{"event":"user","message":{"content":"..."}}`; closing stdin ends a one-turn run. This input mode activates headless processing without a positional `-p` prompt, so large prompts stay off argv. The runner does not read, copy, or inject credentials. The [vendor FAQ](https://antigravity.google/docs/faq/) says headless `agy -p` is intended for direct scripting and CI, and that wrapping `agy` in third-party coding agents or applications is not supported under consumer plans. This descriptor supports functional tests; routing policy belongs to the host.
+
+The default Antigravity binary locations are `%LOCALAPPDATA%\agy\bin\agy.exe` on Windows and `~/.local/bin/agy` on Linux/macOS. The runner falls back to `agy` on PATH.

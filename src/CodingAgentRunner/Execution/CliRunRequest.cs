@@ -24,6 +24,9 @@ public sealed record CliRunRequest
     /// <summary>Working directory the CLI runs in (the checkout / worktree).</summary>
     public required string WorkingDirectory { get; init; }
 
+    /// <summary>Additional workspace directories passed to CLIs that support them (Antigravity: repeated <c>--add-dir</c>).</summary>
+    public IReadOnlyList<string>? AdditionalWorkingDirectories { get; init; }
+
     /// <summary>Model id to invoke, or null for the CLI's default.</summary>
     public string? Model { get; init; }
 

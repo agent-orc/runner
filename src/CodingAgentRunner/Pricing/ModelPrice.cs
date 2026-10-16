@@ -36,6 +36,12 @@ public sealed record ModelPrice
     /// </summary>
     public decimal? CacheWritePerMTok { get; init; }
 
+    /// <summary>Input-token threshold above which the whole request uses higher rates, when applicable.</summary>
+    public long? LongContextThreshold { get; init; }
+
+    /// <summary>Multiplier for all token rates when the prompt exceeds <see cref="LongContextThreshold"/>.</summary>
+    public decimal? LongContextRateMultiplier { get; init; }
+
     /// <summary>ISO 4217 currency code the rates are quoted in. Defaults to <see cref="Currencies.Usd"/>.</summary>
     public string Currency { get; init; } = Currencies.Usd;
 

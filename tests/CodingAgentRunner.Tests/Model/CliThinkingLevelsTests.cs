@@ -17,6 +17,7 @@ public class CliThinkingLevelsTests
     [InlineData("claude-sonnet-4-6", "low,medium,high")]
     [InlineData("claude-sonnet-4-5", "low,medium,high")]          // must NOT hit the sonnet-5 rule
     [InlineData("claude-haiku-4-5", "")]
+    [InlineData("claude-haiku-5-5", "low,medium,high,xhigh,max")]
     [InlineData("claude-opus-9-9", "low,medium,high,max")]      // unknown opus → max ladder (StartsWith fallback)
     [InlineData("claude-sonnet-9-9", "low,medium,high")]
     [InlineData("claude-opus-4.8", "low,medium,high,xhigh,max")]// dots normalize to dashes
@@ -77,6 +78,10 @@ public class CliThinkingLevelsTests
     {
         Assert.Empty(CliThinkingLevels.For("gemini", "gemini-pro"));
     }
+
+    [Fact]
+    public void Haiku55_DefaultsToMedium()
+        => Assert.Equal("medium", CliThinkingLevels.DefaultFor("claude", "claude-haiku-5-5"));
 
     [Theory]
     [InlineData("minimal", "Minimal")]

@@ -103,6 +103,35 @@ public class CliDriverEngineTests
     }
 
     [Fact]
+    public async Task TurnFailureWithZeroExit_EndsAsFailed()
+    {
+        using var logs = new TempLogs();
+        var descriptor = ProbeDescriptor("dotnet", ["--version"]) with
+        {
+            Parse = (line, runId, stream) => stream == CliStreamKind.Stdout
+                ? [new CliRunEvent.TurnFailed("permission denied: read_url") { RunId = runId }]
+                : [],
+        };
+        var driver = new CliRunEngine(descriptor, new CliOptions { AllowAgentGitMutation = true }, null, logs);
+        var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var events = new ConcurrentQueue<CliRunEvent>();
+        driver.OnRunEvent += (_, evt) => events.Enqueue(evt);
+        driver.OnFinished += (_, info) => finished.TrySetResult(info);
+        var (_, error) = await driver.StartAsync(new CliRunRequest
+        {
+            RunId = "zero-exit-failure",
+            Prompt = "unused",
+            WorkingDirectory = Path.GetTempPath(),
+        });
+        Assert.Null(error);
+        var final = await finished.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.Equal("failed", final.Status);
+        var ended = Assert.IsType<CliRunEvent.RunEnded>(events.Last());
+        Assert.Equal(RunOutcome.Failed, ended.Outcome);
+        Assert.Contains("permission denied", ended.Reason);
+    }
+
+    [Fact]
     public async Task AcquiredCleanContextLease_IsReusedAcrossAttempts_AndReleasedOnlyByHost()
     {
         var home = Path.Combine(Path.GetTempPath(), "car-lease-home-" + Guid.NewGuid().ToString("N"));

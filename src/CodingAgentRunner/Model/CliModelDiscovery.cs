@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using CodingAgentRunner.Abstractions;
 using CodingAgentRunner.Execution.Hardening;
+using CodingAgentRunner.Execution;
 
 namespace CodingAgentRunner.Model;
 
@@ -14,6 +15,66 @@ public interface ICliModelDiscovery
 
     /// <summary>Probe the CLI and return its catalog merged with <see cref="KnownModels"/>.</summary>
     Task<CliModelCatalog> DiscoverAsync(CancellationToken ct = default);
+}
+
+/// <summary>Discovers the model ids and labels reported by <c>agy models</c>.</summary>
+public sealed class AntigravityCliModelDiscovery : ICliModelDiscovery
+{
+    private readonly CliOptions _options;
+    private readonly TimeProvider _timeProvider;
+
+    /// <summary>Create discovery using the runner's configured agy path and process spawner.</summary>
+    public AntigravityCliModelDiscovery(CliOptions? options = null, TimeProvider? timeProvider = null)
+    {
+        _options = options ?? new CliOptions();
+        _timeProvider = timeProvider ?? TimeProvider.System;
+    }
+
+    /// <inheritdoc />
+    public string CliType => CliTypes.Antigravity;
+
+    /// <inheritdoc />
+    public async Task<CliModelCatalog> DiscoverAsync(CancellationToken ct = default)
+    {
+        var executable = _options.AntigravityPath ?? BuiltInDescriptors.DefaultAntigravityPath();
+        string? version = null;
+        IReadOnlyList<CliModelInfo> models = [];
+        try
+        {
+            var probe = await CliModelDiscoveryProcess.RunAsync(executable, ["--version"], _options, ct).ConfigureAwait(false);
+            if (probe.ExitCode == 0)
+                version = CodexCliModelDiscovery.ParseVersion(probe.Stdout);
+            var listed = await CliModelDiscoveryProcess.RunAsync(executable, ["models"], _options, ct).ConfigureAwait(false);
+            if (listed.ExitCode == 0)
+                models = ParseModels(listed.Stdout);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch { /* An unavailable CLI yields an empty catalog. */ }
+
+        return new CliModelCatalog
+        {
+            CliType = CliType,
+            Models = models.ToList(),
+            Source = "cli",
+            CliVersion = version,
+            FetchedAt = _timeProvider.GetUtcNow().UtcDateTime,
+        };
+    }
+
+    /// <summary>Parse <c>id TAB label</c> rows, ignoring malformed and duplicate ids.</summary>
+    internal static IReadOnlyList<CliModelInfo> ParseModels(string tsv)
+        => tsv.Split('\n')
+            .Select(line => line.TrimEnd('\r').Split('\t', 2))
+            .Where(parts => parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]))
+            .Select(parts => new CliModelInfo
+            {
+                Id = parts[0].Trim(),
+                Label = parts[1].Trim(),
+                Vendor = "google",
+                Available = true,
+            })
+            .DistinctBy(model => model.Id, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 }
 
 /// <summary>Discovers Codex models through <c>codex debug models</c>.</summary>

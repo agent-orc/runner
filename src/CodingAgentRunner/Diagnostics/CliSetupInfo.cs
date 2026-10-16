@@ -16,7 +16,7 @@ public sealed record CliSetupInfo
     /// <summary>Human-readable product name (e.g. "Claude Code").</summary>
     public required string DisplayName { get; init; }
 
-    /// <summary>The command probed on <c>PATH</c> (e.g. <c>claude</c>, <c>agentapi</c>).</summary>
+    /// <summary>The command probed on <c>PATH</c> (e.g. <c>claude</c>, <c>agy</c>).</summary>
     public required string Command { get; init; }
 
     /// <summary>The npm package that installs the CLI, or null when it is not npm-distributed.</summary>
@@ -157,25 +157,25 @@ public static class CliSetup
         AutomationNotes = "Install is scriptable. OAuth login is interactive; for headless machines use GEMINI_API_KEY or a service account, or reuse a cached .gemini/oauth_creds.json. Deprecated in this library — prefer Antigravity for new Google integration.",
     };
 
-    /// <summary>Google Antigravity's <c>agentapi</c> CLI.</summary>
+    /// <summary>Google Antigravity's <c>agy</c> CLI.</summary>
     public static readonly CliSetupInfo Antigravity = new()
     {
         CliType = CliTypes.Antigravity,
-        DisplayName = "Google Antigravity (agentapi)",
-        Command = "agentapi",
+        DisplayName = "Google Antigravity (agy)",
+        Command = "agy",
         NpmPackage = null,
         InstallCommands =
         [
-            "irm https://antigravity.google/cli/install.ps1 | iex   # Windows: installs the Antigravity CLI (`agy`), which provides `agentapi`",
+            "irm https://antigravity.google/cli/install.ps1 | iex   # Windows: installs `agy`",
             "curl -fsSL https://antigravity.google/cli/install.sh | bash   # macOS/Linux",
         ],
         LoginSteps =
         [
-            "Run `agy` once; it opens a Google-account browser sign-in (on SSH/headless it prints a URL + one-time code). `agentapi` reuses that session.",
+            "Run `agy` once; it opens a Google-account browser sign-in (on SSH/headless it prints a URL + one-time code). Subsequent headless runs use that sign-in.",
         ],
         ApiKeyEnvVar = null,
         CredentialFiles = [],
-        DocsUrl = "https://antigravity.google/docs/cli-overview",
+        DocsUrl = "https://antigravity.google/docs/cli/headless/",
         AutomationNotes = "Install is scriptable. Credentials live in the OS keyring (no file to probe or copy), and no headless token export is documented — the first sign-in per machine needs the interactive URL + code flow.",
     };
 

@@ -36,6 +36,15 @@ public static class KnownModels
     private static readonly IReadOnlyList<KnownModel> Entries =
     [
         // Claude families covered by the static reasoning table.
+        new KnownModel
+        {
+            CliType = CliTypes.Claude,
+            Id = "claude-haiku-5-5",
+            Label = "Claude Haiku 5.5",
+            Vendor = Anthropic,
+            ContextWindow = 1_000_000,
+            GenerationOrder = 5_050,
+        },
         Claude("claude-sonnet-5", "Claude Sonnet 5", 5_010, ["sonnet"]),
         Claude("claude-opus-4-8", "Claude Opus 4.8", 4_080, ["opus"]),
         Claude("claude-opus-4-7", "Claude Opus 4.7", 4_070),

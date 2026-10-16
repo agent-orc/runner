@@ -78,6 +78,10 @@ def generate():
                                            ("cacheWritePerMTok", "CacheWritePerMTok")):
                     if price.get(key) is not None:
                         lines.append(f"                    {property_name} = {money(price[key])},")
+                if price.get("longContextThreshold") is not None:
+                    lines.append(f"                    LongContextThreshold = {price['longContextThreshold']},")
+                if price.get("longContextRateMultiplier") is not None:
+                    lines.append(f"                    LongContextRateMultiplier = {money(price['longContextRateMultiplier'])},")
                 for key, property_name in (("currency", "Currency"),
                                            ("source", "Source"), ("note", "Note")):
                     if price.get(key) is not None:

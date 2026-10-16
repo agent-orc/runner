@@ -59,7 +59,7 @@ Most uses need five public types — `CliRunner`, `CliOptions`, `CliRunRequest`,
 `CliRunInfo`, and `CliRunEvent`. One layer down the descriptor model is also public
 and inspectable: `CliDescriptor`, `ICliCatalog` / `CliCatalog`, and the launch-time
 `LaunchSpec` / `CliLaunchContext`. The per-CLI stream-json adapters are public too —
-`ClaudeEventAdapter` / `CodexEventAdapter` / `GeminiEventAdapter` each expose a static
+`ClaudeEventAdapter` / `CodexEventAdapter` / `GeminiEventAdapter` / `AntigravityEventAdapter` each expose a static
 `Map(line, runId)`, so you can turn a CLI's output line into typed events without
 spawning a process (replay, tests, benchmarks). The built-in descriptors and the run
 engine (`CliRunEngine`) stay `internal` — reachable only through `CliRunner` / the
@@ -206,7 +206,7 @@ merged with `KnownModels`: known entries absent from that CLI version stay in th
 catalog with `Available=false`; unknown entries reported by the CLI stay available and
 carry an explanatory note.
 
-Claude Code has no model-list command. `ClaudeCliModelDiscovery` probes CLI presence
+Antigravity discovery runs `agy models` and uses its reported ids and labels. Claude Code has no model-list command. `ClaudeCliModelDiscovery` probes CLI presence
 and returns the Claude registry with a note that availability is presence-based. Both
 implement `ICliModelDiscovery`, which is also the replacement seam for a future Claude
 probe. A runner caches completed catalogs in memory for
@@ -313,7 +313,7 @@ the event stream never references the package.
 | Claude Code | `claude` | supported | clean or shared | Claude adapter | First-class driver. |
 | OpenAI Codex | `codex` | supported | clean or shared | Codex adapter | First-class driver, including reasoning-model liveness metadata. |
 | Google Gemini | `gemini` | deprecated (`[Obsolete]`) | shared only | Gemini adapter | Unsupported. Public surface marked `[Obsolete]`; the driver still resolves, removal planned before 1.0. |
-| Google Antigravity (`agentapi`) | `antigravity` | driver shipped | shared only | reuses Gemini adapter | Maintained Google path; kept out of `CliTypes.All` until a consumer migrates. |
+| Google Antigravity (`agy`) | `antigravity` | driver shipped | shared only | Antigravity adapter | Maintained Google path; kept out of `CliTypes.All` until a consumer migrates. |
 
 The GitHub Copilot driver was supported earlier but has been removed: its headless
 surface was PTY/TUI-dependent and couldn't share the hardened structured spawn/stream
