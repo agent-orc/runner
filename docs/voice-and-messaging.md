@@ -37,7 +37,7 @@ order on the README and the website should be:
    any .NET application can get an LLM on the local development machine this way.
 2. **One-shot or interactive.** Use it for a single prompt-and-result call, or
    drive a longer back-and-forth session that works through a harder task.
-3. **Supported agents.** Claude Code, OpenAI Codex, Google Antigravity (`agentapi`),
+3. **Supported agents.** Claude Code, OpenAI Codex, Google Antigravity (`agy`),
    and the deprecated Gemini. (Copilot was removed.)
 4. **What it handles on Windows.** The spawning, hardening, lifecycle, and quota
    details. Secondary — keep the strong claims out and link to the per-behaviour

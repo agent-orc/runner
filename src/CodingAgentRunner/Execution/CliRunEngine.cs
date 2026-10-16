@@ -618,6 +618,8 @@ internal sealed class CliRunEngine : ICliDriver
             try { exitCode = process.ExitCode; } catch { }
 
             var status = RunStatusClassifier.Classify(exitCode, info.StopReason);
+            if (status == RunOutcome.Completed && info.LastFailureReason is not null)
+                status = RunOutcome.Failed;
             info.Execution = info.Execution with
             {
                 Status = StatusString(status),

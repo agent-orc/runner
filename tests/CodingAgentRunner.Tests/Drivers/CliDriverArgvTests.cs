@@ -167,19 +167,45 @@ public class CliDriverArgvTests
     }
 
     [Fact]
-    public void Antigravity_NewConversationWithModel_AndResumeViaSendMessage()
+    public void Antigravity_UsesAgyStdinStreamAndExactModelId()
     {
-        // New conversation: new-conversation --model=<tier> "<prompt>"
-        var fresh = Launch(BuiltInDescriptors.Antigravity, Req(model: "gemini-pro")).Argv;
-        Assert.Equal("new-conversation", fresh[0]);
-        Assert.Contains("--model=pro", fresh);              // pro tier mapped
-        Assert.Equal("line one\nline two", fresh[^1]);      // prompt is the last positional
+        var request = Req(model: "gemini-4-argon-low", thinking: "high") with
+        {
+            AdditionalWorkingDirectories = ["/tmp/one", "/tmp/two"],
+        };
+        var launch = Launch(BuiltInDescriptors.Antigravity, request);
+        Assert.Contains("--input-format", launch.Argv);
+        Assert.Contains("--output-format", launch.Argv);
+        Assert.Contains("stream-json", launch.Argv);
+        Assert.Contains("--print-timeout", launch.Argv);
+        Assert.Contains("0", launch.Argv);
+        Assert.Contains("--disable-slash-commands", launch.Argv);
+        Assert.Contains("--model", launch.Argv);
+        Assert.Contains("gemini-4-argon-low", launch.Argv);
+        Assert.Contains("--effort", launch.Argv);
+        Assert.Contains("high", launch.Argv);
+        Assert.Contains("--dangerously-skip-permissions", launch.Argv);
+        Assert.Equal(2, launch.Argv.Count(arg => arg == "--add-dir"));
+        Assert.DoesNotContain(request.Prompt, launch.Argv);
+        using var payload = System.Text.Json.JsonDocument.Parse(launch.StdinPayload!);
+        Assert.Equal("user", payload.RootElement.GetProperty("event").GetString());
+        Assert.Equal(request.Prompt, payload.RootElement.GetProperty("message").GetProperty("content").GetString());
+        Assert.EndsWith("\n", launch.StdinPayload);
+        Assert.DoesNotContain("--effort", Launch(BuiltInDescriptors.Antigravity, Req(model: "gemini-4-argon-low")).Argv);
+    }
 
-        // Resume: send-message <uuid> "<prompt>"
+    [Fact]
+    public void Antigravity_ResumeAndPermissionModes()
+    {
+        var id = "12345678-1234-1234-1234-123456789abc";
         var resumed = Launch(BuiltInDescriptors.Antigravity,
-            Req(session: "12345678-1234-1234-1234-123456789abc", resume: true)).Argv;
-        Assert.Equal("send-message", resumed[0]);
-        Assert.Contains("12345678-1234-1234-1234-123456789abc", resumed);
-        Assert.DoesNotContain("new-conversation", resumed);
+            Req(session: id, resume: true, perm: "workspace-write"));
+        Assert.Contains("--conversation", resumed.Argv);
+        Assert.Contains(id, resumed.Argv);
+        Assert.Contains("accept-edits", resumed.Argv);
+        Assert.DoesNotContain("--dangerously-skip-permissions", resumed.Argv);
+        var readOnly = Launch(BuiltInDescriptors.Antigravity, Req(perm: "read-only"));
+        Assert.Contains("plan", readOnly.Argv);
+        Assert.Contains("--sandbox", readOnly.Argv);
     }
 }

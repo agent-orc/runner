@@ -47,6 +47,8 @@ public class ModelPriceSeedTests
                 Assert.Equal(priceRow.GetProperty("outputPerMTok").GetDecimal(), price.OutputPerMTok);
                 Assert.Equal(OptionalDecimal(priceRow, "cacheReadPerMTok"), price.CacheReadPerMTok);
                 Assert.Equal(OptionalDecimal(priceRow, "cacheWritePerMTok"), price.CacheWritePerMTok);
+                Assert.Equal(priceRow.TryGetProperty("longContextThreshold", out var threshold) ? threshold.GetInt64() : (long?)null, price.LongContextThreshold);
+                Assert.Equal(OptionalDecimal(priceRow, "longContextRateMultiplier"), price.LongContextRateMultiplier);
                 Assert.Equal(OptionalString(priceRow, "currency") ?? "USD", price.Currency);
                 Assert.Equal(OptionalString(priceRow, "source"), price.Source);
                 Assert.Equal(OptionalString(priceRow, "note"), price.Note);
@@ -61,6 +63,7 @@ public class ModelPriceSeedTests
     [InlineData("gpt-6.1-sol", "2026-09-29", 2, 0.1, 2.5, 10)]
     [InlineData("claude-opus-5-5", "2026-09-22", 4, 0.2, 5, 20)]
     [InlineData("claude-sonnet-5-5", "2026-09-28", 2, 0.2, 2.5, 10)]
+    [InlineData("claude-haiku-5-5", "2026-10-07", 0.1, 0.01, 0.125, 0.5)]
     public void NewModels_ResolveDatedCatalogueRates(string id, string date, double input, double cacheRead, double cacheWrite, double output)
     {
         var from = DateTime.Parse(date, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
@@ -76,6 +79,16 @@ public class ModelPriceSeedTests
     [Fact]
     public void RemovedUnsupportedModel_DoesNotResolve()
         => Assert.Null(Catalog.Find("claude-mythos-5"));
+
+    [Fact]
+    public void Haiku55_WholePromptUsesHigherRatesAbove100K()
+    {
+        var date = new DateTime(2026, 10, 16, 0, 0, 0, DateTimeKind.Utc);
+        var atThreshold = Catalog.ComputeCost("claude-haiku-5-5", new TokenUsage(90_000, 1_000, 10_000, 0), date);
+        var overThreshold = Catalog.ComputeCost("claude-haiku-5-5", new TokenUsage(90_001, 1_000, 10_000, 0), date);
+        Assert.Equal(0.0096m, atThreshold.Total);
+        Assert.Equal(0.0480005m, overThreshold.Total);
+    }
 
     [Fact]
     public void DefaultCatalog_BuildsWithoutDuplicateKeys()

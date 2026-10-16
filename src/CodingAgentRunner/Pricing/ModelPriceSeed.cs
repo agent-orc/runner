@@ -4,12 +4,34 @@ namespace CodingAgentRunner.Pricing;
 /// <summary>Static price snapshot generated from the pinned TokenEconomy catalogue.</summary>
 internal static class ModelPriceSeed
 {
-    internal const string SourceVersion = "0.3.7";
-    internal const string SourceSnapshotDate = "2026-10-04";
-    internal const string SourceSha256 = "b27c85bcd78bb7b4c8b833c2cc35c26b12b4374155c2673fbc484ed8ff30ac24";
+    internal const string SourceVersion = "0.3.7+CAR-23";
+    internal const string SourceSnapshotDate = "2026-10-16";
+    internal const string SourceSha256 = "c188b5507d8f41be86a969ecfe81815ad70083568a7438e77defece7fc8560f6";
 
     internal static IReadOnlyList<ModelListing> Listings() =>
     [
+        new()
+        {
+            ModelId = "claude-haiku-5-5",
+            Vendor = "anthropic",
+            Note = "Claude Code 2.1.301 runs this model; 2.1.281 reports unrecognized_model and falls back to Haiku 4.5 (operator probes, 2026-10-16).",
+            History =
+            [
+                new()
+                {
+                    ValidFrom = new DateTime(2026, 10, 7, 0, 0, 0, DateTimeKind.Utc),
+                    InputPerMTok = 0.1m,
+                    OutputPerMTok = 0.5m,
+                    CacheReadPerMTok = 0.01m,
+                    CacheWritePerMTok = 0.125m,
+                    LongContextThreshold = 100000,
+                    LongContextRateMultiplier = 5m,
+                    Currency = "USD",
+                    Source = "Anthropic official pricing and model pages; verified 2026-10-16. https://platform.claude.com/docs/en/about-claude/pricing; https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+                    Note = "Standard global Claude API rates for prompts up to 100,000 input tokens. Above 100,000 (including cache reads and writes), the entire request uses 5x input, output, cache-read, and 5-minute cache-write rates: $0.50/$2.50/$0.05/$0.625 per MTok. Dates use midnight UTC as a calendar-day convention, not a published intraday billing cutover.",
+                },
+            ],
+        },
         new()
         {
             ModelId = "claude-sonnet-5-5",
@@ -42,7 +64,7 @@ internal static class ModelPriceSeed
                     ValidFrom = new DateTime(2026, 9, 22, 0, 0, 0, DateTimeKind.Utc),
                     InputPerMTok = 4m,
                     OutputPerMTok = 20m,
-                    CacheReadPerMTok = 0.20m,
+                    CacheReadPerMTok = 0.2m,
                     CacheWritePerMTok = 5m,
                     Currency = "USD",
                     Source = "Anthropic official pricing, model, and release evidence; retrieved 2026-09-24. https://platform.claude.com/docs/en/about-claude/pricing; https://platform.claude.com/docs/en/models/opus-5-5/overview; https://platform.claude.com/docs/en/release-notes/overview#september-22-2026. Re-verified unchanged on 2026-09-29: https://platform.claude.com/docs/en/about-claude/pricing; https://platform.claude.com/docs/en/models/opus-5-5/overview",
@@ -339,7 +361,7 @@ internal static class ModelPriceSeed
                     ValidFrom = new DateTime(2026, 9, 22, 0, 0, 0, DateTimeKind.Utc),
                     InputPerMTok = 2m,
                     OutputPerMTok = 10m,
-                    CacheReadPerMTok = 0.20m,
+                    CacheReadPerMTok = 0.2m,
                     CacheWritePerMTok = 2.5m,
                     Currency = "USD",
                     Source = "OpenAI official pricing, model, and dated changelog evidence; retrieved 2026-09-24. https://developers.openai.com/api/docs/changelog; https://developers.openai.com/api/docs/pricing; https://developers.openai.com/api/docs/models/gpt-6-sol. Re-verified unchanged on 2026-09-29: https://developers.openai.com/api/docs/pricing; https://developers.openai.com/api/docs/models/gpt-6-sol",
@@ -356,8 +378,8 @@ internal static class ModelPriceSeed
                 new()
                 {
                     ValidFrom = new DateTime(2026, 9, 22, 0, 0, 0, DateTimeKind.Utc),
-                    InputPerMTok = 0.10m,
-                    OutputPerMTok = 0.50m,
+                    InputPerMTok = 0.1m,
+                    OutputPerMTok = 0.5m,
                     CacheReadPerMTok = 0.01m,
                     CacheWritePerMTok = 0.125m,
                     Currency = "USD",

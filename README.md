@@ -14,7 +14,7 @@ dotnet add package CodingAgentRunner.Rendering  # optional: Markdown/HTML render
 
 Package pages: [CodingAgentRunner](https://www.nuget.org/packages/CodingAgentRunner) · [CodingAgentRunner.Rendering](https://www.nuget.org/packages/CodingAgentRunner.Rendering) · [GitHub releases](https://github.com/agent-orc/runner/releases)
 
-**CodingAgentRunner** gives a .NET application an LLM on your local machine, using the coding-agent CLI you already sign in to — with no API keys. Run a single prompt, or a full multi-turn session. It launches and supervises terminal-native coding agents (Claude Code, OpenAI Codex, Google Antigravity / `agentapi`, and the legacy Gemini CLI) as child processes — reliably, especially on Windows.
+**CodingAgentRunner** gives a .NET application an LLM on your local machine, using the coding-agent CLI you already sign in to — with no API keys. Run a single prompt, or a full multi-turn session. It launches and supervises terminal-native coding agents (Claude Code, OpenAI Codex, Google Antigravity / `agy`, and the legacy Gemini CLI) as child processes — reliably, especially on Windows.
 
 It is the process-and-protocol layer for those CLIs: it spawns the agent CLI with the right binary, environment, and isolation; normalizes its `stream-json` output — a different frame dialect per CLI — into one structured event vocabulary; classifies the run's outcome; enforces a *platform-owns-git* boundary; tracks remaining quota with a cache that polls more often as usage approaches the limit; records run metrics; and can render agent Markdown through an optional package. Unlike a general process wrapper such as [CliWrap](https://github.com/Tyrrrz/CliWrap), it is specialized to coding-agent CLIs — it parses their `stream-json` output and classifies the run's outcome.
 
@@ -43,14 +43,14 @@ The library targets known coding-agent CLIs in their specific versions — it is
 | Claude Code | `claude` | supported | clean or shared | Claude `stream-json` adapter | First-class driver. |
 | OpenAI Codex | `codex` | supported | clean or shared | Codex `stream-json` adapter | First-class driver, including reasoning-model liveness metadata. |
 | Google Gemini | `gemini` | deprecated (`[Obsolete]`) | shared only | Gemini adapter | Unsupported. Public surface marked `[Obsolete]`; removal planned before 1.0. |
-| Google Antigravity (`agentapi`) | `antigravity` | driver shipped | shared only | reuses Gemini adapter | Maintained Google path; kept out of the default selectable set (`CliTypes.All`) until a consumer migrates. |
+| Google Antigravity (`agy`) | `antigravity` | driver shipped | shared only | Antigravity adapter | Maintained Google path; kept out of the default selectable set (`CliTypes.All`) until a consumer migrates. |
 | GitHub Copilot | `copilot` | removed | n/a | no supported adapter | Removed because the headless path was PTY/TUI-dependent and did not fit the hardened structured stream engine. |
 
 `CliRunner.DiscoverModelsAsync(cliType, forceRefresh, ct)` returns the known models
 and whether the installed CLI currently offers each one. Codex metadata comes from
 `codex debug models`; Claude Code has no list command, so its known models are marked
 available based on CLI presence. Results use a bounded hardened spawn and an in-memory
-TTL cache.
+TTL cache. Antigravity model ids and labels come from `agy models`.
 
 `Context` means the CLI's persistent home/state, not the repository or prompt size.
 `clean` creates a temporary per-run CLI home and seeds only the minimum auth/base config
@@ -61,7 +61,7 @@ both modes because they come from the checkout, not from the CLI home.
 
 Internally each CLI is a `CliDescriptor` — data plus a few pure delegates — in a fixed catalog, and one `internal sealed` engine is parameterized by it; covering a CLI is a descriptor in the library, not a subclass and not a consumer plug-in. The adapters fold each CLI's own dialect onto one event vocabulary, so your run logic is written once. See [Architecture](docs/architecture.md) and [Cross-CLI normalization](docs/cross-cli-normalization.md).
 
-> **Google status:** Gemini is deprecated, unsupported, and superseded by Antigravity, Google's `agentapi` CLI. Its public surface (`CliTypes.Gemini`, `CliRunner.Gemini`, `CliOptions.GeminiPath`) is marked `[Obsolete]`; the driver still resolves for existing consumers, and removal is planned before 1.0. Antigravity is where Google integration work belongs.
+> **Google status:** Gemini is deprecated, unsupported, and superseded by Antigravity, Google's `agy` CLI. Its public surface (`CliTypes.Gemini`, `CliRunner.Gemini`, `CliOptions.GeminiPath`) is marked `[Obsolete]`; the driver still resolves for existing consumers, and removal is planned before 1.0. Antigravity is where Google integration work belongs.
 
 ## Features
 
@@ -327,7 +327,7 @@ src/CodingAgentRunner/
   Abstractions/                 consumer options + IUserHome/IRunLogPath providers
   Model/                        known-model registry, live discovery, thinking ladders, value types
   Events/                       CliRunEvent contract, phase machine, Interrupt + InterruptReason, watchdog
-  Adapters/                     stream-json → CliRunEvent (Claude / Codex / Gemini; Antigravity reuses Gemini)
+  Adapters/                     stream-json → CliRunEvent (Claude / Codex / Gemini; Antigravity has its own adapter)
   Diagnostics/                  InspectEnvironment report + per-CLI setup knowledge (CliSetup)
   Execution/                    CliRunEngine (one engine parameterized by CliDescriptor), CliCatalog,
                                 BuiltInDescriptors, LaunchSpec, hardening, clean-context, log stores, Win32 spawner

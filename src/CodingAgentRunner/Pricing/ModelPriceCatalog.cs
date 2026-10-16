@@ -76,6 +76,8 @@ public sealed class ModelPriceCatalog
     /// Compute the cost of <paramref name="usage"/> for <paramref name="model"/> at <paramref name="atUtc"/>.
     /// Returns a per-component breakdown and a <see cref="CostBreakdown.Total"/>. When the model is unknown
     /// or has no price valid at that time, <see cref="CostBreakdown.Total"/> is null — never a silent zero.
+    /// For prices that depend on prompt length, pass one request at a time; aggregate
+    /// usage cannot reveal which individual requests crossed the threshold.
     /// </summary>
     public CostBreakdown ComputeCost(string? model, TokenUsage usage, DateTime atUtc)
     {
@@ -84,11 +86,14 @@ public sealed class ModelPriceCatalog
             return new CostBreakdown { Status = resolution.Status, ModelId = resolution.ModelId, Total = null };
 
         var price = resolution.Price;
-        var input = CostOf(usage.Input, price.InputPerMTok);
-        var output = CostOf(usage.Output, price.OutputPerMTok);
+        var promptLength = Math.Max(0, usage.Input) + Math.Max(0, usage.CacheRead) + Math.Max(0, usage.CacheWrite);
+        var multiplier = price.LongContextThreshold is { } threshold
+            && promptLength > threshold ? price.LongContextRateMultiplier ?? 1m : 1m;
+        var input = CostOf(usage.Input, price.InputPerMTok * multiplier);
+        var output = CostOf(usage.Output, price.OutputPerMTok * multiplier);
         // A missing cache rate falls back to the input rate so cache tokens are still priced, not dropped.
-        var cacheRead = CostOf(usage.CacheRead, price.CacheReadPerMTok ?? price.InputPerMTok);
-        var cacheWrite = CostOf(usage.CacheWrite, price.CacheWritePerMTok ?? price.InputPerMTok);
+        var cacheRead = CostOf(usage.CacheRead, (price.CacheReadPerMTok ?? price.InputPerMTok) * multiplier);
+        var cacheWrite = CostOf(usage.CacheWrite, (price.CacheWritePerMTok ?? price.InputPerMTok) * multiplier);
 
         return new CostBreakdown
         {

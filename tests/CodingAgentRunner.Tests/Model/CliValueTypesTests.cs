@@ -115,6 +115,7 @@ public class CliValueTypesTests
     [Theory]
     [InlineData(null, "claude")]                   // unknown / empty -> claude
     [InlineData("GEMINI", "gemini")]               // case-insensitive
+    [InlineData("ANTIGRAVITY", "antigravity")]     // descriptor exists outside the selectable set
     [InlineData("  gemini  ", "claude")]           // NOT trimmed (unlike CliPermissionModes) → unknown → claude
     [InlineData("human", "claude")]                // the sentinel is not a selectable driver
     public void CliTypes_Normalize_IsCaseInsensitive_ButDoesNotTrim(string? input, string expected)

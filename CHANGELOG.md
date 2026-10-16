@@ -8,6 +8,16 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 ### Added
 
+- Claude Haiku 5.5 in the known-model, thinking-level, and price tables. Its
+  prices switch for the whole request when prompt input exceeds 100,000 tokens.
+- `AntigravityCliModelDiscovery` reads the installed models from `agy models`.
+- `DeniedAction` and `CliRunEvent.TurnFailed.DeniedActions` expose tool
+  permissions explicitly denied by a CLI.
+- `CliRunRequest.AdditionalWorkingDirectories` passes extra workspace
+  directories to Antigravity as repeated `--add-dir` arguments.
+- `ModelPrice.LongContextThreshold` and `LongContextRateMultiplier` apply
+  higher rates to the whole request when its prompt exceeds the threshold.
+
 - `KnownModels`, a library registry for Claude and Codex model ids, labels, vendors,
   context windows, aliases, and generation ordering. It includes `gpt-6-astra`.
 - `ICliModelDiscovery` and `CliRunner.DiscoverModelsAsync`. Codex discovery runs
@@ -19,6 +29,13 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 - A `gpt-6-astra` entry in `ModelPriceCatalog.Default`.
 
 ### Changed
+
+- The Antigravity descriptor launches `agy` with a stream-JSON prompt on stdin,
+  resumes by conversation id, and parses its native session, text, tool, usage,
+  and result events. Headless permission denials now end as failures even when
+  the CLI exits 0. The deprecated Gemini descriptor is unchanged.
+- `CliRunEngine` now reports a run as failed on exit code 0 when any parsed
+  `TurnFailed` event was recorded during that run.
 
 - Codex thinking levels use live per-model ladders when discovery supplies them.
   The static fallback now matches known model ids: `gpt-6-luna` and `gpt-5.6-luna`

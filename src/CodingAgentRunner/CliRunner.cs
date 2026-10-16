@@ -56,6 +56,7 @@ public sealed class CliRunner
         {
             [CliTypes.Claude] = new ClaudeCliModelDiscovery(_options, _options.ModelDiscoveryTimeProvider),
             [CliTypes.Codex] = new CodexCliModelDiscovery(_options, _options.ModelDiscoveryTimeProvider),
+            [CliTypes.Antigravity] = new AntigravityCliModelDiscovery(_options, _options.ModelDiscoveryTimeProvider),
         };
         if (modelDiscoveries is not null)
         {
@@ -80,11 +81,11 @@ public sealed class CliRunner
     /// <para><b>Deprecated and unsupported</b> — unmaintained; removal is planned
     /// before 1.0. <b>Antigravity</b> (Google's agentic CLI) supersedes it.</para>
     /// </summary>
-    [Obsolete("Gemini CLI support is deprecated and unmaintained; removal is planned before 1.0. Use Antigravity (agentapi) for Google models.")]
+    [Obsolete("Gemini CLI support is deprecated and unmaintained; removal is planned before 1.0. Use Antigravity (agy) for Google models.")]
 #pragma warning disable CS0618
     public ICliDriver Gemini => Get(CliTypes.Gemini);
 #pragma warning restore CS0618
-    /// <summary>The Google Antigravity (agentapi) driver. Sugar for <c>Get(CliTypes.Antigravity)</c>.</summary>
+    /// <summary>The Google Antigravity (agy) driver. Sugar for <c>Get(CliTypes.Antigravity)</c>.</summary>
     public ICliDriver Antigravity => Get(CliTypes.Antigravity);
 
     /// <summary>The drivers, one per supported CLI.</summary>

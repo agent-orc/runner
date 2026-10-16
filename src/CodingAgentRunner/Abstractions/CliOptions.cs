@@ -25,10 +25,10 @@ public sealed record CliOptions
     public string? CodexPath { get; init; }
 
     /// <summary>Explicit path/command for the Gemini CLI. <b>Deprecated</b> — Gemini support is unmaintained and removal is planned before 1.0.</summary>
-    [Obsolete("Gemini CLI support is deprecated and unmaintained; removal is planned before 1.0. Use Antigravity (agentapi) for Google models.")]
+    [Obsolete("Gemini CLI support is deprecated and unmaintained; removal is planned before 1.0. Use Antigravity (agy) for Google models.")]
     public string? GeminiPath { get; init; }
 
-    /// <summary>Explicit path/command for the Antigravity CLI (default: <c>agentapi</c> on PATH).</summary>
+    /// <summary>Explicit path/command for the Antigravity CLI (default: native <c>agy</c> install path, then PATH).</summary>
     public string? AntigravityPath { get; init; }
 
     /// <summary>Extra environment variables applied to every spawned CLI process.</summary>

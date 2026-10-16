@@ -84,6 +84,7 @@ public static class CliPermissionFlags
         {
             CliTypes.Claude => Claude(m),
             CliTypes.Codex => Codex(m),
+            CliTypes.Antigravity => Antigravity(m),
 #pragma warning disable CS0618 // deprecated Gemini still resolves until its pre-1.0 removal
             CliTypes.Gemini => Gemini(m),
 #pragma warning restore CS0618
@@ -108,6 +109,14 @@ public static class CliPermissionFlags
         CliPermissionModes.Yolo => ["--sandbox", "danger-full-access"],
         CliPermissionModes.WorkspaceWrite => ["--sandbox", "workspace-write"],
         CliPermissionModes.ReadOnly => ["--sandbox", "read-only"],
+        _ => [],
+    };
+
+    private static IReadOnlyList<string> Antigravity(string mode) => mode switch
+    {
+        CliPermissionModes.Yolo => ["--dangerously-skip-permissions"],
+        CliPermissionModes.WorkspaceWrite => ["--mode", "accept-edits"],
+        CliPermissionModes.ReadOnly => ["--mode", "plan", "--sandbox"],
         _ => [],
     };
 
