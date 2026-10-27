@@ -6,7 +6,7 @@ internal static class ModelPriceSeed
 {
     internal const string SourceVersion = "0.3.7+CAR-23";
     internal const string SourceSnapshotDate = "2026-10-16";
-    internal const string SourceSha256 = "c188b5507d8f41be86a969ecfe81815ad70083568a7438e77defece7fc8560f6";
+    internal const string SourceSha256 = "f8999ee59369ce30857f60547c7f19fe15733983ab344192b6553540673aa200";
 
     internal static IReadOnlyList<ModelListing> Listings() =>
     [
@@ -27,7 +27,7 @@ internal static class ModelPriceSeed
                     LongContextThreshold = 100000,
                     LongContextRateMultiplier = 5m,
                     Currency = "USD",
-                    Source = "Anthropic official pricing and model pages; verified 2026-10-16. https://platform.claude.com/docs/en/about-claude/pricing; https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+                    Source = "Anthropic official pricing and model pages; verified 2026-10-16 and reverified 2026-10-27. https://platform.claude.com/docs/en/about-claude/pricing; https://platform.claude.com/docs/en/models/haiku-5-5/overview",
                     Note = "Standard global Claude API rates for prompts up to 100,000 input tokens. Above 100,000 (including cache reads and writes), the entire request uses 5x input, output, cache-read, and 5-minute cache-write rates: $0.50/$2.50/$0.05/$0.625 per MTok. Dates use midnight UTC as a calendar-day convention, not a published intraday billing cutover.",
                 },
             ],

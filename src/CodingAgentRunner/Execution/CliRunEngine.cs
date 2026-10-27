@@ -163,7 +163,7 @@ internal sealed class CliRunEngine : ICliDriver
     /// <inheritdoc />
     public (bool Available, string? Version, string Path) TestCliPath(string? path = null)
     {
-        // A CLI with a non-standard probe (e.g. Antigravity has no --version) supplies its own.
+        // A CLI with a non-standard probe supplies its own.
         if (_descriptor.ProbeCliPath is { } probe) return probe(Options, path);
 
         var target = string.IsNullOrWhiteSpace(path) ? _descriptor.GetCliPath(Options) : path!;

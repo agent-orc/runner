@@ -2,6 +2,6 @@
   "catalogVersion": "0.3.7+CAR-23",
   "snapshotDate": "2026-10-16",
   "sourcePath": "pricing/model-prices.json",
-  "sha256": "c188b5507d8f41be86a969ecfe81815ad70083568a7438e77defece7fc8560f6",
-  "overlayNote": "TokenEconomy 0.3.7 snapshot amended with Anthropic Claude Haiku 5.5 official rates on 2026-10-16."
+  "sha256": "f8999ee59369ce30857f60547c7f19fe15733983ab344192b6553540673aa200",
+  "overlayNote": "TokenEconomy 0.3.7 snapshot amended with Anthropic Claude Haiku 5.5 official rates on 2026-10-16; rates reverified on 2026-10-27."
 }

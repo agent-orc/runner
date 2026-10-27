@@ -15,12 +15,12 @@
         "longContextThreshold": 100000,
         "longContextRateMultiplier": 5,
         "currency": "USD",
-        "source": "Anthropic official pricing and model pages; verified 2026-10-16. https://platform.claude.com/docs/en/about-claude/pricing; https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+        "source": "Anthropic official pricing and model pages; verified 2026-10-16 and reverified 2026-10-27. https://platform.claude.com/docs/en/about-claude/pricing; https://platform.claude.com/docs/en/models/haiku-5-5/overview",
         "sourceUrls": [
           "https://platform.claude.com/docs/en/about-claude/pricing",
           "https://platform.claude.com/docs/en/models/haiku-5-5/overview"
         ],
-        "verifiedOn": "2026-10-16",
+        "verifiedOn": "2026-10-27",
         "validFromBasis": "provider-announced-date",
         "note": "Standard global Claude API rates for prompts up to 100,000 input tokens. Above 100,000 (including cache reads and writes), the entire request uses 5x input, output, cache-read, and 5-minute cache-write rates: $0.50/$2.50/$0.05/$0.625 per MTok. Dates use midnight UTC as a calendar-day convention, not a published intraday billing cutover.",
         "unconfirmed": false

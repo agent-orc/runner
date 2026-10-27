@@ -122,7 +122,7 @@ public sealed record CliDescriptor
     /// </summary>
     public Delegation.SubagentSpec? Subagents { get; init; }
 
-    /// <summary>Optional custom availability probe (e.g. Antigravity has no <c>--version</c>); null uses the engine's default <c>--version</c> probe.</summary>
+    /// <summary>Optional custom availability probe for a CLI without <c>--version</c>; null uses the engine's default <c>--version</c> probe.</summary>
     public Func<CliOptions, string?, (bool Available, string? Version, string Path)>? ProbeCliPath { get; init; }
 
     /// <summary>Whether this CLI can isolate per-run state — true exactly when <see cref="CleanContext"/> is set.</summary>
