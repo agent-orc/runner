@@ -13,6 +13,24 @@ namespace CodingAgentRunner.Tests.Adapters;
 public class CodexAdapterGapTests
 {
     [Fact]
+    public void Codex0166_TerraJsonl_MapsRealCompletionAndUsage()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "testdata", "cli-fixtures", "codex", "0.166.0-terra.jsonl");
+        var events = File.ReadAllLines(path).SelectMany(line => CodexEventAdapter.Map(line, "probe")).ToList();
+
+        Assert.Collection(events,
+            e => Assert.NotNull(Assert.IsType<CliRunEvent.SessionStarted>(e).SessionId),
+            e => Assert.IsType<CliRunEvent.TurnStarted>(e),
+            e => Assert.Equal("READY", Assert.IsType<CliRunEvent.OutputDelta>(e).Text),
+            e =>
+            {
+                var usage = UsageSummaryParser.Parse(Assert.IsType<CliRunEvent.TurnCompleted>(e).UsageSummary);
+                Assert.True(usage.Input > 0);
+                Assert.True(usage.Output > 0);
+            });
+    }
+
+    [Fact]
     public void TurnFailed_CarriesErrorMessage()
     {
         var e = CodexEventAdapter.Map("{\"type\":\"turn.failed\",\"error\":{\"message\":\"rate limit exceeded\"}}", "r").Single();

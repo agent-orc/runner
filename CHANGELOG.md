@@ -6,10 +6,18 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-02
+
 ### Added
 
 - Claude Haiku 5.5 in the known-model, thinking-level, and price tables. Its
   prices switch for the whole request when prompt input exceeds 100,000 tokens.
+- GPT-6.1 Terra, GPT-6.1 Sol, GPT-6 Sol and Luna, and Claude Opus 5 and 5.5,
+  Sonnet 5.5, and Fable 5.1 in `KnownModels`. GPT-6.1 Terra has dated standard
+  API rates of $1 input, $0.05 cached input, $1.25 cache write, and $5 output
+  per million tokens.
+- A Codex CLI 0.166.0 JSONL fixture captured with GPT-6.1 Terra, covering the
+  session, output, completion, and usage frames.
 - `AntigravityCliModelDiscovery` reads the installed models from `agy models`.
 - `DeniedAction` and `CliRunEvent.TurnFailed.DeniedActions` expose tool
   permissions explicitly denied by a CLI.
@@ -38,9 +46,14 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
   `TurnFailed` event was recorded during that run.
 
 - Codex thinking levels use live per-model ladders when discovery supplies them.
-  The static fallback now matches known model ids: `gpt-6-luna` and `gpt-5.6-luna`
-  stop at `max`, `gpt-6.1-sol` has `minimal` through `xhigh` with default `xhigh`,
-  and `gpt-6-sol`, `gpt-6-astra`, and the other known gpt-5.6 variants include `ultra`.
+  The static fallback matches known model ids: GPT-6.1 Sol supports `low` through
+  `max`, and GPT-6.1 Terra supports `none` plus `low` through `max`; both default
+  to `medium`. GPT-6 Luna and GPT-5.6 Luna stop at `max`, while GPT-6 Sol,
+  GPT-6 Astra, and other known GPT-5.6 variants include `ultra`.
+- Claude Sonnet 5.5 cache reads cost $0.10 per million tokens from its launch
+  date. The earlier $0.20 seed rate was incorrect.
+- `claude-sonnet-4-5-20250929` and `gpt-5` remain resolvable but are marked
+  deprecated ahead of their 2026-11-30 and 2026-12-11 retirements.
 - `ModelPriceCatalog.Default` now uses a generated seed from the dated TokenEconomy
   price snapshot (catalogue 0.3.7, 2026-10-04). It includes GPT-6 Sol/Luna/6.1 Sol
   and Claude Opus/Sonnet 5.x prices with effective dates. The unsupported
@@ -190,6 +203,7 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
 
 Baseline for this changelog.
 
+[0.8.0]: https://github.com/agent-orc/runner/releases/tag/v0.8.0
 [0.7.0]: https://github.com/agent-orc/runner/releases/tag/v0.7.0
 [0.6.0]: https://github.com/agent-orc/runner/releases/tag/v0.6.0
 [0.5.0]: https://github.com/agent-orc/runner/releases/tag/v0.5.0

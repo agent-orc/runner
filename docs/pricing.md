@@ -19,8 +19,9 @@ It ships in the core `CodingAgentRunner` package — reference it the same way y
 
 ## The cost API
 
-`ModelPriceCatalog.Default` is the seeded catalog. It uses the TokenEconomy catalogue
-snapshot dated 2026-10-16, based on TokenEconomy 0.3.7 with an Anthropic-verified Haiku 5.5 entry. Everything on it is pure
+`ModelPriceCatalog.Default` is the seeded catalog. It uses a 2026-11-02 snapshot
+based on TokenEconomy 0.3.7, with provider-verified Haiku 5.5, GPT-6.1 Terra,
+and Sonnet 5.5 cache-read corrections. Everything on it is pure
 and deterministic.
 
 ```csharp
@@ -68,7 +69,8 @@ all resolve to their listing.
 ## Seed data and confidence
 
 The pinned source is [pricing/model-prices.json](../pricing/model-prices.json), copied
-from TokenEconomy's `src/TokenEconomy/catalog/model-prices.json`. Its source version,
+from TokenEconomy's `src/TokenEconomy/catalog/model-prices.json`, with the
+provider-verified changes listed above. Its source version,
 date, path, and SHA-256 are in
 [pricing/catalog-source.json](../pricing/catalog-source.json). The generated
 `ModelPriceSeed.cs` carries all supported listing fields and dated price history,

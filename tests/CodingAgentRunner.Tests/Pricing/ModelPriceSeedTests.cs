@@ -61,8 +61,9 @@ public class ModelPriceSeedTests
     [InlineData("gpt-6-sol", "2026-09-22", 2, 0.2, 2.5, 10)]
     [InlineData("gpt-6-luna", "2026-09-22", 0.1, 0.01, 0.125, 0.5)]
     [InlineData("gpt-6.1-sol", "2026-09-29", 2, 0.1, 2.5, 10)]
+    [InlineData("gpt-6.1-terra", "2026-10-26", 1, 0.05, 1.25, 5)]
     [InlineData("claude-opus-5-5", "2026-09-22", 4, 0.2, 5, 20)]
-    [InlineData("claude-sonnet-5-5", "2026-09-28", 2, 0.2, 2.5, 10)]
+    [InlineData("claude-sonnet-5-5", "2026-09-28", 2, 0.1, 2.5, 10)]
     [InlineData("claude-haiku-5-5", "2026-10-07", 0.1, 0.01, 0.125, 0.5)]
     public void NewModels_ResolveDatedCatalogueRates(string id, string date, double input, double cacheRead, double cacheWrite, double output)
     {

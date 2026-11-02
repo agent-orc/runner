@@ -38,7 +38,9 @@ public class CliThinkingLevelsTests
     [InlineData("gpt-6-astra", "low,medium,high,xhigh,max,ultra")]
     [InlineData("gpt-6-sol", "low,medium,high,xhigh,max,ultra")]
     [InlineData("gpt-6-luna", "low,medium,high,xhigh,max")]
-    [InlineData("gpt-6.1-sol", "minimal,low,medium,high,xhigh")]
+    [InlineData("gpt-6.1-sol", "low,medium,high,xhigh,max")]
+    [InlineData("gpt-6.1-terra", "none,low,medium,high,xhigh,max")]
+    [InlineData("gpt-6-1-terra", "none,low,medium,high,xhigh,max")]
     // gpt-5.6 includes max; Luna stops there while the other variants include ultra.
     [InlineData("gpt-5.6-sol", "low,medium,high,xhigh,max,ultra")]
     [InlineData("gpt-5.6-terra", "low,medium,high,xhigh,max,ultra")]
@@ -62,7 +64,8 @@ public class CliThinkingLevelsTests
     [InlineData("gpt-5.6-sol", "medium")]
     [InlineData("gpt-5.6-terra", "medium")]
     [InlineData("gpt-5.6-luna", "medium")]
-    [InlineData("gpt-6.1-sol", "xhigh")]
+    [InlineData("gpt-6.1-sol", "medium")]
+    [InlineData("gpt-6.1-terra", "medium")]
     public void Codex_DefaultPerModel(string model, string expected)
         => Assert.Equal(expected, CliThinkingLevels.DefaultFor("codex", model));
 
@@ -70,7 +73,11 @@ public class CliThinkingLevelsTests
     public void Codex_UnsupportedRungFallsBackToModelDefault()
     {
         Assert.Equal("medium", CliThinkingLevels.Normalize("codex", "gpt-6-luna", "ultra"));
-        Assert.Equal("xhigh", CliThinkingLevels.Normalize("codex", "gpt-6.1-sol", "ultra"));
+        Assert.Equal("medium", CliThinkingLevels.Normalize("codex", "gpt-6.1-sol", "ultra"));
+        Assert.Equal("medium", CliThinkingLevels.Normalize("codex", "gpt-6.1-terra", "ultra"));
+        Assert.Equal("none", CliThinkingLevels.Normalize("codex", "gpt-6.1-terra", "none"));
+        Assert.Equal("max", CliThinkingLevels.Normalize("codex", "gpt-6.1-sol", "max"));
+        Assert.Equal("max", CliThinkingLevels.Normalize("codex", "gpt-6.1-terra", "max"));
     }
 
     [Fact]

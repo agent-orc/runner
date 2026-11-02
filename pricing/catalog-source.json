@@ -1,7 +1,7 @@
 {
-  "catalogVersion": "0.3.7+CAR-23",
-  "snapshotDate": "2026-10-16",
+  "catalogVersion": "0.3.7+CAR-25",
+  "snapshotDate": "2026-11-02",
   "sourcePath": "pricing/model-prices.json",
-  "sha256": "f8999ee59369ce30857f60547c7f19fe15733983ab344192b6553540673aa200",
-  "overlayNote": "TokenEconomy 0.3.7 snapshot amended with Anthropic Claude Haiku 5.5 official rates on 2026-10-16; rates reverified on 2026-10-27."
+  "sha256": "fd8779c132691a6f2a749fbb6c272d84a77834bd316e3c51eb1a5b10ce23a2c6",
+  "overlayNote": "TokenEconomy 0.3.7 snapshot plus CAR-23 Haiku 5.5 and provider-verified CAR-25 GPT-6.1 Terra and Sonnet 5.5 cache-read corrections. TokenEconomy main had not incorporated the latter changes on 2026-11-02."
 }

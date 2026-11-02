@@ -4,6 +4,30 @@ namespace CodingAgentRunner.Tests.Model;
 
 public class KnownModelsTests
 {
+    [Theory]
+    [InlineData(CliTypes.Codex, "gpt-6-sol")]
+    [InlineData(CliTypes.Codex, "gpt-6-luna")]
+    [InlineData(CliTypes.Codex, "gpt-6.1-sol")]
+    [InlineData(CliTypes.Codex, "gpt-6.1-terra")]
+    [InlineData(CliTypes.Claude, "claude-opus-5")]
+    [InlineData(CliTypes.Claude, "claude-opus-5-5")]
+    [InlineData(CliTypes.Claude, "claude-sonnet-5-5")]
+    [InlineData(CliTypes.Claude, "claude-fable-5-1")]
+    public void CurrentLineup_HasKnownEntry(string cli, string id)
+        => Assert.NotNull(KnownModels.Find(cli, id));
+
+    [Fact]
+    public void RetiringIds_RemainResolvableButAreNotPreferred()
+    {
+        Assert.True(KnownModels.Find(CliTypes.Claude, "claude-sonnet-4-5-20250929")!.Deprecated);
+        Assert.True(KnownModels.Find(CliTypes.Codex, "gpt-5")!.Deprecated);
+        Assert.Equal("claude-sonnet-5-5", KnownModels.Find(CliTypes.Claude, "sonnet")!.Id);
+        Assert.Equal("claude-opus-5-5", KnownModels.Find(CliTypes.Claude, "opus")!.Id);
+        Assert.False(KnownModels.For(CliTypes.Claude).First().Deprecated);
+        Assert.False(KnownModels.For(CliTypes.Codex).First().Deprecated);
+        Assert.Equal(500_000, KnownModels.Find(CliTypes.Codex, "gpt-6.1-terra")!.ContextWindow);
+    }
+
     [Fact]
     public void Registry_CoversClaudeAndCodexIncludingAstra()
     {

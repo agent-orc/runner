@@ -10,6 +10,8 @@ public static class CliThinkingLevels
     /// Lowest reasoning effort. Offered by select Codex models.
     /// </summary>
     public const string Minimal = "minimal";
+    /// <summary>No reasoning effort.</summary>
+    public const string None = "none";
     /// <summary>Low reasoning effort.</summary>
     public const string Low = "low";
     /// <summary>Medium reasoning effort.</summary>
@@ -29,8 +31,8 @@ public static class CliThinkingLevels
     private static readonly IReadOnlyList<string> OpenAiLevels = [Low, Medium, High];
     private static readonly IReadOnlyList<string> OpenAiXHighLevels = [Low, Medium, High, XHigh];
     private static readonly IReadOnlyList<string> OpenAiMaxLevels = [Low, Medium, High, XHigh, Max];
+    private static readonly IReadOnlyList<string> OpenAiNoneMaxLevels = [None, Low, Medium, High, XHigh, Max];
     private static readonly IReadOnlyList<string> OpenAiUltraLevels = [Low, Medium, High, XHigh, Max, Ultra];
-    private static readonly IReadOnlyList<string> OpenAiMinimalXHighLevels = [Minimal, Low, Medium, High, XHigh];
     private static readonly IReadOnlyList<string> ClaudeBasicLevels = [Low, Medium, High];
     private static readonly IReadOnlyList<string> ClaudeMaxLevels = [Low, Medium, High, Max];
     private static readonly IReadOnlyList<string> ClaudeXHighMaxLevels = [Low, Medium, High, XHigh, Max];
@@ -61,7 +63,8 @@ public static class CliThinkingLevels
         {
             if (IsForeignCodexModel(m)) return [];
             var id = m.Replace('.', '-').ToLowerInvariant();
-            if (id == "gpt-6-1-sol") return OpenAiMinimalXHighLevels;
+            if (id == "gpt-6-1-sol") return OpenAiMaxLevels;
+            if (id == "gpt-6-1-terra") return OpenAiNoneMaxLevels;
             if (id is "gpt-6-luna" or "gpt-5-6-luna") return OpenAiMaxLevels;
             if (id is "gpt-6-sol" or "gpt-6-astra" or "gpt-6"
                 or "gpt-5-6" or "gpt-5-6-sol" or "gpt-5-6-terra") return OpenAiUltraLevels;
@@ -106,6 +109,7 @@ public static class CliThinkingLevels
     public static string DisplayName(string? level) => (level ?? string.Empty).Trim().ToLowerInvariant() switch
     {
         Minimal => "Minimal",
+        None => "None",
         Low => "Low",
         Medium => "Medium",
         High => "High",
@@ -145,8 +149,7 @@ public static class CliThinkingLevels
         if (string.Equals(cli, CliTypes.Antigravity, StringComparison.OrdinalIgnoreCase))
             return null;
         return string.Equals(cli, CliTypes.Codex, StringComparison.OrdinalIgnoreCase)
-            ? (string.Equals((model ?? string.Empty).Trim().Replace('.', '-'), "gpt-6-1-sol", StringComparison.OrdinalIgnoreCase)
-                ? XHigh : Medium)
+            ? Medium
             : (model ?? "").Contains("haiku-5-5", StringComparison.OrdinalIgnoreCase)
                 ? Medium : High;
     }
