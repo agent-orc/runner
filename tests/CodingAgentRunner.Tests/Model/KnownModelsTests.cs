@@ -25,6 +25,7 @@ public class KnownModelsTests
         Assert.Equal("claude-opus-5-5", KnownModels.Find(CliTypes.Claude, "opus")!.Id);
         Assert.False(KnownModels.For(CliTypes.Claude).First().Deprecated);
         Assert.False(KnownModels.For(CliTypes.Codex).First().Deprecated);
+        Assert.Equal(500_000, KnownModels.Find(CliTypes.Codex, "gpt-6.1-sol")!.ContextWindow);
         Assert.Equal(500_000, KnownModels.Find(CliTypes.Codex, "gpt-6.1-terra")!.ContextWindow);
     }
 
@@ -44,6 +45,17 @@ public class KnownModelsTests
         Assert.Equal("Claude Haiku 5.5", haiku.Label);
         Assert.Equal(1_000_000, haiku.ContextWindow);
     }
+
+    [Theory]
+    [InlineData("claude-fable-5-1", 1_000_000)]
+    [InlineData("claude-opus-5-5", 1_000_000)]
+    [InlineData("claude-opus-5", 1_000_000)]
+    [InlineData("claude-sonnet-5-5", 1_000_000)]
+    [InlineData("claude-sonnet-4-6", 1_000_000)]
+    [InlineData("claude-sonnet-4-5", 200_000)]
+    [InlineData("claude-haiku-4-5", 200_000)]
+    public void Claude_ContextWindowMatchesModel(string id, int expected)
+        => Assert.Equal(expected, KnownModels.Find(CliTypes.Claude, id)!.ContextWindow);
 
     [Fact]
     public void Registry_ResolvesAliasesAndDotDashVariants()

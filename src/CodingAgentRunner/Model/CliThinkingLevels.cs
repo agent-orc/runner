@@ -66,7 +66,7 @@ public static class CliThinkingLevels
             if (id == "gpt-6-1-sol") return OpenAiMaxLevels;
             if (id == "gpt-6-1-terra") return OpenAiNoneMaxLevels;
             if (id is "gpt-6-luna" or "gpt-5-6-luna") return OpenAiMaxLevels;
-            if (id is "gpt-6-sol" or "gpt-6-astra" or "gpt-6"
+            if (id is "gpt-6-sol" or "gpt-6-astra"
                 or "gpt-5-6" or "gpt-5-6-sol" or "gpt-5-6-terra") return OpenAiUltraLevels;
             return IsXHighCapableCodexModel(m) ? OpenAiXHighLevels : OpenAiLevels;
         }
@@ -80,6 +80,8 @@ public static class CliThinkingLevels
             if (!n.StartsWith("claude-", StringComparison.Ordinal)) return [];
             if (n.Contains("haiku-4-5", StringComparison.Ordinal)) return [];
             if (n.Contains("haiku-5-5", StringComparison.Ordinal)) return ClaudeXHighMaxLevels;
+            if (n is "claude-fable-5-1" or "claude-opus-5" or "claude-opus-5-5")
+                return ClaudeXHighMaxLevels;
             if (n.Contains("opus-4-8", StringComparison.Ordinal)
                 || n.Contains("opus-4-7", StringComparison.Ordinal))
                 return ClaudeXHighMaxLevels;
@@ -148,10 +150,12 @@ public static class CliThinkingLevels
         // Omit --effort unless the caller selects one explicitly.
         if (string.Equals(cli, CliTypes.Antigravity, StringComparison.OrdinalIgnoreCase))
             return null;
-        return string.Equals(cli, CliTypes.Codex, StringComparison.OrdinalIgnoreCase)
-            ? Medium
-            : (model ?? "").Contains("haiku-5-5", StringComparison.OrdinalIgnoreCase)
-                ? Medium : High;
+        if (string.Equals(cli, CliTypes.Codex, StringComparison.OrdinalIgnoreCase))
+            return Medium;
+        var modelId = model ?? string.Empty;
+        return modelId.Contains("haiku-5-5", StringComparison.OrdinalIgnoreCase)
+               || modelId.Contains("opus-5-5", StringComparison.OrdinalIgnoreCase)
+            ? Medium : High;
     }
 
     /// <summary>Resolve a requested level against what the CLI + model supports, falling back to the default.</summary>

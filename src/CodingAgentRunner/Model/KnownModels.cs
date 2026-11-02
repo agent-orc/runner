@@ -30,7 +30,7 @@ public static class KnownModels
 {
     private const string Anthropic = "anthropic";
     private const string OpenAi = "openai";
-    private const int ClaudeContext = 200_000;
+    private const int ClaudeContext = 1_000_000;
     private const int CodexContext = 272_000;
 
     private static readonly IReadOnlyList<KnownModel> Entries =
@@ -53,15 +53,15 @@ public static class KnownModels
         Claude("claude-opus-4-8", "Claude Opus 4.8", 4_080),
         Claude("claude-opus-4-7", "Claude Opus 4.7", 4_070),
         Claude("claude-opus-4-6", "Claude Opus 4.6", 4_060),
-        Claude("claude-opus-4-5", "Claude Opus 4.5", 4_050, ["claude-opus-4-5-20251101"]),
+        Claude("claude-opus-4-5", "Claude Opus 4.5", 4_050, ["claude-opus-4-5-20251101"], contextWindow: 200_000),
         Claude("claude-sonnet-4-6", "Claude Sonnet 4.6", 4_046),
-        Claude("claude-sonnet-4-5", "Claude Sonnet 4.5", 4_045, ["claude-sonnet-4-5-20250929"], deprecated: true),
-        Claude("claude-haiku-4-5", "Claude Haiku 4.5", 4_040, ["haiku", "claude-haiku-4-5-20251001"]),
-        Claude("claude-opus-4-1", "Claude Opus 4.1", 4_010, ["claude-opus-4-1-20250805"], deprecated: true),
+        Claude("claude-sonnet-4-5", "Claude Sonnet 4.5", 4_045, ["claude-sonnet-4-5-20250929"], deprecated: true, contextWindow: 200_000),
+        Claude("claude-haiku-4-5", "Claude Haiku 4.5", 4_040, ["haiku", "claude-haiku-4-5-20251001"], contextWindow: 200_000),
+        Claude("claude-opus-4-1", "Claude Opus 4.1", 4_010, ["claude-opus-4-1-20250805"], deprecated: true, contextWindow: 200_000),
 
         // Codex models. Variant slugs stay separate because live discovery can
         // offer them independently and with different reasoning ladders.
-        Codex("gpt-6.1-sol", "GPT-6.1 Sol", 6_102),
+        Codex("gpt-6.1-sol", "GPT-6.1 Sol", 6_102, contextWindow: 500_000),
         Codex("gpt-6.1-terra", "GPT-6.1 Terra", 6_101, contextWindow: 500_000),
         Codex("gpt-6-sol", "GPT-6 Sol", 6_002),
         Codex("gpt-6-luna", "GPT-6 Luna", 6_001),
@@ -121,13 +121,14 @@ public static class KnownModels
         string label,
         int generationOrder,
         IReadOnlyList<string>? aliases = null,
-        bool deprecated = false) => new()
+        bool deprecated = false,
+        int contextWindow = ClaudeContext) => new()
         {
             CliType = CliTypes.Claude,
             Id = id,
             Label = label,
             Vendor = Anthropic,
-            ContextWindow = ClaudeContext,
+            ContextWindow = contextWindow,
             Aliases = aliases ?? [],
             GenerationOrder = generationOrder,
             Deprecated = deprecated,

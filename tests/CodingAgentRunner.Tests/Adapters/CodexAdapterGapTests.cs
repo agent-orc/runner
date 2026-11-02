@@ -21,7 +21,7 @@ public class CodexAdapterGapTests
         Assert.Collection(events,
             e => Assert.NotNull(Assert.IsType<CliRunEvent.SessionStarted>(e).SessionId),
             e => Assert.IsType<CliRunEvent.TurnStarted>(e),
-            e => Assert.Equal("READY", Assert.IsType<CliRunEvent.OutputDelta>(e).Text),
+            e => Assert.Equal("READY.", Assert.IsType<CliRunEvent.OutputDelta>(e).Text),
             e =>
             {
                 var usage = UsageSummaryParser.Parse(Assert.IsType<CliRunEvent.TurnCompleted>(e).UsageSummary);

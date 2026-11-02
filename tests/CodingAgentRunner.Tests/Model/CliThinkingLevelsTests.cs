@@ -11,6 +11,9 @@ public class CliThinkingLevelsTests
     [InlineData("claude-opus-4-7", "low,medium,high,xhigh,max")]
     [InlineData("claude-opus-4-6", "low,medium,high,max")]
     [InlineData("claude-opus-4-5", "low,medium,high,max")]
+    [InlineData("claude-opus-5", "low,medium,high,xhigh,max")]
+    [InlineData("claude-opus-5-5", "low,medium,high,xhigh,max")]
+    [InlineData("claude-fable-5-1", "low,medium,high,xhigh,max")]
     [InlineData("claude-sonnet-5", "low,medium,high,xhigh,max")]
     [InlineData("claude-sonnet-5-5", "low,medium,high,xhigh,max")]// point release matches the sonnet-5 substring
     [InlineData("claude-sonnet-5.5", "low,medium,high,xhigh,max")]// dots normalize to dashes
@@ -34,7 +37,7 @@ public class CliThinkingLevelsTests
     [InlineData("gpt-5-5", "low,medium,high,xhigh")]
     [InlineData("gpt-5", "low,medium,high")]
     [InlineData("gpt-5-codex", "low,medium,high")]
-    [InlineData("gpt-6", "low,medium,high,xhigh,max,ultra")]
+    [InlineData("gpt-6", "low,medium,high")]
     [InlineData("gpt-6-astra", "low,medium,high,xhigh,max,ultra")]
     [InlineData("gpt-6-sol", "low,medium,high,xhigh,max,ultra")]
     [InlineData("gpt-6-luna", "low,medium,high,xhigh,max")]
@@ -86,9 +89,13 @@ public class CliThinkingLevelsTests
         Assert.Empty(CliThinkingLevels.For("gemini", "gemini-pro"));
     }
 
-    [Fact]
-    public void Haiku55_DefaultsToMedium()
-        => Assert.Equal("medium", CliThinkingLevels.DefaultFor("claude", "claude-haiku-5-5"));
+    [Theory]
+    [InlineData("claude-haiku-5-5", "medium")]
+    [InlineData("claude-opus-5-5", "medium")]
+    [InlineData("claude-opus-5", "high")]
+    [InlineData("claude-fable-5-1", "high")]
+    public void Claude_DefaultPerModel(string model, string expected)
+        => Assert.Equal(expected, CliThinkingLevels.DefaultFor("claude", model));
 
     [Theory]
     [InlineData("minimal", "Minimal")]
