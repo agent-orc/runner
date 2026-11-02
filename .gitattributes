@@ -1,0 +1,4 @@
+# The pricing catalogue is pinned by the SHA-256 of its raw bytes
+# (pricing/catalog-source.json, ModelPriceSeed.SourceSha256). Keep it LF on
+# every checkout so a Windows clone with core.autocrlf=true hashes the same bytes.
+pricing/*.json text eol=lf

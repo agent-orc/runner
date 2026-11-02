@@ -21,8 +21,8 @@ public class KnownModelsTests
     {
         Assert.True(KnownModels.Find(CliTypes.Claude, "claude-sonnet-4-5-20250929")!.Deprecated);
         Assert.True(KnownModels.Find(CliTypes.Codex, "gpt-5")!.Deprecated);
-        Assert.Equal("claude-sonnet-5-5", KnownModels.Find(CliTypes.Claude, "sonnet")!.Id);
-        Assert.Equal("claude-opus-5-5", KnownModels.Find(CliTypes.Claude, "opus")!.Id);
+        Assert.Equal("claude-sonnet-5", KnownModels.Find(CliTypes.Claude, "sonnet")!.Id);
+        Assert.Equal("claude-opus-4-8", KnownModels.Find(CliTypes.Claude, "opus")!.Id);
         Assert.False(KnownModels.For(CliTypes.Claude).First().Deprecated);
         Assert.False(KnownModels.For(CliTypes.Codex).First().Deprecated);
         Assert.Equal(500_000, KnownModels.Find(CliTypes.Codex, "gpt-6.1-sol")!.ContextWindow);
@@ -54,8 +54,8 @@ public class KnownModelsTests
     [InlineData("claude-haiku-5-5", 1_000_000)]
     [InlineData("claude-opus-4-8", 1_000_000)]
     [InlineData("claude-opus-4-7", 1_000_000)]
-    [InlineData("claude-opus-4-6", 1_000_000)]
-    [InlineData("claude-sonnet-4-6", 1_000_000)]
+    [InlineData("claude-opus-4-6", 200_000)]
+    [InlineData("claude-sonnet-4-6", 200_000)]
     [InlineData("claude-opus-4-5", 200_000)]
     [InlineData("claude-sonnet-4-5", 200_000)]
     [InlineData("claude-haiku-4-5", 200_000)]

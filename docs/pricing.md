@@ -76,6 +76,8 @@ date, path, and SHA-256 are in
 `ModelPriceSeed.cs` carries all supported listing fields and dated price history,
 including the source text and confidence flag. The pricing test compares every
 generated listing and rate with the pinned JSON and checks its version and hash.
+The hash covers the raw bytes, so [.gitattributes](../.gitattributes) keeps
+`pricing/*.json` at LF line endings on every checkout, Windows included.
 
 To refresh the seed, copy a newer TokenEconomy catalogue into `pricing/model-prices.json`,
 update `pricing/catalog-source.json` from its snapshot index, run

@@ -143,7 +143,7 @@ public class GlobalQuotaCacheTests : IDisposable
     }
 
     [Fact]
-    public void A_stale_stored_snapshot_does_not_prevent_the_probe()
+    public async Task A_stale_stored_snapshot_does_not_prevent_the_probe()
     {
         var store = new FileQuotaCacheStore(CachePath);
         store.Write([Snapshot("claude", 42, DateTime.UtcNow.AddHours(-2))]);   // long past the 10-min TTL
@@ -158,6 +158,7 @@ public class GlobalQuotaCacheTests : IDisposable
         var quota = new QuotaService([probe], store: store);
         quota.GetWithBackgroundRefresh();
 
-        Assert.True(probed.Task.Wait(TimeSpan.FromSeconds(5)), "expected the probe to run for a stale stored snapshot");
+        // Throws TimeoutException when the probe never runs for the stale stored snapshot.
+        await probed.Task.WaitAsync(TimeSpan.FromSeconds(5));
     }
 }

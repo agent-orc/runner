@@ -60,7 +60,7 @@ public class QuotaServiceTests
     }
 
     [Fact]
-    public void IsStale_UsesEscalationTtl()
+    public async Task IsStale_UsesEscalationTtl()
     {
         // A snapshot fetched 3 minutes ago: comfortable usage is still fresh (10-min
         // baseline) but near-limit usage is already stale (30-s escalated TTL).
@@ -70,7 +70,7 @@ public class QuotaServiceTests
 
         var svc = new QuotaService([comfortable, nearLimit]);
         // Seed the cache directly via a forced refresh (probes return the stamped time).
-        svc.RefreshAllAsync().GetAwaiter().GetResult();
+        await svc.RefreshAllAsync();
 
         Assert.False(svc.IsStale("claude"));  // 3 min < 10 min baseline
         Assert.True(svc.IsStale("codex"));    // 3 min > 30 s escalated
