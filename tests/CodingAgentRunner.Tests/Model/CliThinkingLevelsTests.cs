@@ -15,15 +15,15 @@ public class CliThinkingLevelsTests
     [InlineData("claude-opus-5-5", "low,medium,high,xhigh,max")]
     [InlineData("claude-fable-5-1", "low,medium,high,xhigh,max")]
     [InlineData("claude-sonnet-5", "low,medium,high,xhigh,max")]
-    [InlineData("claude-sonnet-5-5", "low,medium,high,xhigh,max")]// point release matches the sonnet-5 substring
-    [InlineData("claude-sonnet-5.5", "low,medium,high,xhigh,max")]// dots normalize to dashes
+    [InlineData("claude-sonnet-5-5", "low,medium,high,xhigh,max")] // point release matches the sonnet-5 substring
+    [InlineData("claude-sonnet-5.5", "low,medium,high,xhigh,max")] // dots normalize to dashes
     [InlineData("claude-sonnet-4-6", "low,medium,high")]
     [InlineData("claude-sonnet-4-5", "low,medium,high")]          // must NOT hit the sonnet-5 rule
     [InlineData("claude-haiku-4-5", "")]
     [InlineData("claude-haiku-5-5", "low,medium,high,xhigh,max")]
     [InlineData("claude-opus-9-9", "low,medium,high,max")]      // unknown opus → max ladder (StartsWith fallback)
     [InlineData("claude-sonnet-9-9", "low,medium,high")]
-    [InlineData("claude-opus-4.8", "low,medium,high,xhigh,max")]// dots normalize to dashes
+    [InlineData("claude-opus-4.8", "low,medium,high,xhigh,max")] // dots normalize to dashes
     // False positives → NO ladder (the claude- prefix gate).
     [InlineData("my-opus-4-8-clone", "")]
     [InlineData("opus-4-8", "")]                                // bare, no claude- prefix
@@ -99,6 +99,7 @@ public class CliThinkingLevelsTests
 
     [Theory]
     [InlineData("minimal", "Minimal")]
+    [InlineData("none", "None")]
     [InlineData("xhigh", "Extra High")]
     [InlineData("ultra", "Ultra")]
     [InlineData("ULTRA", "Ultra")]     // case-insensitive

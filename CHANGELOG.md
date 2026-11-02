@@ -51,7 +51,7 @@ All notable changes to CodingAgentRunner are recorded here. The format follows
   to `medium`. GPT-6 Luna and GPT-5.6 Luna stop at `max`, while GPT-6 Sol,
   GPT-6 Astra, and other known GPT-5.6 variants include `ultra`.
 - Static model metadata now uses the 500K Codex context window for GPT-6.1 Sol
-  and the published 1M context window for current Claude models. Claude Opus
+  and the published 1M context window for listed Claude models. Claude Opus
   5 and 5.5 and Fable 5.1 have their full effort ladders; Opus 5.5 defaults to
   `medium`. The unlisted bare `gpt-6` id no longer inherits an `ultra` ladder.
 - Claude Sonnet 5.5 cache reads cost $0.10 per million tokens from its launch

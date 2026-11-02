@@ -51,9 +51,15 @@ public class KnownModelsTests
     [InlineData("claude-opus-5-5", 1_000_000)]
     [InlineData("claude-opus-5", 1_000_000)]
     [InlineData("claude-sonnet-5-5", 1_000_000)]
+    [InlineData("claude-haiku-5-5", 1_000_000)]
+    [InlineData("claude-opus-4-8", 1_000_000)]
+    [InlineData("claude-opus-4-7", 1_000_000)]
+    [InlineData("claude-opus-4-6", 1_000_000)]
     [InlineData("claude-sonnet-4-6", 1_000_000)]
+    [InlineData("claude-opus-4-5", 200_000)]
     [InlineData("claude-sonnet-4-5", 200_000)]
     [InlineData("claude-haiku-4-5", 200_000)]
+    [InlineData("claude-opus-4-1", 200_000)]
     public void Claude_ContextWindowMatchesModel(string id, int expected)
         => Assert.Equal(expected, KnownModels.Find(CliTypes.Claude, id)!.ContextWindow);
 
@@ -71,6 +77,9 @@ public class KnownModelsTests
     [Fact]
     public void Registry_OrderingIsNewestFirstWithinCli()
     {
+        var claude = KnownModels.For(CliTypes.Claude);
+        Assert.Equal("claude-sonnet-5-5", claude[0].Id);
+        Assert.Equal(claude.OrderByDescending(model => model.GenerationOrder), claude);
         var codex = KnownModels.For(CliTypes.Codex);
         Assert.Equal(codex.OrderByDescending(model => model.GenerationOrder), codex);
     }

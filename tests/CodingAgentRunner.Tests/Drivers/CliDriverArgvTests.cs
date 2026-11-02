@@ -8,15 +8,15 @@ public class CliDriverArgvTests
 {
     private static CliRunRequest Req(string? model = null, string? thinking = null, string? perm = null,
         string? session = null, bool resume = false) => new()
-        {
-            RunId = "run-1",
-            Prompt = "line one\nline two",   // multi-line on purpose
-            WorkingDirectory = Path.GetTempPath(),
-            Model = model,
-            ThinkingLevel = thinking,
-            PermissionMode = perm,
-            ResumeSessionId = resume ? session : null,   // the id alone IS the resume signal
-        };
+    {
+        RunId = "run-1",
+        Prompt = "line one\nline two",   // multi-line on purpose
+        WorkingDirectory = Path.GetTempPath(),
+        Model = model,
+        ThinkingLevel = thinking,
+        PermissionMode = perm,
+        ResumeSessionId = resume ? session : null,   // the id alone IS the resume signal
+    };
 
     // Build the launch spec exactly as a real run would (model + thinking normalized),
     // straight from the built-in descriptor through the engine's test hook.

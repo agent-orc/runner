@@ -30,34 +30,27 @@ public static class KnownModels
 {
     private const string Anthropic = "anthropic";
     private const string OpenAi = "openai";
-    private const int ClaudeContext = 1_000_000;
+    private const int ClaudeContext = 200_000;
+    private const int ClaudeLongContext = 1_000_000;
     private const int CodexContext = 272_000;
 
     private static readonly IReadOnlyList<KnownModel> Entries =
     [
         // Claude families covered by the static reasoning table.
-        new KnownModel
-        {
-            CliType = CliTypes.Claude,
-            Id = "claude-haiku-5-5",
-            Label = "Claude Haiku 5.5",
-            Vendor = Anthropic,
-            ContextWindow = 1_000_000,
-            GenerationOrder = 5_056,
-        },
-        Claude("claude-sonnet-5-5", "Claude Sonnet 5.5", 5_055, ["sonnet"]),
-        Claude("claude-opus-5-5", "Claude Opus 5.5", 5_054, ["opus"]),
-        Claude("claude-fable-5-1", "Claude Fable 5.1", 5_051),
-        Claude("claude-sonnet-5", "Claude Sonnet 5", 5_010),
-        Claude("claude-opus-5", "Claude Opus 5", 5_000),
-        Claude("claude-opus-4-8", "Claude Opus 4.8", 4_080),
-        Claude("claude-opus-4-7", "Claude Opus 4.7", 4_070),
-        Claude("claude-opus-4-6", "Claude Opus 4.6", 4_060),
-        Claude("claude-opus-4-5", "Claude Opus 4.5", 4_050, ["claude-opus-4-5-20251101"], contextWindow: 200_000),
-        Claude("claude-sonnet-4-6", "Claude Sonnet 4.6", 4_046),
-        Claude("claude-sonnet-4-5", "Claude Sonnet 4.5", 4_045, ["claude-sonnet-4-5-20250929"], deprecated: true, contextWindow: 200_000),
-        Claude("claude-haiku-4-5", "Claude Haiku 4.5", 4_040, ["haiku", "claude-haiku-4-5-20251001"], contextWindow: 200_000),
-        Claude("claude-opus-4-1", "Claude Opus 4.1", 4_010, ["claude-opus-4-1-20250805"], deprecated: true, contextWindow: 200_000),
+        Claude("claude-sonnet-5-5", "Claude Sonnet 5.5", 5_055, ["sonnet"], contextWindow: ClaudeLongContext),
+        Claude("claude-opus-5-5", "Claude Opus 5.5", 5_054, ["opus"], contextWindow: ClaudeLongContext),
+        Claude("claude-fable-5-1", "Claude Fable 5.1", 5_051, contextWindow: ClaudeLongContext),
+        Claude("claude-haiku-5-5", "Claude Haiku 5.5", 5_050, contextWindow: ClaudeLongContext),
+        Claude("claude-sonnet-5", "Claude Sonnet 5", 5_010, contextWindow: ClaudeLongContext),
+        Claude("claude-opus-5", "Claude Opus 5", 5_000, contextWindow: ClaudeLongContext),
+        Claude("claude-opus-4-8", "Claude Opus 4.8", 4_080, contextWindow: ClaudeLongContext),
+        Claude("claude-opus-4-7", "Claude Opus 4.7", 4_070, contextWindow: ClaudeLongContext),
+        Claude("claude-opus-4-6", "Claude Opus 4.6", 4_060, contextWindow: ClaudeLongContext),
+        Claude("claude-opus-4-5", "Claude Opus 4.5", 4_050, ["claude-opus-4-5-20251101"]),
+        Claude("claude-sonnet-4-6", "Claude Sonnet 4.6", 4_046, contextWindow: ClaudeLongContext),
+        Claude("claude-sonnet-4-5", "Claude Sonnet 4.5", 4_045, ["claude-sonnet-4-5-20250929"], deprecated: true),
+        Claude("claude-haiku-4-5", "Claude Haiku 4.5", 4_040, ["haiku", "claude-haiku-4-5-20251001"]),
+        Claude("claude-opus-4-1", "Claude Opus 4.1", 4_010, ["claude-opus-4-1-20250805"], deprecated: true),
 
         // Codex models. Variant slugs stay separate because live discovery can
         // offer them independently and with different reasoning ladders.
@@ -134,15 +127,19 @@ public static class KnownModels
             Deprecated = deprecated,
         };
 
-    private static KnownModel Codex(string id, string label, int generationOrder,
-        int contextWindow = CodexContext, bool deprecated = false) => new()
-        {
-            CliType = CliTypes.Codex,
-            Id = id,
-            Label = label,
-            Vendor = OpenAi,
-            ContextWindow = contextWindow,
-            GenerationOrder = generationOrder,
-            Deprecated = deprecated,
-        };
+    private static KnownModel Codex(
+        string id,
+        string label,
+        int generationOrder,
+        int contextWindow = CodexContext,
+        bool deprecated = false) => new()
+    {
+        CliType = CliTypes.Codex,
+        Id = id,
+        Label = label,
+        Vendor = OpenAi,
+        ContextWindow = contextWindow,
+        GenerationOrder = generationOrder,
+        Deprecated = deprecated,
+    };
 }
