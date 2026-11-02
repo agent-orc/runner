@@ -8,7 +8,7 @@ namespace CodingAgentRunner.Tests.Quota;
 public class QuotaCapGateTests
 {
     // A probe that returns a fixed snapshot, so we can seed the cache deterministically.
-    private static QuotaService WithSnapshot(string cli, double usedPct, DateTime? reset = null)
+    private static async Task<QuotaService> WithSnapshotAsync(string cli, double usedPct, DateTime? reset = null)
     {
         var probe = new DelegateQuotaProbe(cli, _ => Task.FromResult(new QuotaSnapshot
         {
@@ -16,22 +16,22 @@ public class QuotaCapGateTests
             Windows = [new QuotaWindow { Label = "5-hour", UsedPct = usedPct, ResetAt = reset }],
         }));
         var svc = new QuotaService([probe]);
-        svc.RefreshAllAsync().GetAwaiter().GetResult();   // populate the cache
+        await svc.RefreshAllAsync();   // populate the cache
         return svc;
     }
 
     [Fact]
-    public void NoCap_Configured_IsAlwaysOpen()
+    public async Task NoCap_Configured_IsAlwaysOpen()
     {
-        var svc = WithSnapshot("claude", 99);
+        var svc = await WithSnapshotAsync("claude", 99);
         Assert.True(svc.Gate("claude").Allowed);   // 99% used but no cap set
     }
 
     [Fact]
-    public void UnderCap_IsOpen_AtOrOverCap_IsBlocked_WithReset()
+    public async Task UnderCap_IsOpen_AtOrOverCap_IsBlocked_WithReset()
     {
         var reset = new DateTime(2030, 1, 1, 12, 0, 0, DateTimeKind.Utc);
-        var svc = WithSnapshot("claude", 96, reset);
+        var svc = await WithSnapshotAsync("claude", 96, reset);
         svc.Cap("claude", stopAtPercent: 95);
 
         var gate = svc.Gate("claude");
@@ -42,9 +42,9 @@ public class QuotaCapGateTests
     }
 
     [Fact]
-    public void Cap_IsCaseInsensitive_AndPerCli()
+    public async Task Cap_IsCaseInsensitive_AndPerCli()
     {
-        var svc = WithSnapshot("claude", 96);
+        var svc = await WithSnapshotAsync("claude", 96);
         svc.Cap("CLAUDE", 95);
         Assert.False(svc.Gate("claude").Allowed);   // normalized
         Assert.True(svc.Gate("codex").Allowed);     // unrelated CLI, no cap, no data
@@ -86,9 +86,9 @@ public class QuotaCapGateTests
     }
 
     [Fact]
-    public void Observe_DoesNotLower_AKnownUsage()
+    public async Task Observe_DoesNotLower_AKnownUsage()
     {
-        var svc = WithSnapshot("claude", 95);   // a probe established 95%
+        var svc = await WithSnapshotAsync("claude", 95);   // a probe established 95%
         // A non-overage event arrives (carries no percent): must NOT drop usage to 0.
         svc.Observe("claude", new CliRunEvent.RateLimitObserved(
             Window: "5-hour", Status: "allowed", ResetsAt: 0, OverageStatus: null, IsUsingOverage: false));
@@ -101,9 +101,9 @@ public class QuotaCapGateTests
     [InlineData(0, 0, false)]      // cap 0 → blocked even at 0% (always-block)
     [InlineData(99, 100, true)]    // cap 100 → allowed at 99
     [InlineData(100, 100, false)]  // cap 100 → blocked at exactly 100
-    public void Gate_CapBoundaries(double usedPct, double cap, bool allowed)
+    public async Task Gate_CapBoundaries(double usedPct, double cap, bool allowed)
     {
-        var svc = WithSnapshot("claude", usedPct);
+        var svc = await WithSnapshotAsync("claude", usedPct);
         svc.Cap("claude", cap);
         Assert.Equal(allowed, svc.Gate("claude").Allowed);
     }
@@ -114,7 +114,7 @@ public class QuotaCapGateTests
             () => new QuotaService(System.Array.Empty<IQuotaProbe>()).Cap("claude", -1));
 
     [Fact]
-    public void Observe_PreservesOtherWindows_OnLabelMerge()
+    public async Task Observe_PreservesOtherWindows_OnLabelMerge()
     {
         var probe = new DelegateQuotaProbe("claude", _ => Task.FromResult(new QuotaSnapshot
         {
@@ -126,7 +126,7 @@ public class QuotaCapGateTests
             ],
         }));
         var svc = new QuotaService([probe]);
-        svc.RefreshAllAsync().GetAwaiter().GetResult();
+        await svc.RefreshAllAsync();
 
         svc.Observe("claude", new CliRunEvent.RateLimitObserved(
             Window: "5-hour", Status: "warning", ResetsAt: 0, OverageStatus: null, IsUsingOverage: true));
