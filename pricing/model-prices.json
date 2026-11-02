@@ -38,19 +38,19 @@
       {
         "validFrom": "2026-09-28T00:00:00Z",
         "inputPerMTok": 2,
-        "cacheReadPerMTok": 0.2,
+        "cacheReadPerMTok": 0.1,
         "cacheWritePerMTok": 2.5,
         "outputPerMTok": 10,
         "currency": "USD",
-        "source": "Anthropic official pricing, model, and release evidence; retrieved 2026-09-29. https://platform.claude.com/docs/en/about-claude/pricing; https://platform.claude.com/docs/en/models/sonnet-5-5/overview; https://platform.claude.com/docs/en/release-notes/overview#september-28-2026",
+        "source": "Anthropic Sonnet 5.5 overview, pricing, and what is new; reverified 2026-11-02. https://platform.claude.com/docs/en/models/sonnet-5-5/overview; https://platform.claude.com/docs/en/about-claude/pricing; https://platform.claude.com/docs/en/models/sonnet-5-5/whats-new-sonnet-5-5",
         "sourceUrls": [
-          "https://platform.claude.com/docs/en/about-claude/pricing",
           "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
-          "https://platform.claude.com/docs/en/release-notes/overview#september-28-2026"
+          "https://platform.claude.com/docs/en/about-claude/pricing",
+          "https://platform.claude.com/docs/en/models/sonnet-5-5/whats-new-sonnet-5-5"
         ],
-        "verifiedOn": "2026-09-29",
+        "verifiedOn": "2026-11-02",
         "validFromBasis": "provider-announced-date",
-        "note": "Standard global Claude API rates; cache writes use the 5-minute $2.50/MTok tariff and cache reads the standard 0.1x multiplier. The same source lists the 1-hour cache write at $4/MTok and Batch at $1/$5; fast mode is not offered for this model. Dates use midnight UTC as a calendar-day convention, not a published intraday billing cutover.",
+        "note": "Standard global Claude API rates. Sonnet 5.5 cache reads cost 0.05x input ($0.10/MTok); 5-minute cache writes cost $2.50/MTok. Dates use midnight UTC as a calendar-day convention, not a published intraday billing cutover.",
         "unconfirmed": false
       }
     ],
@@ -467,6 +467,33 @@
         "verifiedOn": "2026-09-29",
         "validFromBasis": "provider-announced-date",
         "note": "Standard short-context direct API tariff. Launch date confirmed by API changelog. Dates are normalized to midnight UTC from provider calendar-day announcements; exact intraday billing cutover was not published.",
+        "unconfirmed": false
+      }
+    ]
+  },
+  {
+    "modelId": "gpt-6.1-terra",
+    "releaseDate": "2026-10-26",
+    "releaseDateSource": "https://developers.openai.com/api/docs/changelog",
+    "displayName": "GPT-6.1 Terra",
+    "vendor": "openai",
+    "history": [
+      {
+        "validFrom": "2026-10-26T00:00:00Z",
+        "inputPerMTok": 1,
+        "cacheReadPerMTok": 0.05,
+        "cacheWritePerMTok": 1.25,
+        "outputPerMTok": 5,
+        "currency": "USD",
+        "source": "OpenAI API changelog, pricing page and model page; verified 2026-11-02. https://developers.openai.com/api/docs/changelog; https://developers.openai.com/api/docs/pricing; https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+        "sourceUrls": [
+          "https://developers.openai.com/api/docs/changelog",
+          "https://developers.openai.com/api/docs/pricing",
+          "https://developers.openai.com/api/docs/models/gpt-6.1-terra"
+        ],
+        "verifiedOn": "2026-11-02",
+        "validFromBasis": "provider-announced-date",
+        "note": "Standard short-context direct API tariff for prompts up to 272K input tokens. Above 272K, the full request uses $2 input, $0.10 cached input, $2.50 cache write and $7.50 output per MTok. Dates use midnight UTC as a calendar-day convention, not a published intraday billing cutover.",
         "unconfirmed": false
       }
     ]

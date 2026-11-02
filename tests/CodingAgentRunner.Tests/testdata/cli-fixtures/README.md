@@ -15,3 +15,8 @@ The suite is not part of the default fast test run. Run it explicitly with:
 $env:CODING_AGENT_RUNNER_STREAM_FIXTURES = '1'
 dotnet test --filter Category=StreamParsingFixtures
 ```
+
+`codex/0.166.0-terra.jsonl` is a Codex CLI 0.166.0 capture from 2026-11-02.
+It was produced with `codex exec --experimental-json --skip-git-repo-check
+--sandbox read-only -m gpt-6.1-terra -c 'model_reasoning_effort="none"' -`
+and the input `Reply exactly READY.`. The adapter test replays all four frames.

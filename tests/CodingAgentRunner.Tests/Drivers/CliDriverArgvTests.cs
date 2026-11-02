@@ -126,6 +126,17 @@ public class CliDriverArgvTests
     }
 
     [Fact]
+    public void Codex0166_TerraLaunch_UsesAcceptedReasoningFlag()
+    {
+        var launch = Launch(BuiltInDescriptors.Codex, Req(model: "gpt-6.1-terra", thinking: "none", perm: "read-only"));
+        Assert.Equal("exec", launch.Argv[0]);
+        Assert.Contains("--experimental-json", launch.Argv);
+        Assert.Contains("gpt-6.1-terra", launch.Argv);
+        Assert.Contains("model_reasoning_effort=\"none\"", launch.Argv);
+        Assert.Equal("-", launch.Argv[^1]);
+    }
+
+    [Fact]
     public void Codex_Resume_OnlyForAUuidSession()
     {
         Assert.DoesNotContain("resume", Launch(BuiltInDescriptors.Codex, Req(session: "not-a-uuid", resume: true)).Argv);
