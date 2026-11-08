@@ -164,7 +164,10 @@ internal static class WindowsHandleScrubSpawner
             //    honour the attribute list. bInheritHandles=TRUE is REQUIRED for the
             //    handle-list attribute to take effect; with the attribute list it
             //    only inherits the handles we listed.
-            const uint creationFlags = CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW;
+            // Keep a short-lived CLI alive until Process has attached to its PID.
+            // Without this, Process.GetProcessById can race an immediate exit.
+            const uint creationFlags = CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT
+                                       | CREATE_NO_WINDOW | CREATE_SUSPENDED;
             if (!CreateProcessW(
                     null,
                     cmdLine,
@@ -177,10 +180,6 @@ internal static class WindowsHandleScrubSpawner
                     ref siEx,
                     out pi))
                 ThrowLastError($"CreateProcessW({exePath})");
-
-            // We don't need the thread handle. Zero it so the failure cleanup below
-            // never double-closes it.
-            CloseHandle(pi.hThread); pi.hThread = IntPtr.Zero;
 
             // Close the child-side pipe ends in the parent so EOF propagates when the
             // child closes its end; zero each so the finally treats it as handled.
@@ -200,9 +199,33 @@ internal static class WindowsHandleScrubSpawner
                 stdinWrite = IntPtr.Zero;
             }
 
-            // Wrap the process by PID for HasExited / WaitForExitAsync; the raw
-            // handle stays with our PROCESS_INFORMATION until Kill closes it.
-            var managed = Process.GetProcessById((int)pi.dwProcessId);
+            // Attach while the initial thread is suspended, then let the child run.
+            // A fast command may have exited before this point without CREATE_SUSPENDED.
+            Process? managed = null;
+            try
+            {
+                managed = Process.GetProcessById((int)pi.dwProcessId);
+                // GetProcessById may defer opening its own kernel handle. Force
+                // that open before resume so WaitForExitAsync survives a fast exit.
+                _ = managed.Handle;
+                if (ResumeThread(pi.hThread) == uint.MaxValue)
+                    ThrowLastError("ResumeThread");
+            }
+            catch
+            {
+                // An attach/resume failure must not leave a suspended child behind.
+                TerminateProcess(pi.hProcess, 1);
+                managed?.Dispose();
+                stdinStream?.Dispose();
+                stdoutStream.Dispose();
+                stderrStream.Dispose();
+                throw;
+            }
+            finally
+            {
+                CloseHandle(pi.hThread);
+                pi.hThread = IntPtr.Zero;
+            }
             var rawHandle = pi.hProcess;
             var rawPid = (int)pi.dwProcessId;
             Action killTree = () =>
@@ -292,7 +315,15 @@ internal static class WindowsHandleScrubSpawner
     private const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
     private const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
     private const uint CREATE_NO_WINDOW = 0x08000000;
+    private const uint CREATE_SUSPENDED = 0x00000004;
     private const ulong PROC_THREAD_ATTRIBUTE_HANDLE_LIST = 0x00020002;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern uint ResumeThread(IntPtr hThread);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool TerminateProcess(IntPtr hProcess, uint exitCode);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct SECURITY_ATTRIBUTES

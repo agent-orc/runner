@@ -73,6 +73,35 @@ public class CliProcessSpawnerTests
         Dispose(spawn);
     }
 
+    [Fact]
+    public async Task Default_FastExitingChild_CanAlwaysBeAttachedAndObserved()
+    {
+        // On Windows, the native spawner must attach a Process before the child
+        // exits. A one-command shell exposes the race without a timing delay.
+        for (var i = 0; i < 16; i++)
+        {
+            var psi = new ProcessStartInfo(OperatingSystem.IsWindows() ? "cmd.exe" : "sh")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            foreach (var arg in OperatingSystem.IsWindows()
+                         ? new[] { "/d", "/c", "exit /b 0" }
+                         : new[] { "-c", "exit 0" })
+                psi.ArgumentList.Add(arg);
+
+            var spawn = CliProcessSpawner.Default.Spawn(psi);
+            try
+            {
+                await spawn.Process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
+                Assert.Equal(0, spawn.Process.ExitCode);
+            }
+            finally { Dispose(spawn); }
+        }
+    }
+
     private static ProcessStartInfo StartInfo(bool redirectStdin) => new(DotnetPath(), "--version")
     {
         UseShellExecute = false,

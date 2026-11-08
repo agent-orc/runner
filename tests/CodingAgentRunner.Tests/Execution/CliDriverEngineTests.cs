@@ -66,7 +66,12 @@ public class CliDriverEngineTests
 
         var started = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
         var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
-        driver.OnStarted += (_, r) => started.TrySetResult(r);
+        string? statusAtStart = null;
+        driver.OnStarted += (_, r) =>
+        {
+            statusAtStart = r.Status;
+            started.TrySetResult(r);
+        };
         driver.OnFinished += (_, r) => finished.TrySetResult(r);
 
         var (run, error) = await driver.StartAsync(new CliRunRequest
@@ -78,7 +83,7 @@ public class CliDriverEngineTests
 
         Assert.Null(error);
         Assert.NotNull(run);
-        Assert.Equal("running", run!.Status);
+        Assert.Equal("running", statusAtStart);
 
         await started.Task.WaitAsync(TimeSpan.FromSeconds(30));
         var final = await finished.Task.WaitAsync(TimeSpan.FromSeconds(30));

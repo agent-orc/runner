@@ -110,3 +110,22 @@ probe **spawns the CLI** for tens of seconds.
 effective TTL shortens as usage approaches the cap (e.g. ≥90 % → 2 min, ≥97 % →
 30 s — thresholds and intervals configurable). Far from the limit you barely probe;
 near it you stay fresh.
+
+---
+
+## 7 · Attaching to a fast child process
+
+**Risk.** Tests launch commands that exit immediately, such as `dotnet --version`
+or `cmd.exe /c exit 3`. The failure in
+[Windows CI run 41396309946](https://github.com/agent-orc/runner/actions/runs/41396309946)
+prompted inspection of this path; the job log was unavailable to confirm its exact
+failed tests.
+
+**Cause.** The native spawner called `CreateProcessW` and then looked up the child
+with `Process.GetProcessById`. An already exited child no longer has a PID to look
+up, even though its output and exit code still need to be observed.
+
+**Fix.** Create the process with its initial thread suspended, open a managed
+`Process` handle, then resume the thread. A failed attach or resume terminates the child.
+`CliProcessSpawnerTests.Default_FastExitingChild_CanAlwaysBeAttachedAndObserved`
+checks repeated short-lived launches on Windows.
