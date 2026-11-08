@@ -64,14 +64,9 @@ public class CliDriverEngineTests
         var events = new ConcurrentQueue<CliRunEvent>();
         driver.OnRunEvent += (_, e) => events.Enqueue(e);
 
-        var started = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var startedStatus = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
-        string? statusAtStart = null;
-        driver.OnStarted += (_, r) =>
-        {
-            statusAtStart = r.Status;
-            started.TrySetResult(r);
-        };
+        driver.OnStarted += (_, r) => startedStatus.TrySetResult(r.Status);
         driver.OnFinished += (_, r) => finished.TrySetResult(r);
 
         var (run, error) = await driver.StartAsync(new CliRunRequest
@@ -83,9 +78,7 @@ public class CliDriverEngineTests
 
         Assert.Null(error);
         Assert.NotNull(run);
-        Assert.Equal("running", statusAtStart);
-
-        await started.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.Equal("running", await startedStatus.Task.WaitAsync(TimeSpan.FromSeconds(30)));
         var final = await finished.Task.WaitAsync(TimeSpan.FromSeconds(30));
 
         // Terminal classification: clean exit (0), no stop reason -> completed.
