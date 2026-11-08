@@ -64,9 +64,9 @@ public class CliDriverEngineTests
         var events = new ConcurrentQueue<CliRunEvent>();
         driver.OnRunEvent += (_, e) => events.Enqueue(e);
 
-        var startedStatus = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        string? startedStatus = null;
         var finished = new TaskCompletionSource<CliRunInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
-        driver.OnStarted += (_, r) => startedStatus.TrySetResult(r.Status);
+        driver.OnStarted += (_, r) => startedStatus = r.Status;
         driver.OnFinished += (_, r) => finished.TrySetResult(r);
 
         var (run, error) = await driver.StartAsync(new CliRunRequest
@@ -78,8 +78,10 @@ public class CliDriverEngineTests
 
         Assert.Null(error);
         Assert.NotNull(run);
-        Assert.Equal("running", await startedStatus.Task.WaitAsync(TimeSpan.FromSeconds(30)));
         var final = await finished.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        // OnFinished follows OnStarted and RunEnded, so all observed event state
+        // is complete before these assertions inspect it.
+        Assert.Equal("running", startedStatus);
 
         // Terminal classification: clean exit (0), no stop reason -> completed.
         Assert.Equal("completed", final.Status);

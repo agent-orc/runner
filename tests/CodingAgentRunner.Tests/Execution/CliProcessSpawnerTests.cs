@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Runtime.Versioning;
 using CodingAgentRunner.Abstractions;
 using CodingAgentRunner.Model;
+using CodingAgentRunner.Execution.Win;
 
 namespace CodingAgentRunner.Tests.Execution;
 
@@ -100,6 +102,37 @@ public class CliProcessSpawnerTests
             }
             finally { Dispose(spawn); }
         }
+    }
+
+    [Fact]
+    [SupportedOSPlatform("windows")]
+    public async Task WindowsSpawn_SetupFailure_TerminatesSuspendedChild()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        Process? child = null;
+        try
+        {
+            var psi = new ProcessStartInfo();
+            var error = Assert.Throws<InvalidOperationException>(() => WindowsHandleScrubSpawner.Spawn(
+                Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+                ["/d", "/c", "exit /b 0"],
+                null,
+                new Dictionary<string, string?>(psi.Environment),
+                wantStdin: false,
+                afterFirstStreamOpened: pid =>
+                {
+                    child = Process.GetProcessById(pid);
+                    _ = child.Handle;
+                    throw new InvalidOperationException("injected setup failure");
+                }));
+
+            Assert.Equal("injected setup failure", error.Message);
+            Assert.NotNull(child);
+            await child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
+            Assert.NotEqual(0, child.ExitCode);
+        }
+        finally { child?.Dispose(); }
     }
 
     private static ProcessStartInfo StartInfo(bool redirectStdin) => new(DotnetPath(), "--version")

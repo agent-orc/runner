@@ -54,7 +54,8 @@ internal static class WindowsHandleScrubSpawner
         string? cwd,
         IReadOnlyDictionary<string, string?> envBlock,
         bool wantStdin,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        Action<int>? afterFirstStreamOpened = null)
     {
         // 1. Create stdout / stderr / stdin pipes / NUL handle.
         //    The PARENT keeps the read ends (stdout/stderr) and (when a payload is
@@ -76,6 +77,8 @@ internal static class WindowsHandleScrubSpawner
         IntPtr lpAttributeList = IntPtr.Zero;
         IntPtr handleListPtr = IntPtr.Zero;
         PROCESS_INFORMATION pi = default;
+        Process? managed = null;
+        FileStream? stdinStream = null, stdoutStream = null, stderrStream = null;
         var success = false;
         // Everything that allocates a kernel handle lives inside this try so the
         // finally can close anything that fails partway. On the success path each
@@ -190,42 +193,23 @@ internal static class WindowsHandleScrubSpawner
 
             // Wrap the parent-side pipe ends as FileStreams (they now own the handle);
             // zero each so the finally does not close a handle a FileStream owns.
-            var stdoutStream = new FileStream(new SafeFileHandle(stdoutRead, ownsHandle: true), FileAccess.Read); stdoutRead = IntPtr.Zero;
-            var stderrStream = new FileStream(new SafeFileHandle(stderrRead, ownsHandle: true), FileAccess.Read); stderrRead = IntPtr.Zero;
-            FileStream? stdinStream = null;
+            stdoutStream = OpenParentStream(ref stdoutRead, FileAccess.Read);
+            // Exercise cleanup with a real suspended child and one transferred pipe.
+            afterFirstStreamOpened?.Invoke((int)pi.dwProcessId);
+            stderrStream = OpenParentStream(ref stderrRead, FileAccess.Read);
             if (wantStdin)
-            {
-                stdinStream = new FileStream(new SafeFileHandle(stdinWrite, ownsHandle: true), FileAccess.Write);
-                stdinWrite = IntPtr.Zero;
-            }
+                stdinStream = OpenParentStream(ref stdinWrite, FileAccess.Write);
 
             // Attach while the initial thread is suspended, then let the child run.
             // A fast command may have exited before this point without CREATE_SUSPENDED.
-            Process? managed = null;
-            try
-            {
-                managed = Process.GetProcessById((int)pi.dwProcessId);
-                // GetProcessById may defer opening its own kernel handle. Force
-                // that open before resume so WaitForExitAsync survives a fast exit.
-                _ = managed.Handle;
-                if (ResumeThread(pi.hThread) == uint.MaxValue)
-                    ThrowLastError("ResumeThread");
-            }
-            catch
-            {
-                // An attach/resume failure must not leave a suspended child behind.
-                TerminateProcess(pi.hProcess, 1);
-                managed?.Dispose();
-                stdinStream?.Dispose();
-                stdoutStream.Dispose();
-                stderrStream.Dispose();
-                throw;
-            }
-            finally
-            {
-                CloseHandle(pi.hThread);
-                pi.hThread = IntPtr.Zero;
-            }
+            managed = Process.GetProcessById((int)pi.dwProcessId);
+            // GetProcessById may defer opening its own kernel handle. Force
+            // that open before resume so WaitForExitAsync survives a fast exit.
+            _ = managed.Handle;
+            if (ResumeThread(pi.hThread) == uint.MaxValue)
+                ThrowLastError("ResumeThread");
+            CloseHandle(pi.hThread);
+            pi.hThread = IntPtr.Zero;
             var rawHandle = pi.hProcess;
             var rawPid = (int)pi.dwProcessId;
             Action killTree = () =>
@@ -235,8 +219,9 @@ internal static class WindowsHandleScrubSpawner
                 finally { CloseHandle(rawHandle); }
             };
 
+            var result = new Result(managed, stdinStream, stdoutStream, stderrStream, killTree);
             success = true; // the process handle is now owned by killTree
-            return new Result(managed, stdinStream, stdoutStream, stderrStream, killTree);
+            return result;
         }
         finally
         {
@@ -249,11 +234,31 @@ internal static class WindowsHandleScrubSpawner
 
             if (!success)
             {
+                // CreateProcessW starts suspended. Every later failure, including
+                // stream construction, must terminate it before closing its handle.
+                if (pi.hProcess != IntPtr.Zero)
+                    TerminateProcess(pi.hProcess, 1);
+                managed?.Dispose();
+                stdinStream?.Dispose();
+                stdoutStream?.Dispose();
+                stderrStream?.Dispose();
                 // Spawn failed partway. Close every kernel handle we created that was
                 // not transferred to a FileStream / killTree (those were zeroed above).
                 foreach (var h in new[] { stdoutRead, stdoutWrite, stderrRead, stderrWrite, stdinRead, stdinWrite, nullHandle, pi.hProcess, pi.hThread })
                     if (h != IntPtr.Zero && h != INVALID_HANDLE_VALUE) CloseHandle(h);
             }
+        }
+    }
+
+    private static FileStream OpenParentStream(ref IntPtr rawHandle, FileAccess access)
+    {
+        var safeHandle = new SafeFileHandle(rawHandle, ownsHandle: true);
+        rawHandle = IntPtr.Zero;
+        try { return new FileStream(safeHandle, access); }
+        catch
+        {
+            safeHandle.Dispose();
+            throw;
         }
     }
 
